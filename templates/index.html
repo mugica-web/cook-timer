@@ -1,0 +1,722 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cooking Timer</title>
+
+    <!-- Link to our CSS stylesheet for visual styling -->
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+
+    <h1>🍳 Cooking Timer</h1>
+
+    <!-- ========== SETUP SECTION ========== -->
+    <!-- This is where the user adds dishes and steps BEFORE starting -->
+    <div id="setup-section">
+        <h2>Plan Your Meal</h2>
+
+        <!-- Timing mode toggle: should everything START or FINISH at the same time? -->
+        <div class="mode-toggle">
+            <span class="mode-label">Timing mode:</span>
+            <div class="toggle-buttons">
+                <!-- When "Start Together" is selected, all dishes begin cooking at once.
+                     Each step fires at its offset from now.
+                     Example: Chicken "flip" at 15 min fires 15 min from now. -->
+                <button id="mode-start" class="btn btn-mode active" onclick="setMode('start')">
+                    Start Together
+                </button>
+                <!-- When "Finish Together" is selected, the app works BACKWARDS so all
+                     dishes finish at the same time. Shorter dishes start later.
+                     Example: If chicken takes 45 min and rice takes 20 min,
+                     rice won't start until 25 min in. -->
+                <button id="mode-finish" class="btn btn-mode" onclick="setMode('finish')">
+                    Finish Together
+                </button>
+            </div>
+            <p class="mode-description" id="mode-description">
+                All dishes start cooking at the same time.
+            </p>
+        </div>
+
+        <!-- Container where dish cards will be added dynamically -->
+        <div id="dishes-container"></div>
+
+        <!-- Buttons to add a dish and to start all timers -->
+        <div class="button-row">
+            <button onclick="addDish()" class="btn btn-add">+ Add Dish</button>
+            <button onclick="startCooking()" class="btn btn-start">Start Cooking!</button>
+        </div>
+
+        <!-- ========== SAVED DISHES SECTION ========== -->
+        <!-- Shows dishes previously saved to localStorage. Users can load
+             them into the active setup or delete them. -->
+        <div id="saved-section">
+            <h3>Saved Dishes</h3>
+            <div id="saved-dishes-container">
+                <p class="saved-empty">No saved dishes yet. Use the "Save" button on a dish to save it.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========== TIMER SECTION ========== -->
+    <!-- Hidden at first, shown when "Start Cooking" is clicked -->
+    <div id="timer-section" style="display: none;">
+        <h2>Cooking In Progress...</h2>
+
+        <!-- Live countdowns will be displayed here -->
+        <div id="timers-container"></div>
+
+        <!-- Button to stop and go back to setup -->
+        <button onclick="stopCooking()" class="btn btn-stop">Stop & Reset</button>
+    </div>
+
+    <script>
+    // ================================================================
+    // JAVASCRIPT — All the interactive logic for our cooking timer
+    // ================================================================
+
+    // This counter gives each dish a unique ID so we can tell them apart.
+    let dishCounter = 0;
+
+    // This will hold our setInterval ID so we can stop the countdown loop.
+    let timerInterval = null;
+
+    // NEW DATA MODEL: Instead of a flat list of all timers, we now track
+    // dishes, each with a queue of steps. Only one step per dish is active
+    // at a time — when it fires, the next step begins counting down.
+    //
+    // activeDishes = [
+    //   {
+    //     name: "Chicken",
+    //     currentStep: 0,        // index of the step currently counting down
+    //     done: false,           // true when all steps have fired
+    //     steps: [
+    //       { action: "Put in oven", fireTime: Date, fired: false, isWait: false },
+    //       { action: "Flip",        fireTime: Date, fired: false, isWait: false },
+    //     ]
+    //   }
+    // ]
+    let activeDishes = [];
+
+    // Timing mode: "start" = all dishes start together,
+    //              "finish" = all dishes finish together.
+    let timingMode = "start";
+
+
+    // setMode(mode) — Switches between "start together" and "finish together".
+    // Updates the button styling and description text.
+    function setMode(mode) {
+        timingMode = mode;
+
+        // Update button styles — "active" class highlights the selected one
+        document.getElementById("mode-start").className =
+            "btn btn-mode" + (mode === "start" ? " active" : "");
+        document.getElementById("mode-finish").className =
+            "btn btn-mode" + (mode === "finish" ? " active" : "");
+
+        // Update the description text below the toggle
+        const desc = document.getElementById("mode-description");
+        if (mode === "start") {
+            desc.textContent = "All dishes start cooking at the same time.";
+        } else {
+            desc.textContent = "All dishes finish at the same time. Shorter dishes start later.";
+        }
+    }
+
+
+    // ---- SETUP FUNCTIONS ----
+
+    // addDish() — Creates a new dish card in the setup section.
+    // Called when the user clicks "+ Add Dish".
+    function addDish() {
+        dishCounter++;
+        const dishId = dishCounter;
+
+        // Create a new <div> element for this dish
+        const dishDiv = document.createElement("div");
+        dishDiv.className = "dish-card";
+        dishDiv.id = "dish-" + dishId;
+
+        // Set the HTML inside the dish card.
+        // It includes:
+        //   - A text input for the dish name
+        //   - A container for steps
+        //   - A button to add steps
+        //   - A button to remove the dish
+        dishDiv.innerHTML =
+            '<div class="dish-header">' +
+                '<input type="text" placeholder="Dish name (e.g. Chicken)" class="dish-name">' +
+                '<div class="dish-header-buttons">' +
+                    '<button onclick="saveDish(' + dishId + ')" class="btn btn-save">Save</button>' +
+                    '<button onclick="removeDish(' + dishId + ')" class="btn btn-remove">Remove</button>' +
+                '</div>' +
+            '</div>' +
+            '<div class="steps-container" id="steps-' + dishId + '"></div>' +
+            '<button onclick="addStep(' + dishId + ')" class="btn btn-add-step">+ Add Step</button>';
+
+        // Append the dish card to the dishes container
+        document.getElementById("dishes-container").appendChild(dishDiv);
+
+        // Automatically add one step to get the user started
+        addStep(dishId);
+    }
+
+
+    // addStep(dishId) — Adds a new step row to a dish.
+    // Each step has: an action description and a time in minutes.
+    function addStep(dishId) {
+        const stepsContainer = document.getElementById("steps-" + dishId);
+
+        const stepDiv = document.createElement("div");
+        stepDiv.className = "step-row";
+
+        stepDiv.innerHTML =
+            '<input type="text" placeholder="Action (e.g. Flip chicken)" class="step-action">' +
+            '<input type="number" placeholder="Min" min="0" step="0.1" class="step-minutes" title="How long this step takes (decimals OK, e.g. 2.5 = 2m 30s)">' +
+            '<span class="step-label">min</span>' +
+            '<button onclick="this.parentElement.remove()" class="btn btn-remove-step">✕</button>';
+
+        stepsContainer.appendChild(stepDiv);
+    }
+
+
+    // removeDish(dishId) — Removes an entire dish card from the page.
+    function removeDish(dishId) {
+        const dish = document.getElementById("dish-" + dishId);
+        if (dish) {
+            dish.remove();
+        }
+    }
+
+
+    // ---- COOKING / TIMER FUNCTIONS ----
+
+    // startCooking() — Reads all dishes and steps, builds the activeDishes
+    // array, and switches to the timer view.
+    function startCooking() {
+        activeDishes = [];
+        const now = new Date();
+
+        // Find all dish cards on the page
+        const dishCards = document.querySelectorAll(".dish-card");
+
+        if (dishCards.length === 0) {
+            alert("Add at least one dish first!");
+            return;
+        }
+
+        // First pass: collect all dishes and their steps.
+        // We need ALL the data before calculating times, because "finish together"
+        // mode needs to know the longest dish duration first.
+        const rawDishes = [];
+
+        dishCards.forEach(function(card) {
+            const dishName = card.querySelector(".dish-name").value || "Unnamed Dish";
+            const stepRows = card.querySelectorAll(".step-row");
+            const steps = [];
+
+            stepRows.forEach(function(row) {
+                const action = row.querySelector(".step-action").value || "Do something";
+                // parseFloat instead of parseInt — this handles decimals like 2.5
+                const minutes = parseFloat(row.querySelector(".step-minutes").value) || 0;
+                steps.push({ action: action, minutes: minutes });
+            });
+
+            if (steps.length > 0) {
+                // Each step's "minutes" is a DURATION (how long that step takes).
+                // Total cooking time = sum of all step durations.
+                //   Example: "Boil water" 5 min + "Cook pasta" 10 min + "Drain" 1 min = 16 min total
+                const totalMinutes = steps.reduce(function(sum, s) { return sum + s.minutes; }, 0);
+                rawDishes.push({ name: dishName, steps: steps, totalMinutes: totalMinutes });
+            }
+        });
+
+        if (rawDishes.length === 0) {
+            alert("Add at least one step to a dish!");
+            return;
+        }
+
+        // For "finish together" mode, find the longest total cooking time.
+        // All dishes will be aligned so they finish at the same moment.
+        const overallMax = Math.max(...rawDishes.map(function(d) { return d.totalMinutes; }));
+
+        // Second pass: build the activeDishes array with fire times.
+        rawDishes.forEach(function(dish) {
+            // In "start together" mode, the delay is 0 — everything starts now.
+            // In "finish together" mode, shorter dishes are delayed so they
+            // finish when the longest dish finishes.
+            //   Example: longest dish = 45 min total, this dish = 16 min total
+            //            delay = 45 - 16 = 29 min (this dish starts 29 min late)
+            const delayMinutes = (timingMode === "finish")
+                ? overallMax - dish.totalMinutes
+                : 0;
+
+            const timerSteps = [];
+
+            // If in "finish together" mode and this dish has a delay,
+            // insert a "waiting" step at the front. This counts down until
+            // the dish actually needs to start cooking.
+            if (delayMinutes > 0) {
+                const waitFireTime = new Date(now.getTime() + delayMinutes * 60 * 1000);
+                timerSteps.push({
+                    action: "Start " + dish.name,
+                    fireTime: waitFireTime,
+                    fired: false,
+                    isWait: true    // flag so we can style it differently
+                });
+            }
+
+            // Add the actual cooking steps with cumulative fire times.
+            // Each step fires after all previous steps have completed.
+            //   Example: step durations are 5, 10, 1 minutes
+            //            fire times: 5 min, 15 min (5+10), 16 min (5+10+1)
+            //   With a delay of 29 min:
+            //            fire times: 34 min, 44 min, 45 min
+            let cumulativeMinutes = delayMinutes;
+
+            dish.steps.forEach(function(step) {
+                // Add this step's duration to the running total
+                cumulativeMinutes += step.minutes;
+
+                const fireTime = new Date(now.getTime() + cumulativeMinutes * 60 * 1000);
+
+                timerSteps.push({
+                    action: step.action,
+                    fireTime: fireTime,
+                    fired: false,
+                    isWait: false
+                });
+            });
+
+            activeDishes.push({
+                name: dish.name,
+                currentStep: 0,     // start at the first step
+                done: false,
+                steps: timerSteps
+            });
+        });
+
+        // Ask the browser for notification permission.
+        if ("Notification" in window && Notification.permission === "default") {
+            Notification.requestPermission();
+        }
+
+        // Switch from setup view to timer view
+        document.getElementById("setup-section").style.display = "none";
+        document.getElementById("timer-section").style.display = "block";
+
+        // Build the timer display — one card per dish
+        renderDishes();
+
+        // Start the countdown loop — runs every second (1000 milliseconds)
+        timerInterval = setInterval(updateTimers, 1000);
+    }
+
+
+    // renderDishes() — Creates one timer card per dish, showing only
+    // the current step for each dish.
+    function renderDishes() {
+        const container = document.getElementById("timers-container");
+        container.innerHTML = "";
+
+        activeDishes.forEach(function(dish, index) {
+            const div = document.createElement("div");
+            div.id = "dish-timer-" + index;
+            container.appendChild(div);
+
+            // Render the current step into this dish's card
+            renderDishCard(index);
+        });
+    }
+
+
+    // renderDishCard(dishIndex) — Updates a single dish's timer card
+    // to show its current step. Called on initial render and when
+    // advancing to the next step.
+    function renderDishCard(dishIndex) {
+        const dish = activeDishes[dishIndex];
+        const container = document.getElementById("dish-timer-" + dishIndex);
+        if (!container) return;
+
+        // If all steps are done, show a completed card
+        if (dish.done) {
+            container.innerHTML =
+                '<div class="timer-card done">' +
+                    '<div class="timer-dish">' + dish.name + '</div>' +
+                    '<div class="timer-action">All done!</div>' +
+                    '<div class="timer-countdown">Done</div>' +
+                    '<div class="timer-progress">All steps completed</div>' +
+                '</div>';
+            return;
+        }
+
+        const step = dish.steps[dish.currentStep];
+
+        // Count only real cooking steps (exclude the auto-inserted wait step)
+        // so progress shows "Step 1 of 3" not "Step 2 of 4"
+        const hasWait = dish.steps[0].isWait;
+        const cookingSteps = hasWait ? dish.steps.length - 1 : dish.steps.length;
+        const cookingStepNumber = hasWait
+            ? dish.currentStep       // wait is index 0, so first cooking step is index 1 → display 1
+            : dish.currentStep + 1;
+
+        // Determine the CSS class based on whether this is a "wait" step
+        const cardClass = step.isWait ? "timer-card waiting" : "timer-card upcoming";
+
+        // Show which step we're on (e.g., "Step 2 of 3")
+        const progressText = step.isWait
+            ? "Waiting to start..."
+            : "Step " + cookingStepNumber + " of " + cookingSteps;
+
+        container.innerHTML =
+            '<div class="' + cardClass + '">' +
+                '<div class="timer-dish">' + dish.name + '</div>' +
+                '<div class="timer-action">' + step.action + '</div>' +
+                '<div class="timer-countdown" id="countdown-' + dishIndex + '">--:--</div>' +
+                '<div class="timer-progress">' + progressText + '</div>' +
+            '</div>';
+    }
+
+
+    // updateTimers() — Called every second by setInterval.
+    // For each dish, counts down the current step. When it fires,
+    // advances to the next step in that dish's queue.
+    function updateTimers() {
+        const now = new Date();
+        let allDone = true;
+
+        activeDishes.forEach(function(dish, dishIndex) {
+            // Skip dishes that are fully completed
+            if (dish.done) return;
+
+            allDone = false;
+
+            const step = dish.steps[dish.currentStep];
+            const countdownEl = document.getElementById("countdown-" + dishIndex);
+            const container = document.getElementById("dish-timer-" + dishIndex);
+
+            if (!countdownEl || !container) return;
+
+            // Get the card element (the first child of the container div)
+            const cardEl = container.querySelector(".timer-card");
+
+            // Calculate remaining time in seconds
+            const remaining = Math.round((step.fireTime - now) / 1000);
+
+            if (remaining <= 0 && !step.fired) {
+                // STEP FIRED! — Time to alert the user
+                step.fired = true;
+                countdownEl.textContent = "NOW!";
+
+                if (cardEl) cardEl.className = "timer-card fired";
+
+                // Play beep and send notification (skip beep for wait steps)
+                if (!step.isWait) {
+                    playBeep();
+                }
+                sendNotification(dish.name, step.action);
+
+                // After 3 seconds, advance to the next step (or mark done)
+                setTimeout(function() {
+                    advanceDish(dishIndex);
+                }, 3000);
+
+            } else if (!step.fired) {
+                // Timer is still counting down
+                const mins = Math.floor(remaining / 60);
+                const secs = remaining % 60;
+                countdownEl.textContent =
+                    String(mins).padStart(2, "0") + ":" +
+                    String(secs).padStart(2, "0");
+
+                // Color-code based on urgency
+                if (cardEl) {
+                    if (step.isWait) {
+                        cardEl.className = "timer-card waiting";
+                    } else if (remaining <= 30) {
+                        cardEl.className = "timer-card imminent";
+                    } else {
+                        cardEl.className = "timer-card upcoming";
+                    }
+                }
+            }
+        });
+
+        // If every dish is done, stop the interval loop
+        if (allDone) {
+            clearInterval(timerInterval);
+        }
+    }
+
+
+    // advanceDish(dishIndex) — Moves a dish to its next step, or marks
+    // it as done if there are no more steps.
+    function advanceDish(dishIndex) {
+        const dish = activeDishes[dishIndex];
+
+        if (dish.currentStep < dish.steps.length - 1) {
+            // Move to the next step
+            dish.currentStep++;
+            // Re-render just this dish's card with the new step
+            renderDishCard(dishIndex);
+        } else {
+            // No more steps — this dish is fully done
+            dish.done = true;
+            renderDishCard(dishIndex);
+        }
+    }
+
+
+    // playBeep() — Generates a short beep sound using the Web Audio API.
+    // No sound files needed — we create the sound from scratch!
+    function playBeep() {
+        try {
+            // AudioContext is the browser's built-in sound synthesizer
+            const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+            // An "oscillator" generates a tone (like a tuning fork)
+            const oscillator = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+
+            oscillator.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+
+            // Set the pitch (frequency) — 880 Hz is a high A note
+            oscillator.frequency.value = 880;
+            oscillator.type = "sine";
+
+            // Set volume
+            gainNode.gain.value = 0.3;
+
+            // Play for 0.3 seconds
+            oscillator.start();
+            oscillator.stop(audioCtx.currentTime + 0.3);
+
+            // Play a second beep after a short pause
+            setTimeout(function() {
+                const osc2 = audioCtx.createOscillator();
+                const gain2 = audioCtx.createGain();
+                osc2.connect(gain2);
+                gain2.connect(audioCtx.destination);
+                osc2.frequency.value = 880;
+                osc2.type = "sine";
+                gain2.gain.value = 0.3;
+                osc2.start();
+                osc2.stop(audioCtx.currentTime + 0.3);
+            }, 400);
+        } catch (e) {
+            // If audio fails (e.g., browser blocks it), just skip it
+            console.log("Could not play beep:", e);
+        }
+    }
+
+
+    // sendNotification(dish, action) — Sends a desktop notification popup.
+    function sendNotification(dish, action) {
+        if ("Notification" in window && Notification.permission === "granted") {
+            new Notification("🍳 " + dish, {
+                body: action,
+                icon: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🍳</text></svg>"
+            });
+        }
+    }
+
+
+    // stopCooking() — Stops all timers and returns to the setup screen.
+    function stopCooking() {
+        clearInterval(timerInterval);
+        activeDishes = [];
+
+        document.getElementById("timer-section").style.display = "none";
+        document.getElementById("setup-section").style.display = "block";
+    }
+
+
+    // ---- SAVED DISHES (localStorage) ----
+    //
+    // localStorage is a browser feature that stores key-value pairs
+    // that persist even after you close the tab. We use it to save
+    // dish recipes so the user doesn't have to re-enter them.
+    //
+    // We store everything under one key: "cookTimer_savedDishes"
+    // The value is a JSON string representing an array of dishes:
+    //   [{ name: "Pasta", steps: [{ action: "Boil water", minutes: 5 }, ...] }, ...]
+
+    // getSavedDishes() — Reads the saved dishes array from localStorage.
+    // Returns an empty array if nothing is saved yet.
+    function getSavedDishes() {
+        const data = localStorage.getItem("cookTimer_savedDishes");
+        if (data) {
+            return JSON.parse(data);
+        }
+        return [];
+    }
+
+
+    // setSavedDishes(dishes) — Writes the dishes array to localStorage.
+    function setSavedDishes(dishes) {
+        localStorage.setItem("cookTimer_savedDishes", JSON.stringify(dishes));
+    }
+
+
+    // saveDish(dishId) — Reads a dish card's name and steps from the DOM,
+    // then saves it to localStorage.
+    function saveDish(dishId) {
+        const card = document.getElementById("dish-" + dishId);
+        if (!card) return;
+
+        const name = card.querySelector(".dish-name").value.trim();
+        if (!name) {
+            alert("Give the dish a name before saving.");
+            return;
+        }
+
+        // Read all step rows from this dish card
+        const stepRows = card.querySelectorAll(".step-row");
+        const steps = [];
+
+        stepRows.forEach(function(row) {
+            const action = row.querySelector(".step-action").value.trim() || "Do something";
+            const minutes = parseFloat(row.querySelector(".step-minutes").value) || 0;
+            steps.push({ action: action, minutes: minutes });
+        });
+
+        if (steps.length === 0) {
+            alert("Add at least one step before saving.");
+            return;
+        }
+
+        // Load existing saved dishes, check for duplicates
+        const saved = getSavedDishes();
+        const existingIndex = saved.findIndex(function(d) { return d.name === name; });
+
+        if (existingIndex >= 0) {
+            // A dish with this name already exists — ask to overwrite
+            if (!confirm('"' + name + '" is already saved. Overwrite it?')) {
+                return;
+            }
+            saved[existingIndex] = { name: name, steps: steps };
+        } else {
+            saved.push({ name: name, steps: steps });
+        }
+
+        setSavedDishes(saved);
+        renderSavedDishes();
+    }
+
+
+    // deleteSavedDish(index) — Removes a saved dish by its index in the array.
+    function deleteSavedDish(index) {
+        const saved = getSavedDishes();
+        if (index >= 0 && index < saved.length) {
+            saved.splice(index, 1);  // remove 1 element at position 'index'
+            setSavedDishes(saved);
+            renderSavedDishes();
+        }
+    }
+
+
+    // loadDish(index) — Creates a new dish card pre-filled with a saved
+    // dish's name and steps.
+    function loadDish(index) {
+        const saved = getSavedDishes();
+        if (index < 0 || index >= saved.length) return;
+
+        const recipe = saved[index];
+
+        // Create a new empty dish card
+        dishCounter++;
+        const dishId = dishCounter;
+
+        const dishDiv = document.createElement("div");
+        dishDiv.className = "dish-card";
+        dishDiv.id = "dish-" + dishId;
+
+        dishDiv.innerHTML =
+            '<div class="dish-header">' +
+                '<input type="text" placeholder="Dish name (e.g. Chicken)" class="dish-name">' +
+                '<div class="dish-header-buttons">' +
+                    '<button onclick="saveDish(' + dishId + ')" class="btn btn-save">Save</button>' +
+                    '<button onclick="removeDish(' + dishId + ')" class="btn btn-remove">Remove</button>' +
+                '</div>' +
+            '</div>' +
+            '<div class="steps-container" id="steps-' + dishId + '"></div>' +
+            '<button onclick="addStep(' + dishId + ')" class="btn btn-add-step">+ Add Step</button>';
+
+        document.getElementById("dishes-container").appendChild(dishDiv);
+
+        // Fill in the dish name
+        dishDiv.querySelector(".dish-name").value = recipe.name;
+
+        // Add a step row for each saved step and fill in the values
+        const stepsContainer = document.getElementById("steps-" + dishId);
+
+        recipe.steps.forEach(function(step) {
+            const stepDiv = document.createElement("div");
+            stepDiv.className = "step-row";
+
+            stepDiv.innerHTML =
+                '<input type="text" placeholder="Action (e.g. Flip chicken)" class="step-action">' +
+                '<input type="number" placeholder="Min" min="0" step="0.1" class="step-minutes" title="How long this step takes (decimals OK, e.g. 2.5 = 2m 30s)">' +
+                '<span class="step-label">min</span>' +
+                '<button onclick="this.parentElement.remove()" class="btn btn-remove-step">✕</button>';
+
+            stepsContainer.appendChild(stepDiv);
+
+            // Set the values from the saved recipe
+            stepDiv.querySelector(".step-action").value = step.action;
+            stepDiv.querySelector(".step-minutes").value = step.minutes;
+        });
+    }
+
+
+    // renderSavedDishes() — Rebuilds the saved dishes panel from localStorage.
+    function renderSavedDishes() {
+        const container = document.getElementById("saved-dishes-container");
+        const saved = getSavedDishes();
+
+        if (saved.length === 0) {
+            container.innerHTML =
+                '<p class="saved-empty">No saved dishes yet. Use the "Save" button on a dish to save it.</p>';
+            return;
+        }
+
+        container.innerHTML = "";
+
+        saved.forEach(function(dish, index) {
+            const div = document.createElement("div");
+            div.className = "saved-dish-row";
+
+            // Build a short summary of the steps, e.g. "3 steps, 16 min total"
+            const totalMin = dish.steps.reduce(function(sum, s) { return sum + s.minutes; }, 0);
+            const totalDisplay = (totalMin % 1 === 0) ? totalMin : totalMin.toFixed(1);
+            const summary = dish.steps.length + " step" + (dish.steps.length === 1 ? "" : "s") +
+                ", " + totalDisplay + " min total";
+
+            div.innerHTML =
+                '<div class="saved-dish-info">' +
+                    '<span class="saved-dish-name">' + dish.name + '</span>' +
+                    '<span class="saved-dish-summary">' + summary + '</span>' +
+                '</div>' +
+                '<div class="saved-dish-buttons">' +
+                    '<button onclick="loadDish(' + index + ')" class="btn btn-load">Load</button>' +
+                    '<button onclick="deleteSavedDish(' + index + ')" class="btn btn-delete">Delete</button>' +
+                '</div>';
+
+            container.appendChild(div);
+        });
+    }
+
+
+    // ---- INITIALIZE ----
+    // Add one dish automatically when the page loads so it's not empty.
+    addDish();
+
+    // Render any previously saved dishes from localStorage.
+    renderSavedDishes();
+
+    </script>
+</body>
+</html>

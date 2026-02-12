@@ -1,0 +1,13 @@
+# Python cache files — auto-generated, not real code
+__pycache__/
+*.pyc
+
+# Virtual environment — anyone can recreate this with "pip install flask"
+venv/
+
+# Environment variables — may contain secrets/passwords
+.env
+
+# OS-generated files
+.DS_Store
+Thumbs.db
