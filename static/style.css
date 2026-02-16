@@ -30,6 +30,100 @@ h2 {
 }
 
 
+/* ========== USER BAR (logged-in state) ========== */
+
+.user-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: #16213e;
+    border: 1px solid #333;
+    border-radius: 8px;
+    padding: 8px 16px;
+    margin-bottom: 20px;
+    font-size: 0.9em;
+    color: #aaa;
+}
+
+.btn-logout {
+    background-color: transparent;
+    color: #888;
+    font-size: 0.85em;
+    padding: 6px 12px;
+}
+
+.btn-logout:hover {
+    color: #e74c3c;
+}
+
+
+/* ========== AUTH SECTION (login/signup) ========== */
+
+.auth-form {
+    max-width: 360px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.auth-input {
+    padding: 12px 14px;
+    border: 1px solid #444;
+    border-radius: 8px;
+    background-color: #0f3460;
+    color: white;
+    font-size: 1em;
+    font-family: inherit;
+}
+
+.auth-input::placeholder {
+    color: #777;
+}
+
+.auth-buttons {
+    display: flex;
+    gap: 10px;
+}
+
+.btn-login {
+    flex: 1;
+    background-color: #4a90d9;
+    color: white;
+    font-size: 1em;
+    padding: 12px;
+}
+
+.btn-signup {
+    flex: 1;
+    background-color: #2d6a4f;
+    color: white;
+    font-size: 1em;
+    padding: 12px;
+}
+
+.auth-divider {
+    text-align: center;
+    color: #666;
+    font-size: 0.85em;
+}
+
+.btn-google {
+    background-color: #db4437;
+    color: white;
+    font-size: 1em;
+    padding: 12px;
+    width: 100%;
+}
+
+.auth-error {
+    color: #e74c3c;
+    font-size: 0.85em;
+    text-align: center;
+    min-height: 1.2em;
+}
+
+
 /* ========== BUTTONS ========== */
 
 .btn {
@@ -170,6 +264,39 @@ h2 {
     margin-top: 10px;
     font-size: 0.85em;
     color: #999;
+}
+
+/* "Done By" time picker row */
+.done-by-picker {
+    margin-top: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+}
+
+.done-by-picker label {
+    font-size: 0.95em;
+    color: #ccc;
+}
+
+.done-by-time-input {
+    padding: 8px 12px;
+    border: 1px solid #444;
+    border-radius: 6px;
+    background-color: #0f3460;
+    color: white;
+    font-size: 1.1em;
+    font-family: inherit;
+}
+
+/* Target time info shown in timer view */
+.done-by-info {
+    text-align: center;
+    font-size: 1.05em;
+    color: #4a90d9;
+    margin-bottom: 16px;
+    font-weight: 600;
 }
 
 

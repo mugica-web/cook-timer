@@ -7,14 +7,46 @@
 
     <!-- Link to our CSS stylesheet for visual styling -->
     <link rel="stylesheet" href="/static/style.css">
+
+    <!-- Firebase SDK (loaded from Google's CDN — no install needed).
+         We use the "compat" version which works with simple <script> tags.
+         Three parts: the core app, authentication, and Firestore database. -->
+    <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
 </head>
 <body>
 
     <h1>🍳 Cooking Timer</h1>
 
+    <!-- ========== USER BAR ========== -->
+    <!-- Shown when logged in. Displays the user's email and a sign-out button. -->
+    <div id="user-bar" class="user-bar" style="display: none;">
+        <span id="user-email"></span>
+        <button onclick="logOut()" class="btn btn-logout">Sign Out</button>
+    </div>
+
+    <!-- ========== AUTH SECTION ========== -->
+    <!-- Shown when NOT logged in. The user must sign in before using the app. -->
+    <div id="auth-section">
+        <h2>Sign in to sync your dishes</h2>
+        <div class="auth-form">
+            <input type="email" id="auth-email" placeholder="Email address" class="auth-input">
+            <input type="password" id="auth-password" placeholder="Password" class="auth-input">
+            <div class="auth-buttons">
+                <button onclick="emailLogIn()" class="btn btn-login">Log In</button>
+                <button onclick="emailSignUp()" class="btn btn-signup">Sign Up</button>
+            </div>
+            <div class="auth-divider"><span>or</span></div>
+            <button onclick="googleSignIn()" class="btn btn-google">Sign in with Google</button>
+            <p id="auth-error" class="auth-error"></p>
+        </div>
+    </div>
+
     <!-- ========== SETUP SECTION ========== -->
-    <!-- This is where the user adds dishes and steps BEFORE starting -->
-    <div id="setup-section">
+    <!-- This is where the user adds dishes and steps BEFORE starting.
+         Hidden by default — shown after the user signs in. -->
+    <div id="setup-section" style="display: none;">
         <h2>Plan Your Meal</h2>
 
         <!-- Timing mode toggle: should everything START or FINISH at the same time? -->
@@ -34,10 +66,20 @@
                 <button id="mode-finish" class="btn btn-mode" onclick="setMode('finish')">
                     Finish Together
                 </button>
+                <!-- "Done By" mode lets the user pick a clock time (e.g. 6:00 PM)
+                     and the app works backward so all dishes are done by then. -->
+                <button id="mode-done-by" class="btn btn-mode" onclick="setMode('done-by')">
+                    Done By
+                </button>
             </div>
             <p class="mode-description" id="mode-description">
                 All dishes start cooking at the same time.
             </p>
+            <!-- Time picker — only visible in "done-by" mode -->
+            <div id="done-by-picker" class="done-by-picker" style="display: none;">
+                <label for="done-by-time">Everything done by:</label>
+                <input type="time" id="done-by-time" class="done-by-time-input">
+            </div>
         </div>
 
         <!-- Container where dish cards will be added dynamically -->
@@ -64,6 +106,8 @@
     <!-- Hidden at first, shown when "Start Cooking" is clicked -->
     <div id="timer-section" style="display: none;">
         <h2>Cooking In Progress...</h2>
+        <!-- Shows the target finish time when in "done-by" mode -->
+        <p id="done-by-info" class="done-by-info" style="display: none;"></p>
 
         <!-- Live countdowns will be displayed here -->
         <div id="timers-container"></div>
@@ -77,15 +121,114 @@
     // JAVASCRIPT — All the interactive logic for our cooking timer
     // ================================================================
 
+
+    // ---- FIREBASE INITIALIZATION ----
+    //
+    // firebase.initializeApp() connects our app to our Firebase project.
+    // The config object contains public keys that identify our project —
+    // they're safe to include in client-side code (security comes from
+    // Firestore rules, not from hiding these keys).
+    firebase.initializeApp({
+        apiKey: "***REMOVED***",
+        authDomain: "cook-timer-69256.firebaseapp.com",
+        projectId: "cook-timer-69256",
+        storageBucket: "cook-timer-69256.firebasestorage.app",
+        messagingSenderId: "207322185688",
+        appId: "1:207322185688:web:92edf8b87f61abee85bcad"
+    });
+
+    // Shorthand references so we don't have to type firebase.auth() everywhere
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+
+
+    // ---- AUTHENTICATION FUNCTIONS ----
+
+    // emailLogIn() — Signs in with an existing email + password account.
+    function emailLogIn() {
+        const email = document.getElementById("auth-email").value;
+        const password = document.getElementById("auth-password").value;
+        const errorEl = document.getElementById("auth-error");
+        errorEl.textContent = "";
+
+        auth.signInWithEmailAndPassword(email, password)
+            .catch(function(error) {
+                errorEl.textContent = error.message;
+            });
+    }
+
+    // emailSignUp() — Creates a NEW account with email + password.
+    // After sign-up, the user is automatically logged in.
+    function emailSignUp() {
+        const email = document.getElementById("auth-email").value;
+        const password = document.getElementById("auth-password").value;
+        const errorEl = document.getElementById("auth-error");
+        errorEl.textContent = "";
+
+        auth.createUserWithEmailAndPassword(email, password)
+            .catch(function(error) {
+                errorEl.textContent = error.message;
+            });
+    }
+
+    // googleSignIn() — Opens a Google sign-in popup.
+    function googleSignIn() {
+        const provider = new firebase.auth.GoogleAuthProvider();
+        auth.signInWithPopup(provider)
+            .catch(function(error) {
+                document.getElementById("auth-error").textContent = error.message;
+            });
+    }
+
+    // logOut() — Signs the user out and returns to the login screen.
+    function logOut() {
+        auth.signOut();
+    }
+
+
+    // ---- AUTH STATE LISTENER ----
+    //
+    // onAuthStateChanged fires whenever the user logs in or out.
+    // It controls which sections are visible:
+    //   - Logged out → show auth section, hide everything else
+    //   - Logged in  → hide auth section, show setup + user bar
+    auth.onAuthStateChanged(function(user) {
+        const authSection = document.getElementById("auth-section");
+        const setupSection = document.getElementById("setup-section");
+        const userBar = document.getElementById("user-bar");
+        const userEmail = document.getElementById("user-email");
+
+        if (user) {
+            // User is logged in — show the app
+            authSection.style.display = "none";
+            setupSection.style.display = "block";
+            userBar.style.display = "flex";
+            userEmail.textContent = user.email || user.displayName || "User";
+
+            // Start listening to this user's saved dishes in Firestore
+            setupDishesListener(user);
+        } else {
+            // User is logged out — show the login form
+            authSection.style.display = "block";
+            setupSection.style.display = "none";
+            document.getElementById("timer-section").style.display = "none";
+            userBar.style.display = "none";
+
+            // Clean up the Firestore listener
+            setupDishesListener(null);
+        }
+    });
+
+
+    // ---- APP VARIABLES ----
+
     // This counter gives each dish a unique ID so we can tell them apart.
     let dishCounter = 0;
 
     // This will hold our setInterval ID so we can stop the countdown loop.
     let timerInterval = null;
 
-    // NEW DATA MODEL: Instead of a flat list of all timers, we now track
-    // dishes, each with a queue of steps. Only one step per dish is active
-    // at a time — when it fires, the next step begins counting down.
+    // Data model for active cooking timers:
     //
     // activeDishes = [
     //   {
@@ -101,8 +244,18 @@
     let activeDishes = [];
 
     // Timing mode: "start" = all dishes start together,
-    //              "finish" = all dishes finish together.
+    //              "finish" = all dishes finish together,
+    //              "done-by" = all dishes done by a specific clock time.
     let timingMode = "start";
+
+    // Cache of saved dishes from Firestore.
+    // Each item: { id: "firestore-doc-id", name: "Pasta", steps: [...] }
+    // This is kept in sync automatically by the onSnapshot listener.
+    let cachedSavedDishes = [];
+
+    // Holds the Firestore listener cleanup function so we can
+    // unsubscribe when the user logs out or switches accounts.
+    let unsubscribeDishes = null;
 
 
     // setMode(mode) — Switches between "start together" and "finish together".
@@ -115,13 +268,33 @@
             "btn btn-mode" + (mode === "start" ? " active" : "");
         document.getElementById("mode-finish").className =
             "btn btn-mode" + (mode === "finish" ? " active" : "");
+        document.getElementById("mode-done-by").className =
+            "btn btn-mode" + (mode === "done-by" ? " active" : "");
 
         // Update the description text below the toggle
         const desc = document.getElementById("mode-description");
         if (mode === "start") {
             desc.textContent = "All dishes start cooking at the same time.";
-        } else {
+        } else if (mode === "finish") {
             desc.textContent = "All dishes finish at the same time. Shorter dishes start later.";
+        } else {
+            desc.textContent = "Pick a time — the app tells you when to start each dish.";
+        }
+
+        // Show/hide the time picker (only visible in "done-by" mode)
+        const picker = document.getElementById("done-by-picker");
+        picker.style.display = (mode === "done-by") ? "block" : "none";
+
+        // Set a default time when first switching to done-by mode
+        // (round up to the next 15-minute mark, plus 1 hour)
+        const timeInput = document.getElementById("done-by-time");
+        if (mode === "done-by" && !timeInput.value) {
+            const now = new Date();
+            now.setHours(now.getHours() + 1);
+            now.setMinutes(Math.ceil(now.getMinutes() / 15) * 15, 0, 0);
+            const hh = String(now.getHours()).padStart(2, "0");
+            const mm = String(now.getMinutes()).padStart(2, "0");
+            timeInput.value = hh + ":" + mm;
         }
     }
 
@@ -242,16 +415,66 @@
         // All dishes will be aligned so they finish at the same moment.
         const overallMax = Math.max(...rawDishes.map(function(d) { return d.totalMinutes; }));
 
+        // For "done-by" mode, calculate how many minutes until the target time.
+        // This replaces overallMax as the anchor — instead of aligning to the
+        // longest dish, we align everything to a specific clock time.
+        let totalAvailableMinutes = overallMax; // default for non-done-by modes
+
+        if (timingMode === "done-by") {
+            const timeInput = document.getElementById("done-by-time");
+            if (!timeInput.value) {
+                alert("Pick a target time first!");
+                return;
+            }
+
+            // Parse the time input (e.g. "18:00") into a Date for today
+            const parts = timeInput.value.split(":");
+            const targetDate = new Date();
+            targetDate.setHours(parseInt(parts[0]), parseInt(parts[1]), 0, 0);
+
+            // If the target time has already passed today, assume tomorrow
+            if (targetDate <= now) {
+                targetDate.setDate(targetDate.getDate() + 1);
+            }
+
+            totalAvailableMinutes = (targetDate - now) / 60000;
+
+            // Check that there's enough time for the longest dish
+            const longestDish = rawDishes.reduce(function(longest, d) {
+                return d.totalMinutes > longest.totalMinutes ? d : longest;
+            }, rawDishes[0]);
+
+            if (longestDish.totalMinutes > totalAvailableMinutes) {
+                const needed = Math.ceil(longestDish.totalMinutes);
+                const available = Math.floor(totalAvailableMinutes);
+                alert(
+                    '"' + longestDish.name + '" needs ' + needed + ' min, ' +
+                    "but there are only " + available + " min until " +
+                    formatTimeForDisplay(targetDate) + ".\n\n" +
+                    "Pick a later time or shorten your dishes."
+                );
+                return;
+            }
+        }
+
         // Second pass: build the activeDishes array with fire times.
         rawDishes.forEach(function(dish) {
             // In "start together" mode, the delay is 0 — everything starts now.
             // In "finish together" mode, shorter dishes are delayed so they
             // finish when the longest dish finishes.
+            // In "done-by" mode, dishes are delayed so they all finish by the
+            // target clock time (totalAvailableMinutes replaces overallMax).
             //   Example: longest dish = 45 min total, this dish = 16 min total
             //            delay = 45 - 16 = 29 min (this dish starts 29 min late)
-            const delayMinutes = (timingMode === "finish")
-                ? overallMax - dish.totalMinutes
-                : 0;
+            let delayMinutes;
+            if (timingMode === "start") {
+                delayMinutes = 0;
+            } else if (timingMode === "finish") {
+                delayMinutes = overallMax - dish.totalMinutes;
+            } else {
+                // done-by: use the available time until target as the anchor
+                delayMinutes = totalAvailableMinutes - dish.totalMinutes;
+            }
 
             const timerSteps = [];
 
@@ -306,6 +529,21 @@
         // Switch from setup view to timer view
         document.getElementById("setup-section").style.display = "none";
         document.getElementById("timer-section").style.display = "block";
+
+        // In "done-by" mode, show the target finish time in the timer view
+        const doneByInfo = document.getElementById("done-by-info");
+        if (timingMode === "done-by") {
+            const parts = document.getElementById("done-by-time").value.split(":");
+            const targetDate = new Date();
+            targetDate.setHours(parseInt(parts[0]), parseInt(parts[1]), 0, 0);
+            if (targetDate <= now) {
+                targetDate.setDate(targetDate.getDate() + 1);
+            }
+            doneByInfo.textContent = "Everything done by " + formatTimeForDisplay(targetDate);
+            doneByInfo.style.display = "block";
+        } else {
+            doneByInfo.style.display = "none";
+        }
 
         // Build the timer display — one card per dish
         renderDishes();
@@ -513,6 +751,17 @@
     }
 
 
+    // formatTimeForDisplay(date) — Formats a Date as "6:00 PM" for display.
+    function formatTimeForDisplay(date) {
+        let hours = date.getHours();
+        const minutes = String(date.getMinutes()).padStart(2, "0");
+        const ampm = hours >= 12 ? "PM" : "AM";
+        hours = hours % 12;
+        if (hours === 0) hours = 12;
+        return hours + ":" + minutes + " " + ampm;
+    }
+
+
     // sendNotification(dish, action) — Sends a desktop notification popup.
     function sendNotification(dish, action) {
         if ("Notification" in window && Notification.permission === "granted") {
@@ -534,36 +783,66 @@
     }
 
 
-    // ---- SAVED DISHES (localStorage) ----
+    // ---- SAVED DISHES (Firestore) ----
     //
-    // localStorage is a browser feature that stores key-value pairs
-    // that persist even after you close the tab. We use it to save
-    // dish recipes so the user doesn't have to re-enter them.
+    // Previously, saved dishes were stored in localStorage (browser-only).
+    // Now they're stored in Firestore (Google's cloud database), so they:
+    //   - Sync across all devices (phone, laptop, tablet)
+    //   - Are private to each user (secured by Firestore rules)
+    //   - Persist even if browser data is cleared
     //
-    // We store everything under one key: "cookTimer_savedDishes"
-    // The value is a JSON string representing an array of dishes:
-    //   [{ name: "Pasta", steps: [{ action: "Boil water", minutes: 5 }, ...] }, ...]
+    // Firestore structure:
+    //   users/{userId}/dishes/{dishId}
+    //     → { name: "Pasta", steps: [{ action: "Boil water", minutes: 5 }, ...] }
+    //
+    // We use onSnapshot() to listen for real-time changes. This means if you
+    // save a dish on your phone, it appears on your laptop instantly.
 
-    // getSavedDishes() — Reads the saved dishes array from localStorage.
-    // Returns an empty array if nothing is saved yet.
-    function getSavedDishes() {
-        const data = localStorage.getItem("cookTimer_savedDishes");
-        if (data) {
-            return JSON.parse(data);
+    // setupDishesListener(user) — Starts (or stops) listening to a user's
+    // saved dishes in Firestore. Called when auth state changes.
+    function setupDishesListener(user) {
+        // Clean up any previous listener
+        if (unsubscribeDishes) {
+            unsubscribeDishes();
+            unsubscribeDishes = null;
         }
-        return [];
-    }
 
+        if (!user) {
+            // No user logged in — clear the cache and panel
+            cachedSavedDishes = [];
+            renderSavedDishes();
+            return;
+        }
 
-    // setSavedDishes(dishes) — Writes the dishes array to localStorage.
-    function setSavedDishes(dishes) {
-        localStorage.setItem("cookTimer_savedDishes", JSON.stringify(dishes));
+        // onSnapshot sets up a REAL-TIME LISTENER.
+        // Every time the dishes collection changes (add, edit, delete),
+        // this callback runs automatically — no need to manually refresh.
+        unsubscribeDishes = db.collection("users").doc(user.uid)
+            .collection("dishes").onSnapshot(function(snapshot) {
+                cachedSavedDishes = [];
+                snapshot.forEach(function(doc) {
+                    cachedSavedDishes.push({
+                        id: doc.id,          // Firestore auto-generated ID
+                        name: doc.data().name,
+                        steps: doc.data().steps
+                    });
+                });
+                renderSavedDishes();
+            }, function(error) {
+                console.log("Error listening to dishes:", error);
+            });
     }
 
 
     // saveDish(dishId) — Reads a dish card's name and steps from the DOM,
-    // then saves it to localStorage.
+    // then saves it to Firestore under the current user's account.
     function saveDish(dishId) {
+        const user = auth.currentUser;
+        if (!user) {
+            alert("You must be signed in to save dishes.");
+            return;
+        }
+
         const card = document.getElementById("dish-" + dishId);
         if (!card) return;
 
@@ -588,43 +867,43 @@
             return;
         }
 
-        // Load existing saved dishes, check for duplicates
-        const saved = getSavedDishes();
-        const existingIndex = saved.findIndex(function(d) { return d.name === name; });
+        // Reference to this user's dishes collection in Firestore
+        const dishesRef = db.collection("users").doc(user.uid).collection("dishes");
 
-        if (existingIndex >= 0) {
+        // Check if a dish with this name already exists (using our local cache)
+        const existing = cachedSavedDishes.find(function(d) { return d.name === name; });
+
+        if (existing) {
             // A dish with this name already exists — ask to overwrite
             if (!confirm('"' + name + '" is already saved. Overwrite it?')) {
                 return;
             }
-            saved[existingIndex] = { name: name, steps: steps };
+            // Update the existing Firestore document
+            dishesRef.doc(existing.id).set({ name: name, steps: steps });
         } else {
-            saved.push({ name: name, steps: steps });
+            // Add a new document (Firestore auto-generates a unique ID)
+            dishesRef.add({ name: name, steps: steps });
         }
-
-        setSavedDishes(saved);
-        renderSavedDishes();
+        // No need to call renderSavedDishes — the onSnapshot listener does it!
     }
 
 
-    // deleteSavedDish(index) — Removes a saved dish by its index in the array.
-    function deleteSavedDish(index) {
-        const saved = getSavedDishes();
-        if (index >= 0 && index < saved.length) {
-            saved.splice(index, 1);  // remove 1 element at position 'index'
-            setSavedDishes(saved);
-            renderSavedDishes();
-        }
+    // deleteSavedDish(docId) — Removes a saved dish from Firestore.
+    // docId is the Firestore document ID (a string like "abc123xyz").
+    function deleteSavedDish(docId) {
+        const user = auth.currentUser;
+        if (!user) return;
+
+        db.collection("users").doc(user.uid).collection("dishes").doc(docId).delete();
+        // onSnapshot listener automatically updates the UI
     }
 
 
-    // loadDish(index) — Creates a new dish card pre-filled with a saved
-    // dish's name and steps.
-    function loadDish(index) {
-        const saved = getSavedDishes();
-        if (index < 0 || index >= saved.length) return;
-
-        const recipe = saved[index];
+    // loadDish(docId) — Creates a new dish card pre-filled with a saved
+    // dish's name and steps. Reads from the local cache.
+    function loadDish(docId) {
+        const recipe = cachedSavedDishes.find(function(d) { return d.id === docId; });
+        if (!recipe) return;
 
         // Create a new empty dish card
         dishCounter++;
@@ -672,12 +951,12 @@
     }
 
 
-    // renderSavedDishes() — Rebuilds the saved dishes panel from localStorage.
+    // renderSavedDishes() — Rebuilds the saved dishes panel from the
+    // cachedSavedDishes array (kept in sync with Firestore by onSnapshot).
     function renderSavedDishes() {
         const container = document.getElementById("saved-dishes-container");
-        const saved = getSavedDishes();
 
-        if (saved.length === 0) {
+        if (cachedSavedDishes.length === 0) {
             container.innerHTML =
                 '<p class="saved-empty">No saved dishes yet. Use the "Save" button on a dish to save it.</p>';
             return;
@@ -685,7 +964,7 @@
 
         container.innerHTML = "";
 
-        saved.forEach(function(dish, index) {
+        cachedSavedDishes.forEach(function(dish) {
             const div = document.createElement("div");
             div.className = "saved-dish-row";
 
@@ -695,14 +974,16 @@
             const summary = dish.steps.length + " step" + (dish.steps.length === 1 ? "" : "s") +
                 ", " + totalDisplay + " min total";
 
+            // dish.id is a Firestore document ID (string), so we quote it
+            // with escaped single quotes in the onclick handler
             div.innerHTML =
                 '<div class="saved-dish-info">' +
                     '<span class="saved-dish-name">' + dish.name + '</span>' +
                     '<span class="saved-dish-summary">' + summary + '</span>' +
                 '</div>' +
                 '<div class="saved-dish-buttons">' +
-                    '<button onclick="loadDish(' + index + ')" class="btn btn-load">Load</button>' +
-                    '<button onclick="deleteSavedDish(' + index + ')" class="btn btn-delete">Delete</button>' +
+                    '<button onclick="loadDish(\'' + dish.id + '\')" class="btn btn-load">Load</button>' +
+                    '<button onclick="deleteSavedDish(\'' + dish.id + '\')" class="btn btn-delete">Delete</button>' +
                 '</div>';
 
             container.appendChild(div);
@@ -712,10 +993,11 @@
 
     // ---- INITIALIZE ----
     // Add one dish automatically when the page loads so it's not empty.
+    // (The setup section is hidden until login — this just pre-creates the card.)
     addDish();
 
-    // Render any previously saved dishes from localStorage.
-    renderSavedDishes();
+    // Saved dishes are now loaded automatically by the Firestore onSnapshot
+    // listener, which is set up when the user logs in (see setupDishesListener).
 
     </script>
 </body>
