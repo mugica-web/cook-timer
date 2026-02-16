@@ -112,8 +112,11 @@
         <!-- Live countdowns will be displayed here -->
         <div id="timers-container"></div>
 
-        <!-- Button to stop and go back to setup -->
-        <button onclick="stopCooking()" class="btn btn-stop">Stop & Reset</button>
+        <!-- Pause and Stop buttons -->
+        <div class="timer-buttons">
+            <button id="btn-pause" onclick="togglePause()" class="btn btn-pause">Pause</button>
+            <button onclick="confirmStop()" class="btn btn-stop">Stop & Reset</button>
+        </div>
     </div>
 
     <script>
@@ -256,6 +259,16 @@
     // Holds the Firestore listener cleanup function so we can
     // unsubscribe when the user logs out or switches accounts.
     let unsubscribeDishes = null;
+
+    // Wake Lock — prevents the phone/laptop screen from going to sleep
+    // while timers are running. null when not active.
+    let wakeLock = null;
+
+    // Pause state — when true, all countdowns freeze in place.
+    // pauseStartTime records WHEN the pause began, so we can shift
+    // all fire times forward by the paused duration when resuming.
+    let isPaused = false;
+    let pauseStartTime = null;
 
 
     // setMode(mode) — Switches between "start together" and "finish together".
@@ -550,6 +563,9 @@
 
         // Start the countdown loop — runs every second (1000 milliseconds)
         timerInterval = setInterval(updateTimers, 1000);
+
+        // Keep the screen awake while cooking
+        requestWakeLock();
     }
 
 
@@ -622,6 +638,9 @@
     // For each dish, counts down the current step. When it fires,
     // advances to the next step in that dish's queue.
     function updateTimers() {
+        // When paused, skip all updates — countdowns stay frozen
+        if (isPaused) return;
+
         const now = new Date();
         let allDone = true;
 
@@ -680,6 +699,33 @@
                     }
                 }
             }
+        });
+
+        // Sort timer cards by urgency so the most important dish is
+        // always at the top. Fired (NOW!) dishes go first, then by
+        // soonest fire time, and done dishes sink to the bottom.
+        const timersContainer = document.getElementById("timers-container");
+        const sortOrder = activeDishes.map(function(dish, index) {
+            if (dish.done) {
+                // Done dishes go to the bottom
+                return { index: index, sortKey: Infinity };
+            }
+            const step = dish.steps[dish.currentStep];
+            if (step.fired) {
+                // Fired (NOW!) dishes go to the very top
+                return { index: index, sortKey: -Infinity };
+            }
+            // Active dishes sort by soonest fire time
+            return { index: index, sortKey: step.fireTime.getTime() };
+        });
+
+        sortOrder.sort(function(a, b) { return a.sortKey - b.sortKey; });
+
+        // Reorder the DOM children. appendChild on an existing node
+        // just moves it — no re-creation or flickering.
+        sortOrder.forEach(function(item) {
+            const el = document.getElementById("dish-timer-" + item.index);
+            if (el) timersContainer.appendChild(el);
         });
 
         // If every dish is done, stop the interval loop
@@ -773,10 +819,114 @@
     }
 
 
+    // ---- PAUSE / RESUME ----
+
+    // togglePause() — Freezes or unfreezes all timers.
+    // When pausing: records the current time so we know how long the pause lasted.
+    // When resuming: shifts every fire time forward by the pause duration,
+    // so timers pick up exactly where they left off.
+    function togglePause() {
+        const btn = document.getElementById("btn-pause");
+
+        if (!isPaused) {
+            // PAUSE — freeze everything
+            isPaused = true;
+            pauseStartTime = new Date();
+            btn.textContent = "Resume";
+
+            // Add "paused" class to all active timer cards for visual feedback
+            activeDishes.forEach(function(dish, index) {
+                if (dish.done) return;
+                const container = document.getElementById("dish-timer-" + index);
+                if (!container) return;
+                const card = container.querySelector(".timer-card");
+                if (card) card.classList.add("paused");
+            });
+        } else {
+            // RESUME — shift all fire times forward by however long we were paused
+            const now = new Date();
+            const pausedDuration = now.getTime() - pauseStartTime.getTime();
+
+            activeDishes.forEach(function(dish) {
+                dish.steps.forEach(function(step) {
+                    if (!step.fired) {
+                        step.fireTime = new Date(step.fireTime.getTime() + pausedDuration);
+                    }
+                });
+            });
+
+            isPaused = false;
+            pauseStartTime = null;
+            btn.textContent = "Pause";
+
+            // Remove "paused" class from all timer cards
+            activeDishes.forEach(function(dish, index) {
+                if (dish.done) return;
+                const container = document.getElementById("dish-timer-" + index);
+                if (!container) return;
+                const card = container.querySelector(".timer-card");
+                if (card) card.classList.remove("paused");
+            });
+        }
+    }
+
+
+    // ---- WAKE LOCK ----
+    //
+    // The Screen Wake Lock API prevents the device screen from dimming
+    // or locking while you're cooking. Not all browsers support it,
+    // so we wrap everything in try/catch and fail silently.
+
+    // requestWakeLock() — Ask the browser to keep the screen on.
+    async function requestWakeLock() {
+        try {
+            if ("wakeLock" in navigator) {
+                wakeLock = await navigator.wakeLock.request("screen");
+            }
+        } catch (e) {
+            // Browser denied it or doesn't support it — no big deal
+            console.log("Wake Lock not available:", e);
+        }
+    }
+
+    // releaseWakeLock() — Let the screen sleep again (called when
+    // cooking stops or the page is hidden).
+    function releaseWakeLock() {
+        if (wakeLock) {
+            wakeLock.release();
+            wakeLock = null;
+        }
+    }
+
+    // When the user switches tabs, the browser releases the wake lock.
+    // When they come back, we re-acquire it (but only if timers are running).
+    document.addEventListener("visibilitychange", function() {
+        if (document.visibilityState === "visible" && timerInterval) {
+            requestWakeLock();
+        }
+    });
+
+
+    // confirmStop() — Asks the user to confirm before throwing away
+    // all running timers. Prevents accidental taps.
+    function confirmStop() {
+        if (confirm("Stop cooking and reset all timers?")) {
+            stopCooking();
+        }
+    }
+
+
     // stopCooking() — Stops all timers and returns to the setup screen.
     function stopCooking() {
         clearInterval(timerInterval);
         activeDishes = [];
+
+        // Reset pause state for next cooking session
+        isPaused = false;
+        pauseStartTime = null;
+
+        // Let the screen sleep again
+        releaseWakeLock();
 
         document.getElementById("timer-section").style.display = "none";
         document.getElementById("setup-section").style.display = "block";
