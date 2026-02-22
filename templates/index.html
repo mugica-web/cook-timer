@@ -200,16 +200,37 @@
         const setupSection = document.getElementById("setup-section");
         const userBar = document.getElementById("user-bar");
         const userEmail = document.getElementById("user-email");
+        const authError = document.getElementById("auth-error");
 
         if (user) {
-            // User is logged in — show the app
+            // Hide the auth form while we check the allowlist.
+            // The app will appear once the Firestore check confirms access.
             authSection.style.display = "none";
-            setupSection.style.display = "block";
-            userBar.style.display = "flex";
-            userEmail.textContent = user.email || user.displayName || "User";
 
-            // Start listening to this user's saved dishes in Firestore
-            setupDishesListener(user);
+            // Check if this user's email is in the allowedEmails collection.
+            // The admin adds emails to this collection via the Firebase Console
+            // to grant access. Firestore rules ensure each user can only read
+            // their own entry, so this cannot be probed by other users.
+            db.collection("allowedEmails").doc(user.email).get()
+                .then(function(doc) {
+                    if (doc.exists) {
+                        // Approved — show the app
+                        setupSection.style.display = "block";
+                        userBar.style.display = "flex";
+                        userEmail.textContent = user.email || user.displayName || "User";
+                        setupDishesListener(user);
+                    } else {
+                        // Not on the allowlist — sign out and tell them
+                        auth.signOut();
+                        authError.textContent =
+                            "Access not granted for " + user.email + ". Contact the admin.";
+                    }
+                })
+                .catch(function() {
+                    // Can't verify access (network error or rules issue) — fail closed
+                    auth.signOut();
+                    authError.textContent = "Could not verify access. Please try again.";
+                });
         } else {
             // User is logged out — show the login form
             authSection.style.display = "block";
