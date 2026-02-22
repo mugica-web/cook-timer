@@ -251,6 +251,11 @@
     // while timers are running. null when not active.
     let wakeLock = null;
 
+    // Shared AudioContext — created on the "Start Cooking" tap so mobile
+    // browsers allow it. A new AudioContext created inside a timer callback
+    // (not a user gesture) is blocked silently on iOS and Android.
+    let audioCtx = null;
+
     // Pause state — when true, all countdowns freeze in place.
     // pauseStartTime records WHEN the pause began, so we can shift
     // all fire times forward by the paused duration when resuming.
@@ -487,6 +492,7 @@
                     action: "Start " + dish.name,
                     fireTime: waitFireTime,
                     fired: false,
+                    warned: false,
                     isWait: true    // flag so we can style it differently
                 });
             }
@@ -509,6 +515,7 @@
                     action: step.action,
                     fireTime: fireTime,
                     fired: false,
+                    warned: false,
                     isWait: false
                 });
             });
@@ -550,6 +557,14 @@
 
         // Start the countdown loop — runs every second (1000 milliseconds)
         timerInterval = setInterval(updateTimers, 1000);
+
+        // Unlock audio on mobile — must be done during a user gesture (this button tap).
+        // Once created here, the context stays unlocked for the session.
+        if (!audioCtx) {
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        } else if (audioCtx.state === "suspended") {
+            audioCtx.resume();
+        }
 
         // Keep the screen awake while cooking
         requestWakeLock();
@@ -652,6 +667,7 @@
             if (remaining <= 0 && !step.fired) {
                 // STEP FIRED! — Time to alert the user
                 step.fired = true;
+                step.firedAt = new Date();  // record when it fired for delay calculation
                 countdownEl.textContent = "NOW!";
 
                 if (cardEl) cardEl.className = "timer-card fired";
@@ -662,10 +678,15 @@
                 }
                 sendNotification(dish.name, step.action);
 
-                // After 3 seconds, advance to the next step (or mark done)
-                setTimeout(function() {
-                    advanceDish(dishIndex);
-                }, 3000);
+                // Show a Done button — the next step's countdown starts from when
+                // the user actually taps it, accounting for time spent on this action.
+                if (cardEl) {
+                    const doneBtn = document.createElement("button");
+                    doneBtn.className = "btn btn-done-step";
+                    doneBtn.textContent = "Done";
+                    doneBtn.onclick = function() { manualAdvanceDish(dishIndex); };
+                    cardEl.appendChild(doneBtn);
+                }
 
             } else if (!step.fired) {
                 // Timer is still counting down
@@ -675,12 +696,17 @@
                     String(mins).padStart(2, "0") + ":" +
                     String(secs).padStart(2, "0");
 
-                // Color-code based on urgency
+                // Color-code based on urgency, and fire the 30-second warning beep
                 if (cardEl) {
                     if (step.isWait) {
                         cardEl.className = "timer-card waiting";
                     } else if (remaining <= 30) {
                         cardEl.className = "timer-card imminent";
+                        // Play a short warning beep once when the step first hits 30s
+                        if (!step.warned) {
+                            step.warned = true;
+                            playWarningBeep();
+                        }
                     } else {
                         cardEl.className = "timer-card upcoming";
                     }
@@ -722,6 +748,30 @@
     }
 
 
+    // manualAdvanceDish(dishIndex) — Called when the user taps "Done".
+    // Shifts all remaining unfired steps of this dish forward by however long
+    // the user spent on the current action, then advances to the next step.
+    function manualAdvanceDish(dishIndex) {
+        const dish = activeDishes[dishIndex];
+        const step = dish.steps[dish.currentStep];
+        const now = new Date();
+
+        // How long did the action take beyond the scheduled fire time?
+        const delay = step.firedAt ? (now.getTime() - step.firedAt.getTime()) : 0;
+
+        // Push all unfired future steps of this dish forward by that delay
+        if (delay > 0) {
+            dish.steps.forEach(function(s) {
+                if (!s.fired) {
+                    s.fireTime = new Date(s.fireTime.getTime() + delay);
+                }
+            });
+        }
+
+        advanceDish(dishIndex);
+    }
+
+
     // advanceDish(dishIndex) — Moves a dish to its next step, or marks
     // it as done if there are no more steps.
     function advanceDish(dishIndex) {
@@ -744,8 +794,7 @@
     // No sound files needed — we create the sound from scratch!
     function playBeep() {
         try {
-            // AudioContext is the browser's built-in sound synthesizer
-            const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            if (!audioCtx) return;
 
             // An "oscillator" generates a tone (like a tuning fork)
             const oscillator = audioCtx.createOscillator();
@@ -780,6 +829,30 @@
         } catch (e) {
             // If audio fails (e.g., browser blocks it), just skip it
             console.log("Could not play beep:", e);
+        }
+    }
+
+
+    // playWarningBeep() — A single, quieter beep at 30 seconds as an early alert.
+    function playWarningBeep() {
+        try {
+            if (!audioCtx) return;
+
+            const oscillator = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+
+            oscillator.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+
+            // Lower pitch and volume than the main alarm — a gentle heads-up
+            oscillator.frequency.value = 440;
+            oscillator.type = "sine";
+            gainNode.gain.value = 0.15;
+
+            oscillator.start();
+            oscillator.stop(audioCtx.currentTime + 0.2);
+        } catch (e) {
+            console.log("Could not play warning beep:", e);
         }
     }
 

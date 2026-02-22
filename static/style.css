@@ -497,6 +497,15 @@ h2 {
     color: #f39c12;
 }
 
+/* "Done" button shown on a fired card — tap to start the next step */
+.btn-done-step {
+    background-color: #2ecc71;
+    color: white;
+    font-size: 1em;
+    padding: 10px 32px;
+    margin-top: 14px;
+}
+
 /* Fired — red, action needed NOW */
 .timer-card.fired {
     background-color: #2a0a0a;
