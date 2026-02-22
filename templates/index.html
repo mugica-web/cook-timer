@@ -31,13 +31,6 @@
     <div id="auth-section">
         <h2>Sign in to sync your dishes</h2>
         <div class="auth-form">
-            <input type="email" id="auth-email" placeholder="Email address" class="auth-input">
-            <input type="password" id="auth-password" placeholder="Password" class="auth-input">
-            <div class="auth-buttons">
-                <button onclick="emailLogIn()" class="btn btn-login">Log In</button>
-                <button onclick="emailSignUp()" class="btn btn-signup">Sign Up</button>
-            </div>
-            <div class="auth-divider"><span>or</span></div>
             <button onclick="googleSignIn()" class="btn btn-google">Sign in with Google</button>
             <p id="auth-error" class="auth-error"></p>
         </div>
@@ -146,33 +139,6 @@
 
 
     // ---- AUTHENTICATION FUNCTIONS ----
-
-    // emailLogIn() — Signs in with an existing email + password account.
-    function emailLogIn() {
-        const email = document.getElementById("auth-email").value;
-        const password = document.getElementById("auth-password").value;
-        const errorEl = document.getElementById("auth-error");
-        errorEl.textContent = "";
-
-        auth.signInWithEmailAndPassword(email, password)
-            .catch(function(error) {
-                errorEl.textContent = error.message;
-            });
-    }
-
-    // emailSignUp() — Creates a NEW account with email + password.
-    // After sign-up, the user is automatically logged in.
-    function emailSignUp() {
-        const email = document.getElementById("auth-email").value;
-        const password = document.getElementById("auth-password").value;
-        const errorEl = document.getElementById("auth-error");
-        errorEl.textContent = "";
-
-        auth.createUserWithEmailAndPassword(email, password)
-            .catch(function(error) {
-                errorEl.textContent = error.message;
-            });
-    }
 
     // googleSignIn() — Opens a Google sign-in popup.
     function googleSignIn() {

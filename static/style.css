@@ -67,47 +67,6 @@ h2 {
     gap: 12px;
 }
 
-.auth-input {
-    padding: 12px 14px;
-    border: 1px solid #333;
-    border-radius: 10px;
-    background-color: #252525;
-    color: white;
-    font-size: 1em;
-    font-family: inherit;
-}
-
-.auth-input::placeholder {
-    color: #777;
-}
-
-.auth-buttons {
-    display: flex;
-    gap: 10px;
-}
-
-.btn-login {
-    flex: 1;
-    background-color: #e8a838;
-    color: white;
-    font-size: 1em;
-    padding: 12px;
-}
-
-.btn-signup {
-    flex: 1;
-    background-color: #2d6a4f;
-    color: white;
-    font-size: 1em;
-    padding: 12px;
-}
-
-.auth-divider {
-    text-align: center;
-    color: #666;
-    font-size: 0.85em;
-}
-
 .btn-google {
     background-color: #db4437;
     color: white;
