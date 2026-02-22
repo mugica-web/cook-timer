@@ -57,6 +57,68 @@ h2 {
 }
 
 
+/* ========== LOGIN PAGE ========== */
+
+.login-page {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 80vh;
+}
+
+.login-form {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+}
+
+
+/* ========== DASHBOARD APP GRID ========== */
+
+.app-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 16px;
+    margin-top: 16px;
+}
+
+.app-tile {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    background-color: #1a1a1a;
+    border: 1px solid #2a2a2a;
+    border-radius: 16px;
+    padding: 28px 20px;
+    text-decoration: none;
+    color: inherit;
+    transition: border-color 0.2s, background-color 0.2s;
+}
+
+.app-tile:hover {
+    border-color: #e8a838;
+    background-color: #201c10;
+}
+
+.app-tile-icon {
+    font-size: 2.5em;
+}
+
+.app-tile-name {
+    font-weight: 700;
+    font-size: 1em;
+}
+
+.app-tile-desc {
+    font-size: 0.8em;
+    color: #888;
+    text-align: center;
+}
+
+
 /* ========== AUTH SECTION (login/signup) ========== */
 
 .auth-form {

@@ -26,16 +26,6 @@
         <button onclick="logOut()" class="btn btn-logout">Sign Out</button>
     </div>
 
-    <!-- ========== AUTH SECTION ========== -->
-    <!-- Shown when NOT logged in. The user must sign in before using the app. -->
-    <div id="auth-section">
-        <h2>Sign in to sync your dishes</h2>
-        <div class="auth-form">
-            <button onclick="googleSignIn()" class="btn btn-google">Sign in with Google</button>
-            <p id="auth-error" class="auth-error"></p>
-        </div>
-    </div>
-
     <!-- ========== SETUP SECTION ========== -->
     <!-- This is where the user adds dishes and steps BEFORE starting.
          Hidden by default — shown after the user signs in. -->
@@ -140,72 +130,28 @@
 
     // ---- AUTHENTICATION FUNCTIONS ----
 
-    // googleSignIn() — Opens a Google sign-in popup.
-    function googleSignIn() {
-        const provider = new firebase.auth.GoogleAuthProvider();
-        auth.signInWithPopup(provider)
-            .catch(function(error) {
-                document.getElementById("auth-error").textContent = error.message;
-            });
-    }
-
-    // logOut() — Signs the user out and returns to the login screen.
+    // logOut() — Signs the user out and returns to the login page.
     function logOut() {
-        auth.signOut();
+        auth.signOut().then(function() {
+            window.location.href = "/";
+        });
     }
 
 
     // ---- AUTH STATE LISTENER ----
     //
     // onAuthStateChanged fires whenever the user logs in or out.
-    // It controls which sections are visible:
-    //   - Logged out → show auth section, hide everything else
-    //   - Logged in  → hide auth section, show setup + user bar
+    // Since auth is handled by the login page, here we just:
+    //   - Logged in  → show the app
+    //   - Logged out → redirect back to the login page
     auth.onAuthStateChanged(function(user) {
-        const authSection = document.getElementById("auth-section");
-        const setupSection = document.getElementById("setup-section");
-        const userBar = document.getElementById("user-bar");
-        const userEmail = document.getElementById("user-email");
-        const authError = document.getElementById("auth-error");
-
         if (user) {
-            // Hide the auth form while we check the allowlist.
-            // The app will appear once the Firestore check confirms access.
-            authSection.style.display = "none";
-
-            // Check if this user's email is in the allowedEmails collection.
-            // The admin adds emails to this collection via the Firebase Console
-            // to grant access. Firestore rules ensure each user can only read
-            // their own entry, so this cannot be probed by other users.
-            db.collection("allowedEmails").doc(user.email).get()
-                .then(function(doc) {
-                    if (doc.exists) {
-                        // Approved — show the app
-                        setupSection.style.display = "block";
-                        userBar.style.display = "flex";
-                        userEmail.textContent = user.email || user.displayName || "User";
-                        setupDishesListener(user);
-                    } else {
-                        // Not on the allowlist — sign out and tell them
-                        auth.signOut();
-                        authError.textContent =
-                            "Access not granted for " + user.email + ". Contact the admin.";
-                    }
-                })
-                .catch(function() {
-                    // Can't verify access (network error or rules issue) — fail closed
-                    auth.signOut();
-                    authError.textContent = "Could not verify access. Please try again.";
-                });
+            document.getElementById("user-bar").style.display = "flex";
+            document.getElementById("user-email").textContent = user.email || user.displayName || "User";
+            document.getElementById("setup-section").style.display = "block";
+            setupDishesListener(user);
         } else {
-            // User is logged out — show the login form
-            authSection.style.display = "block";
-            setupSection.style.display = "none";
-            document.getElementById("timer-section").style.display = "none";
-            userBar.style.display = "none";
-
-            // Clean up the Firestore listener
-            setupDishesListener(null);
+            window.location.href = "/";
         }
     });
 

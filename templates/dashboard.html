@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+</head>
+<body>
+
+    <div id="dashboard" style="display: none;">
+
+        <div class="user-bar">
+            <span id="user-email"></span>
+            <button onclick="logOut()" class="btn btn-logout">Sign Out</button>
+        </div>
+
+        <div class="app-grid">
+            <a href="/cook-timer" class="app-tile">
+                <div class="app-tile-icon">🍳</div>
+                <div class="app-tile-name">Cooking Timer</div>
+                <div class="app-tile-desc">Multi-dish step-by-step cooking timer</div>
+            </a>
+        </div>
+
+    </div>
+
+    <script>
+    firebase.initializeApp({
+        apiKey: "{{ firebase_api_key }}",
+        authDomain: "cook-timer-69256.firebaseapp.com",
+        projectId: "cook-timer-69256",
+        storageBucket: "cook-timer-69256.firebasestorage.app",
+        messagingSenderId: "207322185688",
+        appId: "1:207322185688:web:92edf8b87f61abee85bcad"
+    });
+
+    const auth = firebase.auth();
+
+    function logOut() {
+        auth.signOut().then(function() {
+            window.location.href = "/";
+        });
+    }
+
+    auth.onAuthStateChanged(function(user) {
+        if (user) {
+            document.getElementById("user-email").textContent = user.email;
+            document.getElementById("dashboard").style.display = "block";
+        } else {
+            window.location.href = "/";
+        }
+    });
+    </script>
+
+</body>
+</html>

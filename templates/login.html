@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign In</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+</head>
+<body>
+
+    <div class="login-page">
+        <div class="login-form">
+            <button onclick="googleSignIn()" class="btn btn-google">Sign in with Google</button>
+            <p id="auth-error" class="auth-error"></p>
+        </div>
+    </div>
+
+    <script>
+    firebase.initializeApp({
+        apiKey: "{{ firebase_api_key }}",
+        authDomain: "cook-timer-69256.firebaseapp.com",
+        projectId: "cook-timer-69256",
+        storageBucket: "cook-timer-69256.firebasestorage.app",
+        messagingSenderId: "207322185688",
+        appId: "1:207322185688:web:92edf8b87f61abee85bcad"
+    });
+
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+
+    function googleSignIn() {
+        const provider = new firebase.auth.GoogleAuthProvider();
+        auth.signInWithPopup(provider)
+            .catch(function(error) {
+                document.getElementById("auth-error").textContent = error.message;
+            });
+    }
+
+    // If the user is already logged in when they hit this page,
+    // skip straight to the allowlist check and redirect to the dashboard.
+    auth.onAuthStateChanged(function(user) {
+        if (user) {
+            db.collection("allowedEmails").doc(user.email).get()
+                .then(function(doc) {
+                    if (doc.exists) {
+                        window.location.href = "/dashboard";
+                    } else {
+                        auth.signOut();
+                        document.getElementById("auth-error").textContent =
+                            "Access not granted for " + user.email + ". Contact the admin.";
+                    }
+                })
+                .catch(function() {
+                    auth.signOut();
+                    document.getElementById("auth-error").textContent =
+                        "Could not verify access. Please try again.";
+                });
+        }
+    });
+    </script>
+
+</body>
+</html>

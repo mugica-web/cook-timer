@@ -21,17 +21,23 @@ load_dotenv()
 app = Flask(__name__)
 
 
-# A "route" connects a URL to a Python function.
-# @app.route("/") means: when someone visits the homepage (http://localhost:5000/),
-# run the function below and send back whatever it returns.
+def api_key():
+    return os.environ.get("FIREBASE_API_KEY")
+
+
 @app.route("/")
-def home():
-    # render_template finds "index.html" inside our templates/ folder
-    # and sends it to the browser.
-    # We pass the API key from our environment variable so the template
-    # can use it without the key being hardcoded in the HTML file.
-    return render_template("index.html",
-                           firebase_api_key=os.environ.get("FIREBASE_API_KEY"))
+def login():
+    return render_template("login.html", firebase_api_key=api_key())
+
+
+@app.route("/dashboard")
+def dashboard():
+    return render_template("dashboard.html", firebase_api_key=api_key())
+
+
+@app.route("/cook-timer")
+def cook_timer():
+    return render_template("cook_timer.html", firebase_api_key=api_key())
 
 
 # This block runs only when you execute "python app.py" directly.
