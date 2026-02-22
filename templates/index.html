@@ -1117,6 +1117,7 @@
         cachedSavedDishes.forEach(function(dish) {
             const div = document.createElement("div");
             div.className = "saved-dish-row";
+            div.id = "saved-dish-row-" + dish.id;
 
             // Build a short summary of the steps, e.g. "3 steps, 16 min total"
             const totalMin = dish.steps.reduce(function(sum, s) { return sum + s.minutes; }, 0);
@@ -1133,11 +1134,97 @@
                 '</div>' +
                 '<div class="saved-dish-buttons">' +
                     '<button onclick="loadDish(\'' + dish.id + '\')" class="btn btn-load">Load</button>' +
+                    '<button onclick="editSavedDish(\'' + dish.id + '\')" class="btn btn-save">Edit</button>' +
                     '<button onclick="deleteSavedDish(\'' + dish.id + '\')" class="btn btn-delete">Delete</button>' +
                 '</div>';
 
             container.appendChild(div);
         });
+    }
+
+
+    // editSavedDish(docId) — Replaces a saved dish row with an inline edit form.
+    function editSavedDish(docId) {
+        const dish = cachedSavedDishes.find(function(d) { return d.id === docId; });
+        if (!dish) return;
+
+        const row = document.getElementById("saved-dish-row-" + docId);
+        if (!row) return;
+
+        row.innerHTML =
+            '<div class="saved-dish-edit">' +
+                '<div class="saved-edit-header">' +
+                    '<input type="text" class="dish-name saved-edit-name">' +
+                    '<div class="saved-edit-buttons">' +
+                        '<button onclick="saveEditedDish(\'' + docId + '\')" class="btn btn-save">Save</button>' +
+                        '<button onclick="renderSavedDishes()" class="btn btn-remove">Cancel</button>' +
+                    '</div>' +
+                '</div>' +
+                '<div id="saved-edit-steps-' + docId + '"></div>' +
+                '<button onclick="addEditStep(\'' + docId + '\')" class="btn btn-add-step">+ Add Step</button>' +
+            '</div>';
+
+        // Set values after insertion to avoid XSS via innerHTML
+        row.querySelector(".saved-edit-name").value = dish.name;
+
+        dish.steps.forEach(function(step) {
+            addEditStep(docId, step.action, step.minutes);
+        });
+    }
+
+
+    // addEditStep(docId, action, minutes) — Adds a step row to an inline edit form.
+    // action and minutes are optional — omit them to add a blank row.
+    function addEditStep(docId, action, minutes) {
+        const container = document.getElementById("saved-edit-steps-" + docId);
+        if (!container) return;
+
+        const stepDiv = document.createElement("div");
+        stepDiv.className = "step-row";
+
+        stepDiv.innerHTML =
+            '<input type="text" placeholder="Action (e.g. Flip chicken)" class="step-action">' +
+            '<input type="number" placeholder="Min" min="0" step="0.1" class="step-minutes">' +
+            '<span class="step-label">min</span>' +
+            '<button onclick="this.parentElement.remove()" class="btn btn-remove-step">✕</button>';
+
+        container.appendChild(stepDiv);
+
+        // Set values after insertion to avoid XSS via innerHTML
+        if (action !== undefined) stepDiv.querySelector(".step-action").value = action;
+        if (minutes !== undefined) stepDiv.querySelector(".step-minutes").value = minutes;
+    }
+
+
+    // saveEditedDish(docId) — Reads the inline edit form and updates the
+    // Firestore document. The onSnapshot listener re-renders the panel.
+    function saveEditedDish(docId) {
+        const user = auth.currentUser;
+        if (!user) return;
+
+        const row = document.getElementById("saved-dish-row-" + docId);
+        if (!row) return;
+
+        const name = row.querySelector(".saved-edit-name").value.trim();
+        if (!name) {
+            alert("Give the dish a name.");
+            return;
+        }
+
+        const steps = [];
+        row.querySelectorAll(".step-row").forEach(function(stepRow) {
+            const action = stepRow.querySelector(".step-action").value.trim() || "Do something";
+            const minutes = parseFloat(stepRow.querySelector(".step-minutes").value) || 0;
+            steps.push({ action: action, minutes: minutes });
+        });
+
+        if (steps.length === 0) {
+            alert("Add at least one step.");
+            return;
+        }
+
+        db.collection("users").doc(user.uid).collection("dishes").doc(docId).set({ name: name, steps: steps });
+        // onSnapshot listener will re-render the panel automatically
     }
 
 
