@@ -142,15 +142,29 @@
     //
     // onAuthStateChanged fires whenever the user logs in or out.
     // Since auth is handled by the login page, here we just:
-    //   - Logged in  → show the app
+    //   - Logged in  → show the app (or restore an in-progress timer session)
     //   - Logged out → redirect back to the login page
+    //
+    // authInitialized guards against a spurious null emission that Firebase
+    // sometimes fires before it resolves the cached session (e.g. on tab focus
+    // or token refresh). Without this flag, opening a new tab could cause this
+    // page to redirect to "/" even though the user is still logged in.
+    let authInitialized = false;
+
     auth.onAuthStateChanged(function(user) {
         if (user) {
+            authInitialized = true;
             document.getElementById("user-bar").style.display = "flex";
             document.getElementById("user-email").textContent = user.email || user.displayName || "User";
-            document.getElementById("setup-section").style.display = "block";
             setupDishesListener(user);
-        } else {
+            // Restore an in-progress timer if one was saved; otherwise show setup
+            if (!restoreTimerState()) {
+                document.getElementById("setup-section").style.display = "block";
+            }
+        } else if (authInitialized) {
+            // Only redirect if we were previously confirmed as logged in.
+            // Ignores the initial null that Firebase sometimes sends before
+            // resolving the cached session.
             window.location.href = "/";
         }
     });
@@ -687,9 +701,14 @@
             if (el) timersContainer.appendChild(el);
         });
 
-        // If every dish is done, stop the interval loop
+        // Save state on every tick so navigation/refresh can restore the session
+        saveTimerState();
+
+        // If every dish is done, stop the interval loop and clear the saved state
         if (allDone) {
             clearInterval(timerInterval);
+            timerInterval = null;
+            localStorage.removeItem("cookTimerState");
         }
     }
 
@@ -698,6 +717,13 @@
     // Shifts all remaining unfired steps of this dish forward by however long
     // the user spent on the current action, then advances to the next step.
     function manualAdvanceDish(dishIndex) {
+        // Tapping "Done" is a user gesture — use it to unlock audio if not yet done
+        if (!audioCtx) {
+            try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch(e) {}
+        } else if (audioCtx.state === "suspended") {
+            audioCtx.resume();
+        }
+
         const dish = activeDishes[dishIndex];
         const step = dish.steps[dish.currentStep];
         const now = new Date();
@@ -739,6 +765,11 @@
     // playBeep() — Generates a short beep sound using the Web Audio API.
     // No sound files needed — we create the sound from scratch!
     function playBeep() {
+        // Vibrate the phone — buzz-pause-buzz pattern (ignored on iOS / unsupported browsers)
+        if ("vibrate" in navigator) {
+            navigator.vibrate([200, 100, 200]);
+        }
+
         try {
             if (!audioCtx) return;
 
@@ -753,8 +784,8 @@
             oscillator.frequency.value = 880;
             oscillator.type = "sine";
 
-            // Set volume
-            gainNode.gain.value = 0.3;
+            // Full volume so it cuts through background audio
+            gainNode.gain.value = 1.0;
 
             // Play for 0.3 seconds
             oscillator.start();
@@ -768,7 +799,7 @@
                 gain2.connect(audioCtx.destination);
                 osc2.frequency.value = 880;
                 osc2.type = "sine";
-                gain2.gain.value = 0.3;
+                gain2.gain.value = 1.0;
                 osc2.start();
                 osc2.stop(audioCtx.currentTime + 0.3);
             }, 400);
@@ -781,6 +812,11 @@
 
     // playWarningBeep() — A single, quieter beep at 30 seconds as an early alert.
     function playWarningBeep() {
+        // Single short buzz — distinct from the double-buzz of the main alarm
+        if ("vibrate" in navigator) {
+            navigator.vibrate([100]);
+        }
+
         try {
             if (!audioCtx) return;
 
@@ -790,10 +826,10 @@
             oscillator.connect(gainNode);
             gainNode.connect(audioCtx.destination);
 
-            // Lower pitch and volume than the main alarm — a gentle heads-up
+            // Lower pitch than the main alarm — a gentle heads-up
             oscillator.frequency.value = 440;
             oscillator.type = "sine";
-            gainNode.gain.value = 0.15;
+            gainNode.gain.value = 0.5;
 
             oscillator.start();
             oscillator.stop(audioCtx.currentTime + 0.2);
@@ -865,6 +901,13 @@
             pauseStartTime = null;
             btn.textContent = "Pause";
 
+            // Unlock audio if needed — tapping Resume counts as a user gesture
+            if (!audioCtx) {
+                try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch(e) {}
+            } else if (audioCtx.state === "suspended") {
+                audioCtx.resume();
+            }
+
             // Remove "paused" class from all timer cards
             activeDishes.forEach(function(dish, index) {
                 if (dish.done) return;
@@ -874,6 +917,9 @@
                 if (card) card.classList.remove("paused");
             });
         }
+
+        // Persist the updated pause state immediately
+        saveTimerState();
     }
 
 
@@ -925,17 +971,140 @@
     // stopCooking() — Stops all timers and returns to the setup screen.
     function stopCooking() {
         clearInterval(timerInterval);
+        timerInterval = null;
         activeDishes = [];
 
         // Reset pause state for next cooking session
         isPaused = false;
         pauseStartTime = null;
 
+        // Clear any saved session so it doesn't restore on next page load
+        localStorage.removeItem("cookTimerState");
+
         // Let the screen sleep again
         releaseWakeLock();
 
         document.getElementById("timer-section").style.display = "none";
         document.getElementById("setup-section").style.display = "block";
+    }
+
+
+    // ---- TIMER SESSION PERSISTENCE ----
+    //
+    // Saves the active timer state to localStorage on every tick so it
+    // survives page reloads, tab switches, or accidental navigation.
+    // Fire times are absolute timestamps — restoring them naturally handles
+    // any time that passed while away (missed steps fire immediately).
+
+    // saveTimerState() — Serialises activeDishes to localStorage.
+    function saveTimerState() {
+        if (activeDishes.length === 0) return;
+        try {
+            const state = {
+                activeDishes: activeDishes.map(function(dish) {
+                    return {
+                        name: dish.name,
+                        currentStep: dish.currentStep,
+                        done: dish.done,
+                        steps: dish.steps.map(function(step) {
+                            return {
+                                action: step.action,
+                                fireTime: step.fireTime ? step.fireTime.toISOString() : null,
+                                fired: step.fired,
+                                warned: step.warned,
+                                isWait: step.isWait,
+                                firedAt: step.firedAt ? step.firedAt.toISOString() : null
+                            };
+                        })
+                    };
+                }),
+                isPaused: isPaused,
+                pauseStartTime: pauseStartTime ? pauseStartTime.toISOString() : null,
+                timingMode: timingMode,
+                savedAt: new Date().toISOString()
+            };
+            localStorage.setItem("cookTimerState", JSON.stringify(state));
+        } catch(e) {
+            console.log("Could not save timer state:", e);
+        }
+    }
+
+
+    // restoreTimerState() — Loads a saved session from localStorage and
+    // resumes the timer. Returns true if a session was restored, false if not.
+    function restoreTimerState() {
+        try {
+            const raw = localStorage.getItem("cookTimerState");
+            if (!raw) return false;
+
+            const state = JSON.parse(raw);
+
+            // Discard sessions older than 24 hours
+            const age = Date.now() - new Date(state.savedAt).getTime();
+            if (age > 24 * 60 * 60 * 1000) {
+                localStorage.removeItem("cookTimerState");
+                return false;
+            }
+
+            // Parse ISO date strings back into Date objects
+            const restored = state.activeDishes.map(function(dish) {
+                return {
+                    name: dish.name,
+                    currentStep: dish.currentStep,
+                    done: dish.done,
+                    steps: dish.steps.map(function(step) {
+                        return {
+                            action: step.action,
+                            fireTime: step.fireTime ? new Date(step.fireTime) : null,
+                            fired: step.fired,
+                            warned: step.warned,
+                            isWait: step.isWait,
+                            firedAt: step.firedAt ? new Date(step.firedAt) : null
+                        };
+                    })
+                };
+            });
+
+            // Don't restore a session where everything is already done
+            const allDone = restored.every(function(d) { return d.done; });
+            if (allDone) {
+                localStorage.removeItem("cookTimerState");
+                return false;
+            }
+
+            activeDishes = restored;
+            isPaused = state.isPaused || false;
+            pauseStartTime = state.pauseStartTime ? new Date(state.pauseStartTime) : null;
+            timingMode = state.timingMode || "start";
+
+            // Switch to the timer view and rebuild the cards
+            document.getElementById("setup-section").style.display = "none";
+            document.getElementById("timer-section").style.display = "block";
+            renderDishes();
+
+            // If paused, reflect that in the button and card styles
+            if (isPaused) {
+                document.getElementById("btn-pause").textContent = "Resume";
+                activeDishes.forEach(function(dish, index) {
+                    if (dish.done) return;
+                    const container = document.getElementById("dish-timer-" + index);
+                    if (!container) return;
+                    const card = container.querySelector(".timer-card");
+                    if (card) card.classList.add("paused");
+                });
+            }
+
+            // Restart the countdown loop
+            if (timerInterval) clearInterval(timerInterval);
+            timerInterval = setInterval(updateTimers, 1000);
+
+            requestWakeLock();
+            return true;
+        } catch(e) {
+            console.log("Could not restore timer state:", e);
+            localStorage.removeItem("cookTimerState");
+            return false;
+        }
     }
 
 
