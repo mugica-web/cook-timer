@@ -8,6 +8,7 @@
     <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 </head>
 <body>
 
@@ -15,10 +16,31 @@
         <div class="login-form">
             <button onclick="googleSignIn()" class="btn btn-google">Sign in with Google</button>
             <p id="auth-error" class="auth-error"></p>
+
+            <div class="request-divider">
+                <button onclick="toggleRequestForm()" class="btn-request-toggle" id="request-toggle">
+                    Don't have access? Request it
+                </button>
+            </div>
+
+            <div id="request-form" class="request-form" style="display: none;">
+                <input type="email" id="request-email" class="request-input" placeholder="your@email.com" />
+                <textarea id="request-note" class="request-note" placeholder="Optional: anything you'd like to add" rows="3"></textarea>
+                <button onclick="submitRequest()" class="btn btn-request-submit">Send Request</button>
+                <p id="request-status" class="request-status"></p>
+            </div>
         </div>
     </div>
 
     <script>
+    // ---- EmailJS config — fill these in after EmailJS setup ----
+    const EMAILJS_PUBLIC_KEY  = "b2zJAESDgHVu4aT3j";
+    const EMAILJS_SERVICE_ID  = "service_q3wq6n5";
+    const EMAILJS_TEMPLATE_ID = "template_9ak5res";
+    // ------------------------------------------------------------
+
+    emailjs.init({ publicKey: EMAILJS_PUBLIC_KEY });
+
     firebase.initializeApp({
         apiKey: "{{ firebase_api_key }}",
         authDomain: "cook-timer-69256.firebaseapp.com",
@@ -37,6 +59,59 @@
             .catch(function(error) {
                 document.getElementById("auth-error").textContent = error.message;
             });
+    }
+
+    function toggleRequestForm() {
+        const form = document.getElementById("request-form");
+        const toggle = document.getElementById("request-toggle");
+        const visible = form.style.display !== "none";
+        form.style.display = visible ? "none" : "flex";
+        toggle.textContent = visible ? "Don't have access? Request it" : "Cancel";
+    }
+
+    function submitRequest() {
+        const email = document.getElementById("request-email").value.trim();
+        const note  = document.getElementById("request-note").value.trim();
+        const status = document.getElementById("request-status");
+
+        if (!email || !/\S+@\S+\.\S+/.test(email)) {
+            status.textContent = "Please enter a valid email address.";
+            status.className = "request-status error";
+            return;
+        }
+
+        status.textContent = "Sending...";
+        status.className = "request-status";
+
+        const timestamp = new Date().toLocaleString();
+
+        // Write to Firestore for your records
+        db.collection("accessRequests").doc(email).set({
+            email: email,
+            note: note || "",
+            requestedAt: firebase.firestore.FieldValue.serverTimestamp(),
+            status: "pending"
+        })
+        .then(function() {
+            // Send email notification via EmailJS
+            return emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, {
+                requester_email: email,
+                note: note || "(none)",
+                timestamp: timestamp,
+                how_to_approve: "Go to https://console.firebase.google.com/project/cook-timer-69256/firestore/data/allowedEmails → Add document → Document ID: " + email + " → Save. No fields needed. They can sign in immediately after."
+            });
+        })
+        .then(function() {
+            status.textContent = "Request sent! You'll hear back soon.";
+            status.className = "request-status success";
+            document.getElementById("request-email").value = "";
+            document.getElementById("request-note").value = "";
+        })
+        .catch(function(err) {
+            console.error(err);
+            status.textContent = "Something went wrong. Try again.";
+            status.className = "request-status error";
+        });
     }
 
     // If the user is already logged in when they hit this page,

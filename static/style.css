@@ -128,6 +128,76 @@ h2 {
 }
 
 
+/* ========== REQUEST ACCESS FORM ========== */
+
+.request-divider {
+    margin-top: 12px;
+}
+
+.btn-request-toggle {
+    background: none;
+    border: none;
+    color: #666;
+    font-family: 'Inter', sans-serif;
+    font-size: 0.85em;
+    cursor: pointer;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    padding: 0;
+}
+
+.btn-request-toggle:hover {
+    color: #aaa;
+}
+
+.request-form {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    width: 280px;
+    margin-top: 4px;
+}
+
+.request-input,
+.request-note {
+    padding: 10px 12px;
+    border: 1px solid #333;
+    border-radius: 8px;
+    background-color: #1a1a1a;
+    color: #e8e8e8;
+    font-family: 'Inter', sans-serif;
+    font-size: 0.95em;
+    resize: none;
+}
+
+.request-input::placeholder,
+.request-note::placeholder {
+    color: #555;
+}
+
+.btn-request-submit {
+    background-color: #c8102e;
+    color: white;
+    font-size: 0.95em;
+    padding: 10px;
+}
+
+.request-status {
+    font-size: 0.85em;
+    text-align: center;
+    min-height: 1.2em;
+    color: #888;
+}
+
+.request-status.success {
+    color: #2ecc71;
+}
+
+.request-status.error {
+    color: #c8102e;
+}
+
+
 /* ========== AUTH SECTION (login/signup) ========== */
 
 .auth-form {
