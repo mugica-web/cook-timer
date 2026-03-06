@@ -1,6 +1,10 @@
+/* ========== FONTS ========== */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@700;800&display=swap');
+
+
 /* ========== GENERAL STYLES ========== */
 
-/* Reset default browser spacing and set a base font */
 * {
     margin: 0;
     padding: 0;
@@ -8,23 +12,28 @@
 }
 
 body {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    background-color: #111111;
-    color: #e0e0e0;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background-color: #0f0f0f;
+    color: #e8e8e8;
     padding: 20px;
     max-width: 800px;
-    margin: 0 auto; /* centers the page horizontally */
+    margin: 0 auto;
 }
 
 h1 {
+    font-family: 'Playfair Display', Georgia, serif;
     text-align: center;
-    font-size: 2em;
+    font-size: 2.2em;
+    font-weight: 800;
+    letter-spacing: -0.01em;
     margin-bottom: 10px;
 }
 
 h2 {
+    font-family: 'Playfair Display', Georgia, serif;
     text-align: center;
     font-size: 1.3em;
+    font-weight: 700;
     color: #aaa;
     margin-bottom: 20px;
 }
@@ -36,24 +45,24 @@ h2 {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    background-color: #1a1a1a;
+    background-color: #181818;
     border: 1px solid #2a2a2a;
     border-radius: 10px;
     padding: 8px 16px;
     margin-bottom: 20px;
     font-size: 0.9em;
-    color: #aaa;
+    color: #888;
 }
 
 .btn-logout {
     background-color: transparent;
-    color: #888;
+    color: #666;
     font-size: 0.85em;
     padding: 6px 12px;
 }
 
 .btn-logout:hover {
-    color: #e74c3c;
+    color: #c8102e;
 }
 
 
@@ -89,7 +98,7 @@ h2 {
     align-items: center;
     justify-content: center;
     gap: 8px;
-    background-color: #1a1a1a;
+    background-color: #181818;
     border: 1px solid #2a2a2a;
     border-radius: 16px;
     padding: 28px 20px;
@@ -99,8 +108,8 @@ h2 {
 }
 
 .app-tile:hover {
-    border-color: #e8a838;
-    background-color: #201c10;
+    border-color: #c8102e;
+    background-color: #1f0a0c;
 }
 
 .app-tile-icon {
@@ -114,7 +123,7 @@ h2 {
 
 .app-tile-desc {
     font-size: 0.8em;
-    color: #888;
+    color: #777;
     text-align: center;
 }
 
@@ -138,7 +147,7 @@ h2 {
 }
 
 .auth-error {
-    color: #e74c3c;
+    color: #c8102e;
     font-size: 0.85em;
     text-align: center;
     min-height: 1.2em;
@@ -150,11 +159,12 @@ h2 {
 .btn {
     border: none;
     padding: 10px 20px;
-    border-radius: 10px;
+    border-radius: 8px;
     cursor: pointer;
+    font-family: 'Inter', sans-serif;
     font-size: 1em;
     font-weight: 600;
-    transition: opacity 0.2s; /* smooth hover effect */
+    transition: opacity 0.2s;
 }
 
 .btn:hover {
@@ -162,7 +172,7 @@ h2 {
 }
 
 .btn-add {
-    background-color: #e8a838;
+    background-color: #c8102e;
     color: white;
 }
 
@@ -174,13 +184,13 @@ h2 {
 }
 
 .btn-stop {
-    background-color: #e74c3c;
+    background-color: #c8102e;
     color: white;
     font-size: 1.1em;
 }
 
 .btn-pause {
-    background-color: #e8a838;
+    background-color: #c8102e;
     color: white;
     font-size: 1.1em;
 }
@@ -193,8 +203,8 @@ h2 {
 }
 
 .btn-remove {
-    background-color: #333;
-    color: #ccc;
+    background-color: #2a2a2a;
+    color: #bbb;
     font-size: 0.85em;
     padding: 6px 12px;
 }
@@ -207,7 +217,7 @@ h2 {
 }
 
 .btn-load {
-    background-color: #e8a838;
+    background-color: #c8102e;
     color: white;
     font-size: 0.85em;
     padding: 6px 14px;
@@ -215,33 +225,33 @@ h2 {
 
 .btn-delete {
     background-color: transparent;
-    color: #888;
+    color: #666;
     font-size: 0.85em;
     padding: 6px 10px;
 }
 
 .btn-delete:hover {
-    color: #e74c3c;
+    color: #c8102e;
 }
 
 .btn-add-step {
     background-color: transparent;
-    color: #e8a838;
-    border: 1px dashed #e8a838;
+    color: #c8102e;
+    border: 1px dashed #c8102e;
     font-size: 0.9em;
     margin-top: 8px;
 }
 
 .btn-remove-step {
     background-color: transparent;
-    color: #888;
+    color: #666;
     font-size: 1em;
     padding: 5px 8px;
     border-radius: 4px;
 }
 
 .btn-remove-step:hover {
-    color: #e74c3c;
+    color: #c8102e;
 }
 
 .button-row {
@@ -258,8 +268,8 @@ h2 {
     text-align: center;
     margin-bottom: 24px;
     padding: 20px;
-    background-color: #1a1a1a;
-    border-radius: 16px;
+    background-color: #181818;
+    border-radius: 12px;
     border: 1px solid #2a2a2a;
 }
 
@@ -273,7 +283,7 @@ h2 {
     display: inline-flex;
     gap: 0;
     margin-top: 10px;
-    border-radius: 10px;
+    border-radius: 8px;
     overflow: hidden;
     border: 1px solid #2a2a2a;
 }
@@ -281,21 +291,21 @@ h2 {
 .btn-mode {
     border-radius: 0;
     padding: 10px 20px;
-    background-color: #252525;
-    color: #888;
+    background-color: #222;
+    color: #777;
     font-size: 0.95em;
     border: none;
 }
 
 .btn-mode.active {
-    background-color: #e8a838;
+    background-color: #c8102e;
     color: white;
 }
 
 .mode-description {
     margin-top: 10px;
     font-size: 0.85em;
-    color: #999;
+    color: #888;
 }
 
 /* "Done By" time picker row */
@@ -315,18 +325,18 @@ h2 {
 .done-by-time-input {
     padding: 8px 12px;
     border: 1px solid #333;
-    border-radius: 10px;
-    background-color: #252525;
+    border-radius: 8px;
+    background-color: #222;
     color: white;
     font-size: 1.1em;
-    font-family: inherit;
+    font-family: 'Inter', sans-serif;
 }
 
 /* Target time info shown in timer view */
 .done-by-info {
     text-align: center;
     font-size: 1.05em;
-    color: #e8a838;
+    color: #c8102e;
     margin-bottom: 16px;
     font-weight: 600;
 }
@@ -335,9 +345,9 @@ h2 {
 /* ========== DISH CARDS (Setup) ========== */
 
 .dish-card {
-    background-color: #1a1a1a;
+    background-color: #181818;
     border: 1px solid #2a2a2a;
-    border-radius: 16px;
+    border-radius: 12px;
     padding: 20px;
     margin-bottom: 16px;
 }
@@ -358,14 +368,15 @@ h2 {
     font-size: 1.1em;
     padding: 8px 12px;
     border: 1px solid #333;
-    border-radius: 10px;
-    background-color: #252525;
+    border-radius: 8px;
+    background-color: #222;
     color: white;
     width: 70%;
+    font-family: 'Inter', sans-serif;
 }
 
 .dish-name::placeholder {
-    color: #777;
+    color: #555;
 }
 
 
@@ -382,29 +393,31 @@ h2 {
     flex: 1;
     padding: 8px 10px;
     border: 1px solid #333;
-    border-radius: 10px;
-    background-color: #252525;
+    border-radius: 8px;
+    background-color: #222;
     color: white;
     font-size: 0.95em;
+    font-family: 'Inter', sans-serif;
 }
 
 .step-action::placeholder {
-    color: #777;
+    color: #555;
 }
 
 .step-minutes {
     width: 65px;
     padding: 8px 10px;
     border: 1px solid #333;
-    border-radius: 10px;
-    background-color: #252525;
+    border-radius: 8px;
+    background-color: #222;
     color: white;
     font-size: 0.95em;
     text-align: center;
+    font-family: 'Inter', sans-serif;
 }
 
 .step-label {
-    color: #888;
+    color: #777;
     font-size: 0.9em;
 }
 
@@ -420,13 +433,13 @@ h2 {
 #saved-section h3 {
     text-align: center;
     font-size: 1.1em;
-    color: #aaa;
+    color: #999;
     margin-bottom: 14px;
 }
 
 .saved-empty {
     text-align: center;
-    color: #666;
+    color: #555;
     font-size: 0.9em;
     padding: 10px;
 }
@@ -435,9 +448,9 @@ h2 {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    background-color: #1a1a1a;
+    background-color: #181818;
     border: 1px solid #2a2a2a;
-    border-radius: 12px;
+    border-radius: 10px;
     padding: 10px 14px;
     margin-bottom: 8px;
 }
@@ -455,7 +468,7 @@ h2 {
 
 .saved-dish-summary {
     font-size: 0.8em;
-    color: #888;
+    color: #777;
 }
 
 .saved-dish-buttons {
@@ -492,7 +505,7 @@ h2 {
 /* ========== TIMER CARDS (Cooking View) ========== */
 
 .timer-card {
-    border-radius: 16px;
+    border-radius: 12px;
     padding: 24px;
     margin-bottom: 14px;
     text-align: center;
@@ -500,11 +513,11 @@ h2 {
 }
 
 .timer-dish {
-    font-size: 0.8em;
-    font-weight: 600;
+    font-size: 0.75em;
+    font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 1px;
-    color: #777;
+    letter-spacing: 1.5px;
+    color: #666;
     margin-bottom: 4px;
 }
 
@@ -514,15 +527,16 @@ h2 {
 }
 
 .timer-countdown {
+    font-family: 'Playfair Display', Georgia, serif;
     font-size: 3.5em;
     font-weight: 800;
-    font-variant-numeric: tabular-nums; /* keeps digits from shifting */
+    font-variant-numeric: tabular-nums;
 }
 
 /* Step progress indicator (e.g., "Step 2 of 4") */
 .timer-progress {
     font-size: 0.85em;
-    color: #999;
+    color: #888;
     margin-top: 4px;
 }
 
@@ -530,33 +544,33 @@ h2 {
 
 /* Waiting — muted purple, dish hasn't started yet (finish-together mode) */
 .timer-card.waiting {
-    background-color: #171320;
-    border: 1px dashed #8e7cc3;
+    background-color: #13101e;
+    border: 1px dashed #7b6faa;
 }
 .timer-card.waiting .timer-countdown {
-    color: #8e7cc3;
+    color: #7b6faa;
 }
 .timer-card.waiting .timer-action {
     font-style: italic;
-    color: #aaa;
+    color: #999;
 }
 
-/* Upcoming — amber border, white countdown, calm */
+/* Upcoming — red border, white countdown, calm */
 .timer-card.upcoming {
-    background-color: #1a1a1a;
-    border: 1px solid #e8a838;
+    background-color: #181818;
+    border: 1px solid #c8102e;
 }
 .timer-card.upcoming .timer-countdown {
     color: #ffffff;
 }
 
-/* Imminent — yellow, almost time! */
+/* Imminent — brighter red bg tint, almost time! */
 .timer-card.imminent {
-    background-color: #2a2000;
-    border: 1px solid #f39c12;
+    background-color: #220810;
+    border: 1px solid #e8193a;
 }
 .timer-card.imminent .timer-countdown {
-    color: #f39c12;
+    color: #e8193a;
 }
 
 /* "Done" button shown on a fired card — tap to start the next step */
@@ -568,14 +582,14 @@ h2 {
     margin-top: 14px;
 }
 
-/* Fired — red, action needed NOW */
+/* Fired — bright red, action needed NOW */
 .timer-card.fired {
-    background-color: #2a0a0a;
-    border: 2px solid #e74c3c;
+    background-color: #2a0810;
+    border: 2px solid #c8102e;
     transform: scale(1.03);
 }
 .timer-card.fired .timer-countdown {
-    color: #e74c3c;
+    color: #c8102e;
     animation: pulse 0.5s infinite alternate;
 }
 
@@ -598,7 +612,7 @@ h2 {
 /* Pulse animation for the "NOW!" text */
 @keyframes pulse {
     from { opacity: 1; }
-    to { opacity: 0.4; }
+    to { opacity: 0.35; }
 }
 
 

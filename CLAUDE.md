@@ -1,0 +1,76 @@
+# Cook Timer — Project Guide
+
+## What This Is
+
+A personal cooking timer web app. You define dishes with sequential steps (e.g. "Chicken — flip at 15 min, done at 40 min"), pick a timing mode, and the app fires alerts at each step. Auth-gated — only allowlisted Google accounts can log in.
+
+## Stack
+
+- **Backend**: Python Flask (`app.py`) — thin server, just serves HTML templates with the Firebase API key injected
+- **Frontend**: Vanilla JS, no build step, no bundler
+- **Auth + DB**: Firebase (Google sign-in, Firestore for saved dishes). Uses Firebase compat SDK v10.14.1 via CDN
+- **CSS**: Single file `static/style.css`, dark theme (`#111` bg, `#e8a838` amber accent)
+- **Deployment**: Vercel (`vercel.json` routes everything to `app.py`)
+
+## Running Locally
+
+```bash
+source .venv/bin/activate
+python app.py
+# → http://localhost:5000
+```
+
+Requires a `.env` file with `FIREBASE_API_KEY=...`. In production, this is set in the Vercel dashboard.
+
+## File Structure
+
+```
+app.py                  — Flask routes: /, /dashboard, /cook-timer
+requirements.txt        — Python deps (Flask, python-dotenv, etc.)
+vercel.json             — Vercel deployment config
+static/style.css        — All CSS
+templates/
+  login.html            — Google sign-in + Firestore allowlist check
+  dashboard.html        — App launcher grid (auth-gated)
+  cook_timer.html       — Main cooking timer app (all logic lives here)
+```
+
+## App Flow
+
+1. `/` — Google sign-in. On success, checks `allowedEmails` collection in Firestore. Redirects to `/dashboard`.
+2. `/dashboard` — Grid of app tiles. Currently just Cooking Timer.
+3. `/cook-timer` — The timer app.
+
+## Cook Timer Architecture
+
+### Timing Modes
+- **Start Together**: All dishes start now; step alerts fire at `now + cumulative duration`
+- **Finish Together**: App delays shorter dishes so all finish simultaneously
+- **Done By**: User picks a target clock time; app back-calculates start times for each dish
+
+### Data Model
+- **Setup state**: `{ name, steps: [{ action, minutes }] }`
+- **Active state**: `{ name, currentStep, done, steps: [{ action, fireTime, fired, warned, isWait }] }`
+- For delayed dishes (Finish Together / Done By), a "wait" step is auto-inserted at the start
+
+### Timer Loop
+- `setInterval(updateTimers, 1000)` drives everything
+- Cards sorted by urgency each tick
+- Color states: waiting (purple) → upcoming (amber) → imminent (yellow) → fired (red pulse) → done (green)
+
+### Alerts
+- 30-second warning: 440 Hz beep via Web Audio API
+- Step fire: 880 Hz double-beep
+- Browser notifications also sent
+- AudioContext created on the `startCooking()` tap (required for mobile)
+
+### Key Features
+- Firestore real-time sync for saved dishes via `onSnapshot()`
+- Pause: shifts all future `fireTime`s forward by pause duration
+- Manual "Done" button: advances current step early, recalculates remaining fire times
+- Wake Lock API: keeps screen on during cooking
+
+## Firebase Project
+
+Project ID: `cook-timer-69256`
+Firestore collections: `allowedEmails`, `users/{userId}/dishes/{dishId}`
