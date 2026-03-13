@@ -514,6 +514,71 @@ h2 {
     padding: 10px;
 }
 
+/* ========== SOUND SETTINGS ========== */
+
+.sound-settings {
+    background-color: #181818;
+    border: 1px solid #2a2a2a;
+    border-radius: 10px;
+    padding: 14px 18px;
+    margin-bottom: 20px;
+}
+
+.sound-settings h3 {
+    margin: 0 0 12px 0;
+    font-size: 0.95em;
+    color: #aaa;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+}
+
+.sound-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.sound-row:last-child {
+    margin-bottom: 0;
+}
+
+.sound-label {
+    min-width: 130px;
+    font-size: 0.9em;
+    color: #bbb;
+}
+
+.sound-select {
+    flex: 1;
+    background-color: #222;
+    color: #eee;
+    border: 1px solid #444;
+    border-radius: 6px;
+    padding: 6px 8px;
+    font-size: 0.9em;
+    cursor: pointer;
+}
+
+.sound-select:focus {
+    outline: none;
+    border-color: #e8a838;
+}
+
+.btn-test {
+    background-color: #2a2a2a;
+    color: #e8a838;
+    border: 1px solid #444;
+    white-space: nowrap;
+    font-size: 0.85em;
+    padding: 6px 10px;
+}
+
+.btn-test:hover {
+    background-color: #333;
+    border-color: #e8a838;
+}
+
 .saved-dish-row {
     display: flex;
     justify-content: space-between;

@@ -74,6 +74,41 @@
             <button onclick="startCooking()" class="btn btn-start">Start Cooking!</button>
         </div>
 
+        <!-- ========== SOUND SETTINGS SECTION ========== -->
+        <div id="sound-settings" class="sound-settings">
+            <h3>Alert Sounds</h3>
+            <div class="sound-row">
+                <label class="sound-label">30-sec warning:</label>
+                <select id="warn-sound-select" class="sound-select" onchange="saveSoundPrefs()">
+                    <option value="single-beep">Single beep</option>
+                    <option value="double-beep">Double beep</option>
+                    <option value="triple-beep">Triple beep</option>
+                    <option value="chime">Chime</option>
+                    <option value="rising">Rising tone</option>
+                    <option value="bell">Bell</option>
+                    <option value="kitchen-timer">Kitchen timer</option>
+                    <option value="siren">Siren</option>
+                    <option value="buzz">Buzz</option>
+                </select>
+                <button onclick="testSound('warn')" class="btn btn-test">&#9654; Test</button>
+            </div>
+            <div class="sound-row">
+                <label class="sound-label">Step alarm:</label>
+                <select id="final-sound-select" class="sound-select" onchange="saveSoundPrefs()">
+                    <option value="single-beep">Single beep</option>
+                    <option value="double-beep">Double beep</option>
+                    <option value="triple-beep">Triple beep</option>
+                    <option value="chime">Chime</option>
+                    <option value="rising">Rising tone</option>
+                    <option value="bell">Bell</option>
+                    <option value="kitchen-timer">Kitchen timer</option>
+                    <option value="siren">Siren</option>
+                    <option value="buzz">Buzz</option>
+                </select>
+                <button onclick="testSound('final')" class="btn btn-test">&#9654; Test</button>
+            </div>
+        </div>
+
         <!-- ========== SAVED DISHES SECTION ========== -->
         <!-- Shows dishes previously saved to localStorage. Users can load
              them into the active setup or delete them. -->
@@ -762,80 +797,162 @@
     }
 
 
-    // playBeep() — Generates a short beep sound using the Web Audio API.
-    // No sound files needed — we create the sound from scratch!
-    function playBeep() {
-        // Vibrate the phone — buzz-pause-buzz pattern (ignored on iOS / unsupported browsers)
-        if ("vibrate" in navigator) {
-            navigator.vibrate([200, 100, 200]);
+    // ---- SOUND SYSTEM ----
+    // Selected alarm types — loaded from localStorage, saved on change.
+    let selectedWarnSound = "single-beep";
+    let selectedFinalSound = "double-beep";
+
+    function loadSoundPrefs() {
+        selectedWarnSound  = localStorage.getItem("warnSound")  || "single-beep";
+        selectedFinalSound = localStorage.getItem("finalSound") || "double-beep";
+        const warnSel  = document.getElementById("warn-sound-select");
+        const finalSel = document.getElementById("final-sound-select");
+        if (warnSel)  warnSel.value  = selectedWarnSound;
+        if (finalSel) finalSel.value = selectedFinalSound;
+    }
+
+    function saveSoundPrefs() {
+        selectedWarnSound  = document.getElementById("warn-sound-select").value;
+        selectedFinalSound = document.getElementById("final-sound-select").value;
+        localStorage.setItem("warnSound",  selectedWarnSound);
+        localStorage.setItem("finalSound", selectedFinalSound);
+    }
+
+    // testSound(which) — previews the currently selected sound.
+    // Temporarily creates an AudioContext if one doesn't exist yet.
+    function testSound(which) {
+        if (!audioCtx) {
+            try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch(e) { return; }
+        } else if (audioCtx.state === "suspended") {
+            audioCtx.resume();
+        }
+        const type = which === "warn" ? selectedWarnSound : selectedFinalSound;
+        playSound(type);
+    }
+
+    // playSound(type) — plays one of the named alarm sounds using Web Audio API.
+    function playSound(type) {
+        if (!audioCtx) return;
+        const ctx = audioCtx;
+        const t = ctx.currentTime;
+
+        // Helper: schedule a single tone burst
+        function tone(freq, start, dur, gainVal, waveType) {
+            waveType = waveType || "sine";
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.frequency.value = freq;
+            osc.type = waveType;
+            gain.gain.setValueAtTime(gainVal, t + start);
+            gain.gain.exponentialRampToValueAtTime(0.001, t + start + dur);
+            osc.start(t + start);
+            osc.stop(t + start + dur + 0.05);
         }
 
         try {
-            if (!audioCtx) return;
+            switch (type) {
+                case "single-beep":
+                    tone(880, 0, 0.35, 1.0);
+                    break;
 
-            // An "oscillator" generates a tone (like a tuning fork)
-            const oscillator = audioCtx.createOscillator();
-            const gainNode = audioCtx.createGain();
+                case "double-beep":
+                    tone(880, 0,    0.3, 1.0);
+                    tone(880, 0.42, 0.3, 1.0);
+                    break;
 
-            oscillator.connect(gainNode);
-            gainNode.connect(audioCtx.destination);
+                case "triple-beep":
+                    tone(880, 0,    0.25, 1.0);
+                    tone(880, 0.35, 0.25, 1.0);
+                    tone(880, 0.70, 0.25, 1.0);
+                    break;
 
-            // Set the pitch (frequency) — 880 Hz is a high A note
-            oscillator.frequency.value = 880;
-            oscillator.type = "sine";
+                case "chime":
+                    // Soft triangle-wave chime — pleasant, distinct from beeps
+                    tone(1047, 0, 0.6, 0.9, "triangle");
+                    tone(784,  0.25, 0.5, 0.6, "triangle");
+                    break;
 
-            // Full volume so it cuts through background audio
-            gainNode.gain.value = 1.0;
+                case "rising":
+                    // Frequency sweep from 330 Hz up to 1100 Hz over 0.7s
+                    (function() {
+                        const osc  = ctx.createOscillator();
+                        const gain = ctx.createGain();
+                        osc.connect(gain);
+                        gain.connect(ctx.destination);
+                        osc.type = "sine";
+                        osc.frequency.setValueAtTime(330, t);
+                        osc.frequency.exponentialRampToValueAtTime(1100, t + 0.7);
+                        gain.gain.setValueAtTime(1.0, t);
+                        gain.gain.exponentialRampToValueAtTime(0.001, t + 0.75);
+                        osc.start(t);
+                        osc.stop(t + 0.8);
+                    })();
+                    break;
 
-            // Play for 0.3 seconds
-            oscillator.start();
-            oscillator.stop(audioCtx.currentTime + 0.3);
+                case "bell":
+                    // Bell: fast attack, slow exponential decay
+                    (function() {
+                        const osc  = ctx.createOscillator();
+                        const gain = ctx.createGain();
+                        osc.connect(gain);
+                        gain.connect(ctx.destination);
+                        osc.type = "sine";
+                        osc.frequency.value = 1047;
+                        gain.gain.setValueAtTime(1.0, t);
+                        gain.gain.exponentialRampToValueAtTime(0.001, t + 1.8);
+                        osc.start(t);
+                        osc.stop(t + 1.9);
+                    })();
+                    break;
 
-            // Play a second beep after a short pause
-            setTimeout(function() {
-                const osc2 = audioCtx.createOscillator();
-                const gain2 = audioCtx.createGain();
-                osc2.connect(gain2);
-                gain2.connect(audioCtx.destination);
-                osc2.frequency.value = 880;
-                osc2.type = "sine";
-                gain2.gain.value = 1.0;
-                osc2.start();
-                osc2.stop(audioCtx.currentTime + 0.3);
-            }, 400);
+                case "kitchen-timer":
+                    // 5 rapid beeps — classic kitchen timer
+                    for (var i = 0; i < 5; i++) {
+                        tone(1000, i * 0.22, 0.15, 1.0);
+                    }
+                    break;
+
+                case "siren":
+                    // Rapid alternating tones — hard to miss
+                    (function() {
+                        var cycles = 6;
+                        for (var i = 0; i < cycles; i++) {
+                            tone(600, i * 0.18,       0.15, 1.0);
+                            tone(900, i * 0.18 + 0.09, 0.15, 1.0);
+                        }
+                    })();
+                    break;
+
+                case "buzz":
+                    // Harsh square-wave buzz — very hard to ignore
+                    tone(220, 0,    0.4, 1.0, "square");
+                    tone(220, 0.55, 0.4, 1.0, "square");
+                    break;
+
+                default:
+                    tone(880, 0, 0.3, 1.0);
+            }
         } catch (e) {
-            // If audio fails (e.g., browser blocks it), just skip it
-            console.log("Could not play beep:", e);
+            console.log("Could not play sound:", e);
         }
     }
 
+    // playBeep() — fires when a step alarm triggers.
+    function playBeep() {
+        if ("vibrate" in navigator) {
+            navigator.vibrate([200, 100, 200]);
+        }
+        playSound(selectedFinalSound);
+    }
 
-    // playWarningBeep() — A single, quieter beep at 30 seconds as an early alert.
+    // playWarningBeep() — fires 30 seconds before a step.
     function playWarningBeep() {
-        // Single short buzz — distinct from the double-buzz of the main alarm
         if ("vibrate" in navigator) {
             navigator.vibrate([100]);
         }
-
-        try {
-            if (!audioCtx) return;
-
-            const oscillator = audioCtx.createOscillator();
-            const gainNode = audioCtx.createGain();
-
-            oscillator.connect(gainNode);
-            gainNode.connect(audioCtx.destination);
-
-            // Lower pitch than the main alarm — a gentle heads-up
-            oscillator.frequency.value = 440;
-            oscillator.type = "sine";
-            gainNode.gain.value = 0.5;
-
-            oscillator.start();
-            oscillator.stop(audioCtx.currentTime + 0.2);
-        } catch (e) {
-            console.log("Could not play warning beep:", e);
-        }
+        playSound(selectedWarnSound);
     }
 
 
@@ -1230,6 +1347,15 @@
         const recipe = cachedSavedDishes.find(function(d) { return d.id === docId; });
         if (!recipe) return;
 
+        // Remove any blank dish cards before loading
+        const container = document.getElementById("dishes-container");
+        Array.from(container.querySelectorAll(".dish-card")).forEach(function(card) {
+            const nameVal = card.querySelector(".dish-name").value.trim();
+            const hasStepContent = Array.from(card.querySelectorAll(".step-action"))
+                .some(function(i) { return i.value.trim(); });
+            if (!nameVal && !hasStepContent) container.removeChild(card);
+        });
+
         // Create a new empty dish card
         dishCounter++;
         const dishId = dishCounter;
@@ -1407,6 +1533,9 @@
     // Add one dish automatically when the page loads so it's not empty.
     // (The setup section is hidden until login — this just pre-creates the card.)
     addDish();
+
+    // Load saved sound preferences from localStorage.
+    loadSoundPrefs();
 
     // Saved dishes are now loaded automatically by the Firestore onSnapshot
     // listener, which is set up when the user logs in (see setupDishesListener).
