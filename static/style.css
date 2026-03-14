@@ -272,6 +272,53 @@ h2 {
     margin-top: 30px;
 }
 
+/* ---- Pause overlay ---- */
+#pause-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.82);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+}
+
+.pause-modal {
+    background: #1c1c1c;
+    border: 2px solid #e8a838;
+    border-radius: 16px;
+    padding: 40px 52px;
+    text-align: center;
+    box-shadow: 0 0 40px rgba(232, 168, 56, 0.25);
+    min-width: 280px;
+}
+
+.pause-modal-title {
+    font-size: 1.5em;
+    font-weight: 700;
+    color: #e8a838;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    margin-bottom: 20px;
+}
+
+.pause-stopwatch {
+    font-size: 4em;
+    font-weight: 800;
+    color: #fff;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.02em;
+    line-height: 1;
+}
+
+.pause-modal-label {
+    font-size: 0.85em;
+    color: #888;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-top: 6px;
+}
+
 .btn-remove {
     background-color: #2a2a2a;
     color: #bbb;

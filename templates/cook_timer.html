@@ -137,6 +137,17 @@
         </div>
     </div>
 
+    <!-- ========== PAUSE OVERLAY ========== -->
+    <!-- Shown while timers are paused. Displays a running stopwatch and a Resume button. -->
+    <div id="pause-overlay" style="display:none;">
+        <div class="pause-modal">
+            <div class="pause-modal-title">⏸ Timers Paused</div>
+            <div id="pause-stopwatch" class="pause-stopwatch">0:00</div>
+            <div class="pause-modal-label">paused for</div>
+            <button onclick="togglePause()" class="btn btn-start" style="margin-top: 24px; font-size: 1.2em; padding: 14px 40px;">▶ Resume</button>
+        </div>
+    </div>
+
     <script>
     // ================================================================
     // JAVASCRIPT — All the interactive logic for our cooking timer
@@ -980,6 +991,35 @@
 
     // ---- PAUSE / RESUME ----
 
+    // Stopwatch interval for the pause overlay
+    let pauseStopwatchInterval = null;
+
+    function updatePauseStopwatch() {
+        if (!pauseStartTime) return;
+        const elapsed = Math.floor((new Date().getTime() - pauseStartTime.getTime()) / 1000);
+        const mins = Math.floor(elapsed / 60);
+        const secs = elapsed % 60;
+        const el = document.getElementById("pause-stopwatch");
+        if (el) el.textContent = mins + ":" + (secs < 10 ? "0" : "") + secs;
+    }
+
+    function showPauseOverlay() {
+        document.getElementById("pause-overlay").style.display = "flex";
+        updatePauseStopwatch();
+        pauseStopwatchInterval = setInterval(updatePauseStopwatch, 1000);
+    }
+
+    function hidePauseOverlay() {
+        document.getElementById("pause-overlay").style.display = "none";
+        if (pauseStopwatchInterval) {
+            clearInterval(pauseStopwatchInterval);
+            pauseStopwatchInterval = null;
+        }
+        // Reset stopwatch display for next pause
+        const el = document.getElementById("pause-stopwatch");
+        if (el) el.textContent = "0:00";
+    }
+
     // togglePause() — Freezes or unfreezes all timers.
     // When pausing: records the current time so we know how long the pause lasted.
     // When resuming: shifts every fire time forward by the pause duration,
@@ -1001,6 +1041,8 @@
                 const card = container.querySelector(".timer-card");
                 if (card) card.classList.add("paused");
             });
+
+            showPauseOverlay();
         } else {
             // RESUME — shift all fire times forward by however long we were paused
             const now = new Date();
@@ -1017,6 +1059,8 @@
             isPaused = false;
             pauseStartTime = null;
             btn.textContent = "Pause";
+
+            hidePauseOverlay();
 
             // Unlock audio if needed — tapping Resume counts as a user gesture
             if (!audioCtx) {
@@ -1199,7 +1243,7 @@
             document.getElementById("timer-section").style.display = "block";
             renderDishes();
 
-            // If paused, reflect that in the button and card styles
+            // If paused, reflect that in the button, card styles, and overlay
             if (isPaused) {
                 document.getElementById("btn-pause").textContent = "Resume";
                 activeDishes.forEach(function(dish, index) {
@@ -1209,6 +1253,7 @@
                     const card = container.querySelector(".timer-card");
                     if (card) card.classList.add("paused");
                 });
+                showPauseOverlay();
             }
 
             // Restart the countdown loop
