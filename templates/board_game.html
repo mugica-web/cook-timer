@@ -1,0 +1,825 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>✨ Magical Gem Quest ✨</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;700;800;900&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{min-height:100vh;background:linear-gradient(135deg,#1a0533 0%,#0d1b4b 50%,#1a0533 100%);font-family:'Nunito',sans-serif;color:#fff;overflow-x:hidden}
+
+/* ---- SETUP SCREEN ---- */
+#setup-screen{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:20px;gap:16px}
+.game-title{font-family:'Fredoka One',cursive;font-size:clamp(2.2rem,8vw,4.5rem);background:linear-gradient(45deg,#ff69b4,#9b59b6,#00bcd4,#ffd700);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;text-align:center;filter:drop-shadow(0 0 20px rgba(255,105,180,.5));animation:titleFloat 3s ease-in-out infinite}
+.subtitle{font-size:clamp(.9rem,2.5vw,1.3rem);color:#ffd700;text-align:center;letter-spacing:2px}
+@keyframes titleFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+
+.setup-box{background:rgba(255,255,255,.08);border:2px solid rgba(255,255,255,.2);border-radius:24px;padding:28px 36px;width:min(520px,95vw);backdrop-filter:blur(10px)}
+.setup-section{margin-bottom:22px}
+.setup-label{font-size:1.1rem;font-weight:800;color:#ffd700;margin-bottom:10px}
+.count-row{display:flex;gap:8px;flex-wrap:wrap}
+.count-btn{width:48px;height:48px;border-radius:50%;border:3px solid rgba(255,255,255,.3);background:rgba(255,255,255,.1);color:#fff;font-size:1.3rem;font-weight:800;cursor:pointer;transition:all .2s;font-family:'Fredoka One',cursive}
+.count-btn:hover,.count-btn.sel{background:linear-gradient(135deg,#ff69b4,#9b59b6);border-color:#ff69b4;transform:scale(1.12);box-shadow:0 0 15px rgba(255,105,180,.5)}
+
+.player-rows{display:flex;flex-direction:column;gap:10px}
+.player-row{display:flex;align-items:center;gap:10px}
+.token-preview{width:34px;height:34px;border-radius:50%;flex-shrink:0;border:3px solid rgba(255,255,255,.8);box-shadow:0 0 8px currentColor}
+.name-input{flex:1;background:rgba(255,255,255,.15);border:2px solid rgba(255,255,255,.3);border-radius:12px;padding:9px 14px;color:#fff;font-size:1rem;font-family:'Nunito',sans-serif;font-weight:700;transition:border-color .2s}
+.name-input::placeholder{color:rgba(255,255,255,.35)}
+.name-input:focus{outline:none;border-color:#ff69b4;box-shadow:0 0 10px rgba(255,105,180,.4)}
+.cpu-tag{background:linear-gradient(135deg,#00bcd4,#006064);padding:5px 12px;border-radius:20px;font-size:.82rem;font-weight:700;white-space:nowrap}
+
+.start-btn{width:100%;padding:15px;background:linear-gradient(135deg,#ff69b4,#9b59b6,#00bcd4);border:none;border-radius:16px;color:#fff;font-family:'Fredoka One',cursive;font-size:1.4rem;cursor:pointer;transition:all .3s;box-shadow:0 4px 20px rgba(255,105,180,.4)}
+.start-btn:hover{transform:translateY(-3px);box-shadow:0 8px 30px rgba(255,105,180,.7)}
+
+/* ---- GAME SCREEN ---- */
+#game-screen{display:none;flex-direction:column;align-items:center;min-height:100vh;padding:12px 10px 20px}
+.g-title{font-family:'Fredoka One',cursive;font-size:clamp(1.1rem,3.5vw,1.8rem);background:linear-gradient(45deg,#ff69b4,#ffd700);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:10px}
+
+/* Board */
+.board-wrap{position:relative;width:min(560px,96vw);height:min(560px,96vw);margin:0 auto}
+.board-bg{position:absolute;inset:0;border-radius:50%;background:radial-gradient(circle at 40% 35%,#2d0b6b,#1a0533 60%,#0d1b4b);border:3px solid rgba(255,255,255,.15);box-shadow:0 0 50px rgba(155,89,182,.3),inset 0 0 80px rgba(0,0,0,.5)}
+.board-path-ring{position:absolute;border-radius:50%;border:2px dashed rgba(255,255,255,.08);pointer-events:none}
+.space-dot{position:absolute;border-radius:50%;background:rgba(255,255,255,.1);border:2px solid rgba(255,255,255,.25);transform:translate(-50%,-50%);display:flex;align-items:center;justify-content:center;font-size:.6rem;font-family:'Fredoka One',cursive;color:rgba(255,255,255,.45);transition:all .3s;z-index:2;user-select:none}
+.space-dot.start{background:linear-gradient(135deg,rgba(255,215,0,.3),rgba(255,105,180,.25));border-color:#ffd700;box-shadow:0 0 10px rgba(255,215,0,.4);color:#ffd700;font-size:.7rem}
+
+/* Center */
+.center-area{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;z-index:5;width:150px}
+.center-title{font-family:'Fredoka One',cursive;font-size:.8rem;color:#ffd700;margin-bottom:7px;text-shadow:0 0 8px rgba(255,215,0,.5)}
+.gem-list{display:flex;flex-direction:column;gap:5px;align-items:center}
+.gem-chip{display:flex;align-items:center;gap:5px;background:rgba(255,255,255,.08);padding:4px 9px;border-radius:20px;font-size:.82rem;border:1px solid rgba(255,255,255,.15);transition:all .4s}
+.gem-chip.won{background:rgba(255,215,0,.15);border-color:rgba(255,215,0,.5);opacity:.5;text-decoration:line-through}
+.gem-place{font-size:.7rem;font-weight:800;color:#ffd700}
+
+/* Tokens */
+.p-token{position:absolute;border-radius:50%;transform:translate(-50%,-50%);border:3px solid rgba(255,255,255,.9);display:flex;align-items:center;justify-content:center;font-family:'Fredoka One',cursive;font-weight:900;color:#fff;z-index:10;text-shadow:0 1px 3px rgba(0,0,0,.8);transition:left .5s ease,top .5s ease,transform .3s ease,box-shadow .3s ease;cursor:default}
+.p-token.active{transform:translate(-50%,-50%) scale(1.35);z-index:20}
+
+/* Side panel */
+.side-panel{width:min(560px,96vw);margin-top:12px;display:flex;flex-direction:column;gap:10px}
+.turn-box{background:rgba(255,255,255,.08);border:2px solid rgba(255,255,255,.18);border-radius:16px;padding:11px 18px;text-align:center}
+.turn-name{font-family:'Fredoka One',cursive;font-size:1.35rem}
+.turn-sub{font-size:.85rem;color:rgba(255,255,255,.55);margin-top:2px}
+
+.card-row{display:flex;gap:12px;align-items:stretch}
+.draw-btn{flex-shrink:0;padding:12px 18px;background:linear-gradient(135deg,#ff69b4,#9b59b6);border:none;border-radius:14px;color:#fff;font-family:'Fredoka One',cursive;font-size:1.05rem;cursor:pointer;transition:all .3s;box-shadow:0 4px 15px rgba(255,105,180,.4);white-space:nowrap}
+.draw-btn:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 6px 25px rgba(255,105,180,.6)}
+.draw-btn:disabled{opacity:.35;cursor:not-allowed}
+.card-box{flex:1;background:rgba(255,255,255,.07);border:2px solid rgba(255,255,255,.18);border-radius:14px;padding:11px 15px;min-height:65px;display:flex;align-items:center;justify-content:center;text-align:center;font-size:.95rem;font-weight:700;transition:all .3s}
+.card-box.fwd{border-color:#66bb6a;background:rgba(102,187,106,.15);color:#a5d6a7}
+.card-box.bwd{border-color:#ef5350;background:rgba(239,83,80,.15);color:#ef9a9a}
+.card-box.mega{border-color:#ff6b6b;background:rgba(200,0,0,.2);color:#ff6b6b;animation:megaPulse .45s ease infinite alternate;font-size:.88rem}
+@keyframes megaPulse{from{box-shadow:0 0 8px #f00}to{box-shadow:0 0 30px #f00,0 0 60px #f60}}
+
+.players-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(155px,1fr));gap:8px}
+.p-card{background:rgba(255,255,255,.06);border:2px solid rgba(255,255,255,.13);border-radius:12px;padding:8px 11px;transition:all .3s}
+.p-card.active{border-color:var(--c);background:rgba(255,255,255,.11);box-shadow:0 0 10px var(--c)}
+.p-card.done{border-color:rgba(255,215,0,.5);opacity:.65}
+.p-card-top{display:flex;align-items:center;gap:6px;font-weight:800;font-size:.88rem}
+.p-dot{width:11px;height:11px;border-radius:50%;flex-shrink:0}
+.p-card-info{font-size:.75rem;color:rgba(255,255,255,.55);margin-top:3px}
+.p-card-gem{font-size:.78rem;margin-top:3px;color:#ffd700}
+
+.log-box{background:rgba(0,0,0,.3);border-radius:12px;padding:7px 12px;font-size:.76rem;max-height:72px;overflow-y:auto;color:rgba(255,255,255,.6)}
+.log-line{padding:2px 0;border-bottom:1px solid rgba(255,255,255,.05)}
+.log-line:last-child{border-bottom:none}
+
+/* ---- GEM OVERLAY ---- */
+#gem-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:100;align-items:center;justify-content:center;flex-direction:column;padding:20px}
+.go-title{font-family:'Fredoka One',cursive;font-size:clamp(1.4rem,5vw,2.4rem);color:#ffd700;text-align:center;margin-bottom:8px}
+.go-sub{font-size:1rem;color:rgba(255,255,255,.75);text-align:center;margin-bottom:25px}
+.flip-wrap{width:180px;height:250px;perspective:1000px;margin-bottom:28px;cursor:pointer}
+.flip-inner{width:100%;height:100%;position:relative;transform-style:preserve-3d;transition:transform .8s cubic-bezier(.4,0,.2,1)}
+.flip-inner.flipped{transform:rotateY(180deg)}
+.flip-f,.flip-b{position:absolute;inset:0;backface-visibility:hidden;border-radius:20px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px}
+.flip-f{background:linear-gradient(135deg,#1a0533,#2d0b6b);border:3px solid #9b59b6;box-shadow:0 0 30px rgba(155,89,182,.5);font-size:3.5rem;animation:cardWiggle 1.5s ease-in-out infinite}
+@keyframes cardWiggle{0%,100%{transform:rotate(-2deg)}50%{transform:rotate(2deg)}}
+.flip-b{background:linear-gradient(135deg,#2d0b6b,#1a0533);border:3px solid #ffd700;box-shadow:0 0 30px rgba(255,215,0,.5);transform:rotateY(180deg)}
+.flip-b .big-gem{font-size:4.5rem}
+.flip-b .gem-label{font-family:'Fredoka One',cursive;font-size:1.3rem;color:#ffd700}
+.flip-b .place-label{font-size:.9rem;color:rgba(255,255,255,.8)}
+
+.go-btn{padding:13px 30px;background:linear-gradient(135deg,#ff69b4,#9b59b6);border:none;border-radius:14px;color:#fff;font-family:'Fredoka One',cursive;font-size:1.25rem;cursor:pointer;display:none;transition:all .3s;box-shadow:0 4px 15px rgba(255,105,180,.4)}
+.go-btn:hover{transform:scale(1.05);box-shadow:0 6px 25px rgba(255,105,180,.6)}
+
+/* ---- END SCREEN ---- */
+#end-screen{display:none;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:20px;text-align:center;gap:20px}
+.end-title{font-family:'Fredoka One',cursive;font-size:clamp(2rem,7vw,3.8rem);background:linear-gradient(45deg,#ffd700,#ff69b4,#9b59b6,#00bcd4);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;animation:titleFloat 3s ease-in-out infinite}
+.podium{display:flex;align-items:flex-end;gap:8px;justify-content:center;flex-wrap:wrap}
+.pod-place{display:flex;flex-direction:column;align-items:center;gap:6px}
+.pod-token{width:58px;height:58px;border-radius:50%;border:4px solid #fff;display:flex;align-items:center;justify-content:center;font-family:'Fredoka One',cursive;font-size:1.4rem;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.8);animation:tokenPulse 2s ease-in-out infinite}
+@keyframes tokenPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.1)}}
+.pod-gem-big{font-size:2.2rem}
+.pod-name{font-weight:800;font-size:.95rem;max-width:90px;word-break:break-word}
+.pod-base{background:rgba(255,255,255,.12);border:2px solid rgba(255,255,255,.3);border-radius:8px;display:flex;align-items:center;justify-content:center;font-family:'Fredoka One',cursive;font-size:1.1rem;color:#ffd700;width:88px}
+.pod-base.p1{height:95px}.pod-base.p2{height:72px}.pod-base.p3{height:52px}
+.others-txt{font-size:.95rem;color:rgba(255,255,255,.6)}
+.play-again-btn{padding:15px 34px;background:linear-gradient(135deg,#ff69b4,#9b59b6,#00bcd4);border:none;border-radius:16px;color:#fff;font-family:'Fredoka One',cursive;font-size:1.4rem;cursor:pointer;transition:all .3s;box-shadow:0 4px 20px rgba(255,105,180,.4)}
+.play-again-btn:hover{transform:translateY(-3px) scale(1.04);box-shadow:0 8px 30px rgba(255,105,180,.6)}
+
+/* ---- PARTICLES ---- */
+.sparkle{position:fixed;pointer-events:none;animation:sparkleFly var(--dur,1.4s) ease-out forwards;z-index:200}
+@keyframes sparkleFly{0%{opacity:1;transform:translate(0,0) scale(1) rotate(0deg)}100%{opacity:0;transform:translate(var(--tx),var(--ty)) scale(.4) rotate(360deg)}}
+.confetti{position:fixed;pointer-events:none;animation:confettiFall var(--dur,3s) linear forwards;z-index:200;border-radius:2px}
+@keyframes confettiFall{0%{transform:translateY(-30px) rotate(0deg);opacity:1}100%{transform:translateY(105vh) rotate(720deg);opacity:0}}
+.float-msg{position:fixed;left:50%;top:38%;transform:translateX(-50%);background:rgba(0,0,0,.88);border:3px solid #ffd700;border-radius:20px;padding:16px 30px;font-family:'Fredoka One',cursive;font-size:clamp(1.1rem,4vw,1.9rem);color:#ffd700;text-align:center;z-index:150;pointer-events:none;animation:msgAnim 2.2s ease-in-out forwards;white-space:pre-line}
+@keyframes msgAnim{0%{opacity:0;transform:translateX(-50%) translateY(18px)}15%{opacity:1;transform:translateX(-50%) translateY(0)}75%{opacity:1;transform:translateX(-50%) translateY(0)}100%{opacity:0;transform:translateX(-50%) translateY(-25px)}}
+</style>
+</head>
+<body>
+
+<!-- ===== SETUP SCREEN ===== -->
+<div id="setup-screen">
+  <div class="game-title">✨ Magical Gem Quest ✨</div>
+  <div class="subtitle">✦ Collect the legendary gems and claim your glory! ✦</div>
+
+  <div class="setup-box">
+    <div class="setup-section">
+      <div class="setup-label">How many players in total? 🎮</div>
+      <div class="count-row" id="total-count-row">
+        <button class="count-btn" data-total="2">2</button>
+        <button class="count-btn" data-total="3">3</button>
+        <button class="count-btn" data-total="4">4</button>
+        <button class="count-btn sel" data-total="5">5</button>
+      </div>
+    </div>
+    <div class="setup-section">
+      <div class="setup-label">How many are human? 🙋</div>
+      <div class="count-row" id="human-count-row"></div>
+    </div>
+    <div class="setup-section">
+      <div class="setup-label">Enter player names:</div>
+      <div class="player-rows" id="player-rows"></div>
+    </div>
+    <button class="start-btn" onclick="startGame()">🌟 Let the Magic Begin! 🌟</button>
+  </div>
+</div>
+
+<!-- ===== GAME SCREEN ===== -->
+<div id="game-screen">
+  <div class="g-title">✨ Magical Gem Quest ✨</div>
+  <div class="board-wrap" id="board-wrap">
+    <div class="board-bg"></div>
+    <div id="board-spaces"></div>
+    <div class="center-area">
+      <div class="center-title">🏆 Gems to Win</div>
+      <div class="gem-list" id="gem-list"></div>
+    </div>
+    <div id="token-layer"></div>
+  </div>
+  <div class="side-panel">
+    <div class="turn-box">
+      <div class="turn-name" id="turn-name">—</div>
+      <div class="turn-sub" id="turn-sub">Get ready...</div>
+    </div>
+    <div class="card-row">
+      <button class="draw-btn" id="draw-btn" onclick="humanDraw()">🃏 Draw a Card!</button>
+      <div class="card-box" id="card-box">Draw a card to move!</div>
+    </div>
+    <div class="players-grid" id="players-grid"></div>
+    <div class="log-box" id="log-box"></div>
+  </div>
+</div>
+
+<!-- ===== GEM OVERLAY ===== -->
+<div id="gem-overlay">
+  <div class="go-title" id="go-title">🎊 Lap Complete! 🎊</div>
+  <div class="go-sub" id="go-sub">Tap the card to reveal your gem!</div>
+  <div class="flip-wrap" id="flip-wrap">
+    <div class="flip-inner" id="flip-inner">
+      <div class="flip-f">✨<br><span style="font-size:1.5rem;color:#ffd700">Tap to flip!</span></div>
+      <div class="flip-b">
+        <div class="big-gem" id="go-gem-emoji">💜</div>
+        <div class="gem-label" id="go-gem-name">Amethyst</div>
+        <div class="place-label">🏆 Place #<span id="go-place">1</span></div>
+      </div>
+    </div>
+  </div>
+  <button class="go-btn" id="go-btn" onclick="afterGem()">Continue! ✨</button>
+</div>
+
+<!-- ===== END SCREEN ===== -->
+<div id="end-screen">
+  <div class="end-title">🏆 Magical Results! 🏆</div>
+  <div class="podium" id="podium"></div>
+  <div class="others-txt" id="others-txt"></div>
+  <button class="play-again-btn" onclick="playAgain()">✨ Play Again! ✨</button>
+</div>
+
+<script>
+// ═══════════════════════════════════════════
+//  CONSTANTS
+// ═══════════════════════════════════════════
+const SPACES = 25;
+const COLORS = ['#ff69b4','#9b59b6','#00bcd4','#ff7043','#66bb6a'];
+const COLOR_NAMES = ['Pink','Purple','Teal','Orange','Green'];
+const CPU_NAMES = ['Sparkle Bot','Crystal Chomper','Rainbow Dash','Glitter Gremlin',
+  'Magic Muffin','Stardust Sally','Prism Puff','Neon Nibbles','Fairy Fern','Twinkle Toad'];
+
+// Cards: slightly rebalanced from original spec for better playability
+// Forward total: 42 | Backward (non-MEGA) total: 20 | MEGA: 21
+// Net per deck: +1, plus position-clamping makes MEGA less brutal on average
+const CARDS = [
+  {text:"Move forward 4 — Fairy dust boost! ✨",     steps:4,  fwd:true},
+  {text:"Move forward 5 — Rainbow rocket! 🌈",        steps:5,  fwd:true},
+  {text:"Move forward 3 — Bunny hop! 🐰",             steps:3,  fwd:true}, // was 2
+  {text:"Move forward 5 — Unicorn gallop! 🦄",        steps:5,  fwd:true},
+  {text:"Move forward 6 — Magic carpet ride! 🪄",     steps:6,  fwd:true},
+  {text:"Move forward 2 — Baby dragon steps! 🐉",     steps:2,  fwd:true},
+  {text:"Move forward 8 — Shooting star! ⭐",          steps:8,  fwd:true}, // was 7
+  {text:"Move forward 4 — Pixie wings! 🧚",           steps:4,  fwd:true}, // was 3
+  {text:"Move forward 3 — Butterfly flutter! 🦋",     steps:3,  fwd:true},
+  {text:"Move forward 6 — Mermaid splash! 🧜",        steps:6,  fwd:true}, // was 5
+  {text:"Go back 2 — Sleepy snail... 🐌",             steps:2,  fwd:false},
+  {text:"Go back 2 — Grumpy goblin! 👺",              steps:2,  fwd:false}, // was 3
+  {text:"Go back 1 — Wobbly penguin! 🐧",             steps:1,  fwd:false},
+  {text:"Go back 3 — Slippery banana! 🍌",            steps:3,  fwd:false}, // was 4
+  {text:"Go back 2 — Dizzy spell! 💫",                steps:2,  fwd:false},
+  {text:"Go back 2 — Backwards broomstick! 🧹",       steps:2,  fwd:false}, // was 3
+  {text:"Go back 1 — Hiccup! 😤",                     steps:1,  fwd:false},
+  {text:"Go back 3 — Tripped on a toadstool! 🍄",     steps:3,  fwd:false}, // was 4
+  {text:"Go back 4 — Sneaky witch! 🧙",               steps:4,  fwd:false}, // was 5
+  {text:"GO BACK 21 — THE MEGA WHOOPS CARD!!! 💥🌪️😱",steps:21, fwd:false, mega:true},
+];
+
+const GEMS = [
+  {emoji:'💜', name:'Amethyst',  color:'#9b59b6'},
+  {emoji:'🟢', name:'Fluorite',  color:'#4caf50'},
+  {emoji:'🌸', name:'Pink Rose', color:'#ff69b4'},
+];
+
+// ═══════════════════════════════════════════
+//  SETUP STATE
+// ═══════════════════════════════════════════
+let setupTotal = 5;
+let setupHumans = 1;
+
+function initSetup() {
+  // Total count buttons
+  document.querySelectorAll('#total-count-row .count-btn').forEach(b => {
+    b.addEventListener('click', () => {
+      setupTotal = parseInt(b.dataset.total);
+      document.querySelectorAll('#total-count-row .count-btn').forEach(x => x.classList.remove('sel'));
+      b.classList.add('sel');
+      if (setupHumans > setupTotal) setupHumans = setupTotal;
+      rebuildHumanRow();
+      rebuildPlayerRows();
+    });
+  });
+  rebuildHumanRow();
+  rebuildPlayerRows();
+}
+
+function rebuildHumanRow() {
+  const row = document.getElementById('human-count-row');
+  row.innerHTML = '';
+  for (let i = 1; i <= setupTotal; i++) {
+    const b = document.createElement('button');
+    b.className = 'count-btn' + (i === setupHumans ? ' sel' : '');
+    b.textContent = i;
+    b.addEventListener('click', () => {
+      setupHumans = i;
+      document.querySelectorAll('#human-count-row .count-btn').forEach(x => x.classList.remove('sel'));
+      b.classList.add('sel');
+      rebuildPlayerRows();
+    });
+    row.appendChild(b);
+  }
+}
+
+function rebuildPlayerRows() {
+  const container = document.getElementById('player-rows');
+  container.innerHTML = '';
+  for (let i = 0; i < setupTotal; i++) {
+    const row = document.createElement('div');
+    row.className = 'player-row';
+    const dot = document.createElement('div');
+    dot.className = 'token-preview';
+    dot.style.background = COLORS[i];
+    dot.style.color = COLORS[i];
+    dot.style.boxShadow = `0 0 8px ${COLORS[i]}`;
+
+    if (i < setupHumans) {
+      const inp = document.createElement('input');
+      inp.type = 'text';
+      inp.className = 'name-input';
+      inp.placeholder = `Player ${i+1} name...`;
+      inp.id = `inp-${i}`;
+      inp.maxLength = 18;
+      row.appendChild(dot);
+      row.appendChild(inp);
+    } else {
+      const tag = document.createElement('div');
+      tag.className = 'cpu-tag';
+      tag.textContent = '🤖 CPU Player';
+      const hint = document.createElement('div');
+      hint.style.cssText = 'flex:1;font-size:.82rem;color:rgba(255,255,255,.4)';
+      hint.textContent = 'Auto-plays!';
+      row.appendChild(dot);
+      row.appendChild(tag);
+      row.appendChild(hint);
+    }
+    container.appendChild(row);
+  }
+}
+
+// ═══════════════════════════════════════════
+//  GAME STATE
+// ═══════════════════════════════════════════
+let G = {}; // global game state
+
+function startGame() {
+  const usedCpu = new Set();
+  function pickCpuName() {
+    let n;
+    do { n = CPU_NAMES[Math.floor(Math.random() * CPU_NAMES.length)]; } while (usedCpu.has(n));
+    usedCpu.add(n);
+    return n;
+  }
+
+  const players = [];
+  for (let i = 0; i < setupTotal; i++) {
+    const isHuman = i < setupHumans;
+    let name;
+    if (isHuman) {
+      const el = document.getElementById(`inp-${i}`);
+      name = el ? el.value.trim() : '';
+      if (!name) name = `Player ${i+1}`;
+    } else {
+      name = pickCpuName();
+    }
+    players.push({ name, isHuman, color: COLORS[i], pos: 0, laps: 0, done: false, gem: null, place: null });
+  }
+
+  G = {
+    players,
+    turn: 0,
+    deck: shuffle([...CARDS]),
+    gemDeck: shuffle([...GEMS]),
+    gemIdx: 0,
+    gemsGiven: 0,
+    waiting: true,
+    pendingGemPlayer: -1,
+    log: [],
+  };
+
+  document.getElementById('setup-screen').style.display = 'none';
+  const gs = document.getElementById('game-screen');
+  gs.style.display = 'flex';
+
+  buildBoard();
+  buildGemList();
+  refreshAll();
+
+  if (!G.players[0].isHuman) setTimeout(cpuTurn, 1200);
+}
+
+// ═══════════════════════════════════════════
+//  BOARD
+// ═══════════════════════════════════════════
+function boardMetrics() {
+  const wrap = document.getElementById('board-wrap');
+  const sz = wrap.clientWidth || 400;
+  return { sz, cx: sz/2, cy: sz/2, r: sz * 0.4, dotSz: Math.max(22, sz * 0.062) };
+}
+
+function spacePos(i) {
+  const { cx, cy, r } = boardMetrics();
+  const a = -Math.PI/2 + (i/SPACES) * 2 * Math.PI;
+  return { x: cx + r * Math.cos(a), y: cy + r * Math.sin(a) };
+}
+
+function buildBoard() {
+  const { sz, cx, cy, r, dotSz } = boardMetrics();
+  const container = document.getElementById('board-spaces');
+  container.innerHTML = '';
+
+  // Dashed path ring
+  const ring = document.createElement('div');
+  ring.className = 'board-path-ring';
+  const rPct = (r / sz) * 100;
+  const offset = (50 - rPct);
+  ring.style.cssText = `left:${offset}%;top:${offset}%;width:${rPct*2}%;height:${rPct*2}%`;
+  container.appendChild(ring);
+
+  for (let i = 0; i < SPACES; i++) {
+    const { x, y } = spacePos(i);
+    const d = document.createElement('div');
+    d.className = 'space-dot' + (i === 0 ? ' start' : '');
+    d.style.cssText = `left:${x}px;top:${y}px;width:${dotSz}px;height:${dotSz}px`;
+    d.id = `sp-${i}`;
+    d.textContent = i === 0 ? '🏁' : i;
+    container.appendChild(d);
+  }
+}
+
+function buildGemList() {
+  const el = document.getElementById('gem-list');
+  el.innerHTML = '';
+  GEMS.forEach((g, i) => {
+    const chip = document.createElement('div');
+    chip.className = 'gem-chip';
+    chip.id = `gc-${i}`;
+    chip.innerHTML = `<span>${g.emoji}</span><span>${g.name}</span>`;
+    el.appendChild(chip);
+  });
+}
+
+function refreshGemList() {
+  GEMS.forEach((g, i) => {
+    const chip = document.getElementById(`gc-${i}`);
+    if (!chip) return;
+    if (i < G.gemsGiven) {
+      chip.className = 'gem-chip won';
+      chip.innerHTML = `<span>${g.emoji}</span><span>${g.name}</span><span class="gem-place">#${i+1} ✅</span>`;
+    }
+  });
+}
+
+function refreshTokens() {
+  const layer = document.getElementById('token-layer');
+  layer.innerHTML = '';
+  const { dotSz } = boardMetrics();
+  const tokenSz = Math.max(20, dotSz * 0.82);
+
+  // Group by position for offset
+  const groups = {};
+  G.players.forEach((p, i) => {
+    if (!p.done) {
+      if (!groups[p.pos]) groups[p.pos] = [];
+      groups[p.pos].push(i);
+    }
+  });
+
+  G.players.forEach((p, i) => {
+    if (p.done) return;
+    const { x, y } = spacePos(p.pos);
+    const grp = groups[p.pos];
+    const gi = grp.indexOf(i);
+    let ox = 0, oy = 0;
+    if (grp.length > 1) {
+      const oa = (gi / grp.length) * Math.PI * 2;
+      const or_ = tokenSz * 0.6;
+      ox = or_ * Math.cos(oa);
+      oy = or_ * Math.sin(oa);
+    }
+
+    const t = document.createElement('div');
+    t.className = 'p-token' + (i === G.turn ? ' active' : '');
+    t.id = `tok-${i}`;
+    t.style.cssText = `left:${x+ox}px;top:${y+oy}px;width:${tokenSz}px;height:${tokenSz}px;background:${p.color};box-shadow:0 2px 8px rgba(0,0,0,.5),0 0 ${i===G.turn?'14':'6'}px ${p.color};font-size:${tokenSz*.42}px;border-width:${Math.max(2,tokenSz*.1)}px`;
+    t.textContent = p.name[0].toUpperCase();
+    layer.appendChild(t);
+  });
+}
+
+function refreshPlayersList() {
+  const grid = document.getElementById('players-grid');
+  grid.innerHTML = '';
+  G.players.forEach((p, i) => {
+    const card = document.createElement('div');
+    card.className = 'p-card' + (i === G.turn && !p.done ? ' active' : '') + (p.done ? ' done' : '');
+    card.style.setProperty('--c', p.color);
+    const lapTxt = p.laps === 1 ? '1 lap' : `${p.laps} laps`;
+    card.innerHTML = `
+      <div class="p-card-top">
+        <div class="p-dot" style="background:${p.color};box-shadow:0 0 5px ${p.color}"></div>
+        <span>${p.name}${p.done?' ✅':''}</span>
+      </div>
+      <div class="p-card-info">Space ${p.pos} · ${lapTxt}${p.isHuman?'':' 🤖'}</div>
+      ${p.gem ? `<div class="p-card-gem">${p.gem.emoji} ${p.gem.name} · #${p.place}</div>` : ''}`;
+    grid.appendChild(card);
+  });
+}
+
+function refreshTurnUI() {
+  const p = G.players[G.turn];
+  const nameEl = document.getElementById('turn-name');
+  nameEl.textContent = `${p.name}'s Turn`;
+  nameEl.style.color = p.color;
+  document.getElementById('turn-sub').textContent = p.isHuman ? '✨ Draw a card!' : '🤖 CPU is thinking...';
+  document.getElementById('draw-btn').disabled = !G.waiting || !p.isHuman;
+  const cb = document.getElementById('card-box');
+  cb.textContent = 'Draw a card to move!';
+  cb.className = 'card-box';
+}
+
+function refreshAll() {
+  refreshTokens();
+  refreshPlayersList();
+  refreshTurnUI();
+}
+
+// ═══════════════════════════════════════════
+//  CARD LOGIC
+// ═══════════════════════════════════════════
+function shuffle(arr) {
+  for (let i = arr.length-1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i+1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+function drawCard() {
+  if (G.deck.length === 0) {
+    G.deck = shuffle([...CARDS]);
+    addLog('🔀 Deck reshuffled!');
+  }
+  return G.deck.pop();
+}
+
+// ═══════════════════════════════════════════
+//  TURN FLOW
+// ═══════════════════════════════════════════
+function humanDraw() {
+  if (!G.waiting) return;
+  const p = G.players[G.turn];
+  if (!p.isHuman || p.done) return;
+  G.waiting = false;
+  document.getElementById('draw-btn').disabled = true;
+  executeDraw(G.turn);
+}
+
+function cpuTurn() {
+  const p = G.players[G.turn];
+  if (!p || p.done || p.isHuman) return;
+  floatMsg(`🤖 ${p.name} draws...`);
+  setTimeout(() => executeDraw(G.turn), 1100);
+}
+
+function executeDraw(pidx) {
+  const p = G.players[pidx];
+  const card = drawCard();
+  const cb = document.getElementById('card-box');
+  cb.textContent = card.text;
+
+  if (card.mega) {
+    cb.className = 'card-box mega';
+    spawnSparkles(12, '💥'); spawnSparkles(10, '🌪️', 350); spawnSparkles(8, '😱', 700);
+  } else if (card.fwd) {
+    cb.className = 'card-box fwd';
+    spawnSparkles(5, '✨');
+  } else {
+    cb.className = 'card-box bwd';
+  }
+
+  addLog(`${p.name}: ${card.text}`);
+  setTimeout(() => applyMove(pidx, card), card.mega ? 2200 : 650);
+}
+
+function applyMove(pidx, card) {
+  const p = G.players[pidx];
+  let completedLap = false;
+
+  if (card.fwd) {
+    const raw = p.pos + card.steps;
+    if (raw >= SPACES) {
+      completedLap = true;
+      p.pos = raw % SPACES;
+    } else {
+      p.pos = raw;
+    }
+  } else {
+    // Clamp at 0 — never goes below start (key balance fix for MEGA WHOOPS)
+    p.pos = Math.max(0, p.pos - card.steps);
+    if (card.mega) {
+      floatMsg(`💥 MEGA WHOOPS!\n${p.name} goes waaaay back! 😱`);
+    }
+  }
+
+  if (completedLap) {
+    p.laps++;
+    addLog(`🎊 ${p.name} completed lap ${p.laps}!`);
+    if (G.gemsGiven < 3) {
+      refreshTokens();
+      refreshPlayersList();
+      setTimeout(() => showGemOverlay(pidx), 800);
+      return;
+    }
+  }
+
+  refreshTokens();
+  refreshPlayersList();
+  setTimeout(advanceTurn, 750);
+}
+
+// ═══════════════════════════════════════════
+//  GEM OVERLAY
+// ═══════════════════════════════════════════
+function showGemOverlay(pidx) {
+  G.pendingGemPlayer = pidx;
+  const p = G.players[pidx];
+  const gem = G.gemDeck[G.gemIdx];
+  const place = G.gemsGiven + 1;
+
+  document.getElementById('go-title').textContent = `🎊 ${p.name} finished a lap! 🎊`;
+  document.getElementById('go-sub').textContent = p.isHuman
+    ? 'Tap the card to reveal your gem!'
+    : `Watch ${p.name} reveal their gem...`;
+  document.getElementById('go-gem-emoji').textContent = gem.emoji;
+  document.getElementById('go-gem-name').textContent = gem.name;
+  document.getElementById('go-place').textContent = place;
+
+  const fi = document.getElementById('flip-inner');
+  fi.classList.remove('flipped');
+  document.getElementById('go-btn').style.display = 'none';
+
+  const overlay = document.getElementById('gem-overlay');
+  overlay.style.display = 'flex';
+
+  // Click on card to flip
+  const fw = document.getElementById('flip-wrap');
+  fw.onclick = null;
+
+  const doFlip = () => {
+    fw.onclick = null;
+    fi.classList.add('flipped');
+    spawnSparkles(18, gem.emoji);
+    spawnSparkles(12, '✨');
+    spawnSparkles(8, '🌟', 300);
+    launchConfetti(30);
+
+    // Award gem
+    p.gem = gem;
+    p.place = place;
+    p.done = true;
+    G.gemsGiven++;
+    G.gemIdx++;
+
+    addLog(`🏆 ${p.name} wins ${gem.emoji} ${gem.name} — Place #${place}!`);
+    refreshGemList();
+    refreshPlayersList();
+
+    setTimeout(() => {
+      document.getElementById('go-btn').style.display = 'block';
+    }, 900);
+  };
+
+  if (p.isHuman) {
+    fw.onclick = doFlip;
+  } else {
+    setTimeout(doFlip, 1800);
+  }
+}
+
+function afterGem() {
+  document.getElementById('gem-overlay').style.display = 'none';
+  if (G.gemsGiven >= 3 || isGameOver()) {
+    showEndScreen();
+  } else {
+    advanceTurn();
+  }
+}
+
+function isGameOver() {
+  const active = G.players.filter(p => !p.done);
+  return active.length === 0 || G.gemsGiven >= 3;
+}
+
+// ═══════════════════════════════════════════
+//  TURN ADVANCE
+// ═══════════════════════════════════════════
+function advanceTurn() {
+  if (isGameOver()) { showEndScreen(); return; }
+
+  let next = (G.turn + 1) % G.players.length;
+  let safety = 0;
+  while (G.players[next].done) {
+    next = (next + 1) % G.players.length;
+    if (++safety > G.players.length) { showEndScreen(); return; }
+  }
+
+  G.turn = next;
+  G.waiting = true;
+  refreshAll();
+
+  if (!G.players[next].isHuman) setTimeout(cpuTurn, 1000);
+}
+
+// ═══════════════════════════════════════════
+//  END SCREEN
+// ═══════════════════════════════════════════
+function showEndScreen() {
+  document.getElementById('game-screen').style.display = 'none';
+  const es = document.getElementById('end-screen');
+  es.style.display = 'flex';
+
+  const winners = G.players.filter(p => p.gem).sort((a,b) => a.place - b.place);
+  const others  = G.players.filter(p => !p.gem);
+
+  const podium = document.getElementById('podium');
+  podium.innerHTML = '';
+
+  // Podium arrangement: 2nd left, 1st center, 3rd right
+  const order = [1, 0, 2];
+  const bases  = ['p2','p1','p3'];
+  const labels = ['2nd 🥈','1st 🥇','3rd 🥉'];
+
+  order.forEach((wi, pi) => {
+    const w = winners[wi];
+    if (!w) return;
+    const pd = document.createElement('div');
+    pd.className = 'pod-place';
+    pd.innerHTML = `
+      <div class="pod-token" style="background:${w.color};box-shadow:0 0 18px ${w.color}">${w.name[0].toUpperCase()}</div>
+      <div class="pod-gem-big">${w.gem.emoji}</div>
+      <div class="pod-name">${w.name}</div>
+      <div class="pod-base ${bases[pi]}">${labels[pi]}</div>`;
+    podium.appendChild(pd);
+  });
+
+  document.getElementById('others-txt').textContent =
+    others.length ? 'Also played: ' + others.map(p=>p.name).join(', ') : '';
+
+  for (let i = 0; i < 3; i++) {
+    launchConfetti(40);
+    setTimeout(() => { spawnSparkles(15,'🌟'); spawnSparkles(15,'✨'); }, i * 900);
+  }
+}
+
+// ═══════════════════════════════════════════
+//  EFFECTS
+// ═══════════════════════════════════════════
+function spawnSparkles(n, emoji='✨', delay=0) {
+  for (let i = 0; i < n; i++) {
+    setTimeout(() => {
+      const el = document.createElement('div');
+      el.className = 'sparkle';
+      el.textContent = emoji;
+      el.style.cssText = `left:${15+Math.random()*70}vw;top:${15+Math.random()*70}vh;font-size:${1+Math.random()*1.2}rem`;
+      const tx = (Math.random()-0.5)*220+'px', ty = (Math.random()-0.5)*220+'px';
+      el.style.setProperty('--tx', tx);
+      el.style.setProperty('--ty', ty);
+      el.style.setProperty('--dur', (.7+Math.random()*.9)+'s');
+      document.body.appendChild(el);
+      setTimeout(()=>el.remove(), 2000);
+    }, delay + i * 55);
+  }
+}
+
+function launchConfetti(n=30) {
+  const cols = ['#ff69b4','#9b59b6','#00bcd4','#ffd700','#ff7043','#66bb6a','#fff'];
+  for (let i = 0; i < n; i++) {
+    setTimeout(() => {
+      const el = document.createElement('div');
+      el.className = 'confetti';
+      el.style.cssText = `left:${Math.random()*100}vw;background:${cols[Math.floor(Math.random()*cols.length)]};width:${6+Math.random()*7}px;height:${6+Math.random()*7}px;border-radius:${Math.random()>.5?'50%':'2px'}`;
+      el.style.setProperty('--dur', (2+Math.random()*2.5)+'s');
+      document.body.appendChild(el);
+      setTimeout(()=>el.remove(), 5000);
+    }, i * 70);
+  }
+}
+
+function floatMsg(txt) {
+  const el = document.createElement('div');
+  el.className = 'float-msg';
+  el.textContent = txt;
+  document.body.appendChild(el);
+  setTimeout(()=>el.remove(), 2500);
+}
+
+function addLog(txt) {
+  G.log.unshift(txt);
+  if (G.log.length > 25) G.log.pop();
+  const box = document.getElementById('log-box');
+  if (box) box.innerHTML = G.log.map(l=>`<div class="log-line">${l}</div>`).join('');
+}
+
+// ═══════════════════════════════════════════
+//  PLAY AGAIN
+// ═══════════════════════════════════════════
+function playAgain() {
+  document.getElementById('end-screen').style.display = 'none';
+  document.getElementById('setup-screen').style.display = 'flex';
+  setupTotal = 5; setupHumans = 1;
+  document.querySelectorAll('#total-count-row .count-btn').forEach(b => {
+    b.classList.toggle('sel', parseInt(b.dataset.total) === 5);
+  });
+  rebuildHumanRow();
+  rebuildPlayerRows();
+}
+
+// ═══════════════════════════════════════════
+//  RESIZE HANDLING
+// ═══════════════════════════════════════════
+let resizeTimer;
+window.addEventListener('resize', () => {
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(() => {
+    if (document.getElementById('game-screen').style.display !== 'none') {
+      buildBoard();
+      refreshTokens();
+    }
+  }, 150);
+});
+
+// ═══════════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════════
+initSetup();
+</script>
+</body>
+</html>

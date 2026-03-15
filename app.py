@@ -40,6 +40,11 @@ def cook_timer():
     return render_template("cook_timer.html", firebase_api_key=api_key())
 
 
+@app.route("/board-game")
+def board_game():
+    return render_template("board_game.html")
+
+
 # This block runs only when you execute "python app.py" directly.
 # It starts the development server on port 5000.
 # debug=True means the server auto-restarts when you change code.
