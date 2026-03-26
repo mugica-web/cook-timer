@@ -132,7 +132,7 @@
 
         <!-- Pause and Stop buttons -->
         <div class="timer-buttons">
-            <button id="btn-pause" onclick="togglePause()" class="btn btn-pause">Pause</button>
+            <button id="btn-pause" onclick="togglePause()" class="btn btn-pause">Pause All</button>
             <button onclick="confirmStop()" class="btn btn-stop">Stop & Reset</button>
         </div>
     </div>
@@ -530,6 +530,8 @@
                 name: dish.name,
                 currentStep: 0,     // start at the first step
                 done: false,
+                paused: false,
+                pauseStartTime: null,
                 steps: timerSteps
             });
         });
@@ -632,12 +634,17 @@
             ? "Waiting to start..."
             : "Step " + cookingStepNumber + " of " + cookingSteps;
 
+        const pauseLabel = dish.paused ? "&#9654; Resume" : "&#9646;&#9646; Pause";
         container.innerHTML =
-            '<div class="' + cardClass + '">' +
+            '<div class="' + cardClass + (dish.paused ? " paused" : "") + '">' +
                 '<div class="timer-dish">' + dish.name + '</div>' +
                 '<div class="timer-action">' + step.action + '</div>' +
                 '<div class="timer-countdown" id="countdown-' + dishIndex + '">--:--</div>' +
                 '<div class="timer-progress">' + progressText + '</div>' +
+                '<div class="card-btns">' +
+                    '<button class="btn btn-dish-pause" id="btn-dish-pause-' + dishIndex + '" onclick="toggleDishPause(' + dishIndex + ')">' + pauseLabel + '</button>' +
+                    '<button class="btn btn-skip-step" onclick="skipDishStep(' + dishIndex + ')">&#9197; Skip</button>' +
+                '</div>' +
             '</div>';
     }
 
@@ -657,6 +664,9 @@
             if (dish.done) return;
 
             allDone = false;
+
+            // Skip dishes that are individually paused
+            if (dish.paused) return;
 
             const step = dish.steps[dish.currentStep];
             const countdownEl = document.getElementById("countdown-" + dishIndex);
@@ -784,6 +794,72 @@
                     s.fireTime = new Date(s.fireTime.getTime() + delay);
                 }
             });
+        }
+
+        advanceDish(dishIndex);
+    }
+
+
+    // toggleDishPause(dishIndex) — Pauses or resumes a single dish's timer.
+    function toggleDishPause(dishIndex) {
+        const dish = activeDishes[dishIndex];
+        if (dish.done || isPaused) return;
+
+        const btn = document.getElementById("btn-dish-pause-" + dishIndex);
+        const container = document.getElementById("dish-timer-" + dishIndex);
+        const card = container ? container.querySelector(".timer-card") : null;
+
+        if (!dish.paused) {
+            dish.paused = true;
+            dish.pauseStartTime = new Date();
+            if (card) card.classList.add("paused");
+            if (btn) btn.innerHTML = "&#9654; Resume";
+        } else {
+            const now = new Date();
+            const pausedDuration = now.getTime() - dish.pauseStartTime.getTime();
+            dish.steps.forEach(function(step) {
+                if (!step.fired) {
+                    step.fireTime = new Date(step.fireTime.getTime() + pausedDuration);
+                }
+            });
+            dish.paused = false;
+            dish.pauseStartTime = null;
+            if (card) card.classList.remove("paused");
+            if (btn) btn.innerHTML = "&#9646;&#9646; Pause";
+        }
+    }
+
+
+    // skipDishStep(dishIndex) — Skips the current step immediately.
+    // If the step hasn't fired yet, shifts remaining steps back by the time saved.
+    function skipDishStep(dishIndex) {
+        const dish = activeDishes[dishIndex];
+        if (dish.done) return;
+
+        const step = dish.steps[dish.currentStep];
+        const now = new Date();
+
+        if (step.fired) {
+            // Step already fired — behaves like pressing Done
+            manualAdvanceDish(dishIndex);
+            return;
+        }
+
+        // Step hasn't fired yet — pull remaining steps forward by time saved
+        const timeSaved = step.fireTime.getTime() - now.getTime();
+        step.fired = true;
+        step.firedAt = now;
+
+        dish.steps.forEach(function(s) {
+            if (!s.fired) {
+                s.fireTime = new Date(s.fireTime.getTime() - timeSaved);
+            }
+        });
+
+        // Resume if this dish was individually paused
+        if (dish.paused) {
+            dish.paused = false;
+            dish.pauseStartTime = null;
         }
 
         advanceDish(dishIndex);
@@ -1031,7 +1107,7 @@
             // PAUSE — freeze everything
             isPaused = true;
             pauseStartTime = new Date();
-            btn.textContent = "Resume";
+            btn.textContent = "Resume All";
 
             // Add "paused" class to all active timer cards for visual feedback
             activeDishes.forEach(function(dish, index) {
@@ -1058,7 +1134,7 @@
 
             isPaused = false;
             pauseStartTime = null;
-            btn.textContent = "Pause";
+            btn.textContent = "Pause All";
 
             hidePauseOverlay();
 
@@ -1213,6 +1289,8 @@
                     name: dish.name,
                     currentStep: dish.currentStep,
                     done: dish.done,
+                    paused: dish.paused || false,
+                    pauseStartTime: dish.pauseStartTime ? new Date(dish.pauseStartTime) : null,
                     steps: dish.steps.map(function(step) {
                         return {
                             action: step.action,
@@ -1245,7 +1323,7 @@
 
             // If paused, reflect that in the button, card styles, and overlay
             if (isPaused) {
-                document.getElementById("btn-pause").textContent = "Resume";
+                document.getElementById("btn-pause").textContent = "Resume All";
                 activeDishes.forEach(function(dish, index) {
                     if (dish.done) return;
                     const container = document.getElementById("dish-timer-" + index);
