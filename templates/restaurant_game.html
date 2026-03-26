@@ -1,0 +1,1892 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Teeny Eats 🍕</title>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  /* ===== RESET & BASE ===== */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --p1: #FF6B6B; --p2: #FFD166; --p3: #06D6A0;
+    --p4: #118AB2; --p5: #9B5DE5;
+    --bg: #FFF8F0; --warm-red: #E63946; --warm-yellow: #FFBE0B;
+    --cream: #FFF3E0; --brown: #7B4F2E; --dark: #2D2D2D;
+    --station-bg: #FDE8D0; --wall-bg: #C1440E;
+  }
+
+  body {
+    font-family: 'Baloo 2', cursive;
+    background: var(--bg);
+    min-height: 100vh;
+    overflow-x: hidden;
+    user-select: none;
+  }
+
+  /* ===== ANIMATIONS ===== */
+  @keyframes bounce {
+    0%,100% { transform: translateY(0); }
+    50% { transform: translateY(-12px); }
+  }
+  @keyframes wiggle {
+    0%,100% { transform: rotate(0deg); }
+    25% { transform: rotate(-8deg); }
+    75% { transform: rotate(8deg); }
+  }
+  @keyframes pop {
+    0% { transform: scale(0.5); opacity: 0; }
+    70% { transform: scale(1.2); }
+    100% { transform: scale(1); opacity: 1; }
+  }
+  @keyframes sparkle {
+    0%,100% { transform: scale(1) rotate(0deg); opacity: 1; }
+    50% { transform: scale(1.4) rotate(180deg); opacity: 0.7; }
+  }
+  @keyframes float {
+    0%,100% { transform: translateY(0px) rotate(-3deg); }
+    50% { transform: translateY(-8px) rotate(3deg); }
+  }
+  @keyframes pulse {
+    0%,100% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+  }
+  @keyframes shake {
+    0%,100% { transform: translateX(0); }
+    20% { transform: translateX(-8px); }
+    40% { transform: translateX(8px); }
+    60% { transform: translateX(-6px); }
+    80% { transform: translateX(6px); }
+  }
+  @keyframes slideDown {
+    from { transform: translateY(-40px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+  }
+  @keyframes celebrate {
+    0% { transform: scale(0) rotate(-10deg); opacity: 0; }
+    60% { transform: scale(1.1) rotate(5deg); }
+    100% { transform: scale(1) rotate(0deg); opacity: 1; }
+  }
+  @keyframes confettiFall {
+    0% { transform: translateY(-20px) rotate(0deg); opacity: 1; }
+    100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
+  }
+  @keyframes starPop {
+    0% { transform: scale(0) rotate(0deg); opacity: 1; }
+    100% { transform: scale(2) rotate(180deg); opacity: 0; }
+  }
+  @keyframes steamRise {
+    0% { transform: translateY(0) scaleX(1); opacity: 0.8; }
+    100% { transform: translateY(-30px) scaleX(0.5); opacity: 0; }
+  }
+  @keyframes cpuSlide {
+    0% { transform: translateX(0) translateY(0); }
+    50% { transform: translateX(30px) translateY(-10px); }
+    100% { transform: translateX(0) translateY(0); }
+  }
+  @keyframes glow {
+    0%,100% { box-shadow: 0 0 5px rgba(255,200,0,0.5); }
+    50% { box-shadow: 0 0 20px rgba(255,200,0,1), 0 0 40px rgba(255,200,0,0.5); }
+  }
+  @keyframes timerPulse {
+    0%,100% { transform: scale(1); color: var(--warm-red); }
+    50% { transform: scale(1.1); color: #ff0000; }
+  }
+  @keyframes fadeInUp {
+    from { transform: translateY(20px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+  }
+  @keyframes rotateStar {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+  @keyframes customerHappy {
+    0%,100% { transform: scale(1); }
+    50% { transform: scale(1.15) rotate(5deg); }
+  }
+  @keyframes customerAngry {
+    0%,100% { transform: scale(1); }
+    25% { transform: scale(1.1) rotate(-5deg); }
+    75% { transform: scale(1.1) rotate(5deg); }
+  }
+
+  /* ===== SCREENS ===== */
+  .screen {
+    display: none;
+    min-height: 100vh;
+    animation: fadeInUp 0.4s ease;
+  }
+  .screen.active { display: flex; flex-direction: column; }
+
+  /* ===== SETUP SCREEN ===== */
+  #setup-screen {
+    background: linear-gradient(135deg, #FF6B6B 0%, #FFD166 50%, #FF6B6B 100%);
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+
+  .setup-card {
+    background: white;
+    border-radius: 30px;
+    padding: 40px;
+    max-width: 560px;
+    width: 100%;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+    animation: celebrate 0.5s ease;
+  }
+
+  .game-title {
+    font-size: clamp(2.5rem, 6vw, 4rem);
+    font-weight: 800;
+    color: var(--warm-red);
+    text-align: center;
+    text-shadow: 3px 3px 0 var(--warm-yellow);
+    letter-spacing: -1px;
+    animation: bounce 2s infinite;
+    display: block;
+  }
+
+  .game-subtitle {
+    text-align: center;
+    font-size: 1.1rem;
+    color: #888;
+    margin-bottom: 30px;
+  }
+
+  .player-count-section {
+    margin-bottom: 24px;
+  }
+
+  .section-label {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--brown);
+    margin-bottom: 12px;
+    display: block;
+  }
+
+  .count-btns {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .count-btn {
+    width: 54px;
+    height: 54px;
+    border-radius: 50%;
+    border: 3px solid #ddd;
+    background: white;
+    font-family: 'Baloo 2', cursive;
+    font-size: 1.3rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .count-btn:hover { transform: scale(1.1); }
+  .count-btn.selected {
+    background: var(--warm-red);
+    border-color: var(--warm-red);
+    color: white;
+    transform: scale(1.1);
+    animation: pop 0.3s ease;
+  }
+
+  .names-section { margin-bottom: 28px; }
+
+  .player-name-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+    animation: slideDown 0.3s ease;
+  }
+
+  .player-avatar-setup {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    font-weight: 800;
+    color: white;
+    flex-shrink: 0;
+    box-shadow: 0 3px 8px rgba(0,0,0,0.2);
+  }
+
+  .player-name-input {
+    flex: 1;
+    padding: 10px 16px;
+    border-radius: 20px;
+    border: 2px solid #ddd;
+    font-family: 'Baloo 2', cursive;
+    font-size: 1rem;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .player-name-input:focus { border-color: var(--warm-red); }
+
+  .cpu-badge {
+    font-size: 0.8rem;
+    background: #f0f0f0;
+    color: #666;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-weight: 600;
+  }
+
+  .start-btn {
+    width: 100%;
+    padding: 16px;
+    background: linear-gradient(135deg, var(--warm-red), #FF8E53);
+    color: white;
+    border: none;
+    border-radius: 25px;
+    font-family: 'Baloo 2', cursive;
+    font-size: 1.4rem;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 5px 15px rgba(230,57,70,0.4);
+    transition: all 0.2s;
+    animation: pulse 2s infinite;
+  }
+  .start-btn:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 20px rgba(230,57,70,0.5);
+  }
+  .start-btn:active { transform: translateY(0); }
+
+  /* ===== GAME SCREEN ===== */
+  #game-screen {
+    background: var(--bg);
+    padding: 0;
+  }
+
+  .game-header {
+    background: linear-gradient(135deg, var(--wall-bg), #A03520);
+    color: white;
+    padding: 10px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.3);
+    flex-wrap: wrap;
+  }
+
+  .header-title {
+    font-size: 1.4rem;
+    font-weight: 800;
+    text-shadow: 2px 2px 0 rgba(0,0,0,0.2);
+  }
+
+  .timer-display {
+    font-size: 1.8rem;
+    font-weight: 800;
+    background: rgba(0,0,0,0.25);
+    padding: 6px 18px;
+    border-radius: 20px;
+    min-width: 90px;
+    text-align: center;
+    letter-spacing: 2px;
+  }
+  .timer-display.warning { animation: timerPulse 0.5s infinite; background: rgba(255,0,0,0.4); }
+
+  .pause-btn {
+    background: rgba(255,255,255,0.2);
+    border: 2px solid rgba(255,255,255,0.5);
+    color: white;
+    font-size: 1.3rem;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-family: 'Baloo 2', cursive;
+    transition: all 0.2s;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .pause-btn:hover { background: rgba(255,255,255,0.4); transform: scale(1.1); }
+  .pause-btn.paused { background: rgba(255,255,0,0.3); border-color: var(--warm-yellow); animation: pulse 1s infinite; }
+
+  .score-display {
+    font-size: 1.1rem;
+    font-weight: 700;
+    background: rgba(255,255,255,0.2);
+    padding: 6px 14px;
+    border-radius: 20px;
+  }
+
+  .game-body {
+    display: flex;
+    flex: 1;
+    gap: 0;
+    height: calc(100vh - 60px);
+    overflow: hidden;
+  }
+
+  /* WALL MENU */
+  .wall-menu {
+    width: 130px;
+    background: linear-gradient(180deg, #8B2500, #6B1A00);
+    padding: 12px 8px;
+    overflow-y: auto;
+    flex-shrink: 0;
+  }
+
+  .wall-menu-title {
+    color: var(--warm-yellow);
+    font-size: 0.85rem;
+    font-weight: 800;
+    text-align: center;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 10px;
+    text-shadow: 1px 1px 0 rgba(0,0,0,0.3);
+  }
+
+  .menu-item-card {
+    background: rgba(255,255,255,0.1);
+    border-radius: 10px;
+    padding: 8px 6px;
+    margin-bottom: 8px;
+    text-align: center;
+    border: 1px solid rgba(255,255,255,0.15);
+    transition: transform 0.2s;
+  }
+  .menu-item-card:hover { transform: scale(1.05); }
+
+  .menu-emoji { font-size: 1.6rem; display: block; }
+  .menu-name { font-size: 0.7rem; color: #FFE0B2; font-weight: 600; }
+
+  .menu-steps {
+    font-size: 0.6rem;
+    color: rgba(255,200,100,0.8);
+    margin-top: 3px;
+    line-height: 1.4;
+  }
+
+  /* MAIN GAME AREA */
+  .main-area {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  /* CUSTOMER AREA */
+  .customer-area {
+    background: linear-gradient(180deg, #FFF3E0, #FFE8CC);
+    padding: 6px 16px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    border-bottom: 3px solid #FFCC80;
+    min-height: 78px;
+    flex-wrap: wrap;
+  }
+
+  .customer-figure {
+    font-size: 4.5rem;
+    animation: float 3s ease-in-out infinite;
+    flex-shrink: 0;
+    line-height: 1;
+  }
+  .customer-figure.happy { animation: customerHappy 0.5s ease 3; }
+  .customer-figure.angry { animation: customerAngry 0.3s ease infinite; }
+
+  .speech-bubble {
+    background: white;
+    border-radius: 20px;
+    padding: 10px 16px;
+    position: relative;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+    border: 2px solid #FFCC80;
+    flex: 1;
+    min-width: 0;
+    animation: pop 0.4s ease;
+  }
+  .speech-bubble::before {
+    content: '';
+    position: absolute;
+    left: -14px;
+    top: 50%;
+    transform: translateY(-50%);
+    border: 8px solid transparent;
+    border-right-color: #FFCC80;
+  }
+  .speech-bubble::after {
+    content: '';
+    position: absolute;
+    left: -11px;
+    top: 50%;
+    transform: translateY(-50%);
+    border: 7px solid transparent;
+    border-right-color: white;
+  }
+
+  .bubble-order { font-size: 1rem; font-weight: 700; color: var(--brown); }
+  .bubble-emoji { font-size: 1.5rem; }
+
+  .meal-timer-bar {
+    height: 8px;
+    background: #eee;
+    border-radius: 4px;
+    margin-top: 6px;
+    overflow: hidden;
+  }
+  .meal-timer-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #06D6A0, var(--warm-yellow));
+    border-radius: 4px;
+    transition: width 0.5s linear;
+  }
+  .meal-timer-fill.danger {
+    background: linear-gradient(90deg, var(--warm-red), #FF8E53);
+    animation: pulse 0.5s infinite;
+  }
+
+  /* PLAYERS STRIP */
+  .players-strip {
+    background: #FFF3E0;
+    padding: 8px 12px;
+    display: flex;
+    gap: 10px;
+    border-bottom: 2px solid #FFCC80;
+    overflow-x: auto;
+    flex-shrink: 0;
+  }
+
+  .player-chip {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    background: white;
+    border-radius: 20px;
+    padding: 5px 12px 5px 5px;
+    border: 2px solid #ddd;
+    white-space: nowrap;
+    transition: all 0.3s;
+    flex-shrink: 0;
+  }
+  .player-chip.active-player {
+    border-color: var(--warm-red);
+    box-shadow: 0 0 12px rgba(230,57,70,0.3);
+    animation: glow 1s infinite;
+    transform: scale(1.05);
+  }
+  .player-chip.cpu-chip { opacity: 0.8; }
+
+  .chip-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.85rem;
+    font-weight: 800;
+    color: white;
+  }
+  .chip-name { font-size: 0.85rem; font-weight: 600; color: var(--dark); }
+  .chip-station {
+    font-size: 0.7rem;
+    background: var(--warm-yellow);
+    color: var(--brown);
+    padding: 2px 7px;
+    border-radius: 10px;
+    font-weight: 600;
+  }
+  .cpu-icon { font-size: 0.8rem; }
+
+  /* STATIONS AREA */
+  .stations-area {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    gap: 10px;
+    overflow: hidden;
+  }
+
+  .stations-row {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    max-width: 700px;
+  }
+
+  .station {
+    flex: 1;
+    min-width: 0;
+    background: var(--station-bg);
+    border-radius: 20px;
+    padding: 14px 10px;
+    text-align: center;
+    border: 3px solid #FFCC80;
+    position: relative;
+    transition: all 0.3s;
+    min-height: 130px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+  }
+  .station.active-station {
+    border-color: var(--warm-red);
+    box-shadow: 0 0 20px rgba(230,57,70,0.3);
+    background: #FFE8E8;
+    transform: scale(1.03);
+  }
+  .station.target-station {
+    border-color: var(--p3);
+    border-style: dashed;
+    background: #E8FFF5;
+    animation: pulse 1s infinite;
+  }
+  .station.completed-station {
+    border-color: var(--p3);
+    background: #E8FFF5;
+  }
+
+  .station-number {
+    position: absolute;
+    top: -14px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 28px;
+    height: 28px;
+    background: var(--warm-red);
+    color: white;
+    border-radius: 50%;
+    font-size: 0.85rem;
+    font-weight: 800;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+  }
+
+  .station-name {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--brown);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .station-emoji {
+    font-size: 2.4rem;
+    animation: float 3s ease-in-out infinite;
+  }
+
+  .station-action {
+    font-size: 0.75rem;
+    color: #888;
+    font-weight: 600;
+  }
+
+  .station-player-badge {
+    font-size: 0.7rem;
+    padding: 3px 8px;
+    border-radius: 10px;
+    color: white;
+    font-weight: 700;
+  }
+
+  /* DRAGGABLE DISH */
+  .dish-draggable {
+    width: 90px;
+    height: 90px;
+    border-radius: 50%;
+    background: white;
+    border: 3px solid var(--warm-yellow);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2.8rem;
+    cursor: grab;
+    position: absolute;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    transition: transform 0.2s, box-shadow 0.2s;
+    touch-action: none;
+    z-index: 100;
+    animation: bounce 2s infinite;
+  }
+  .dish-draggable:hover {
+    transform: scale(1.1);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+    cursor: grabbing;
+  }
+  .dish-draggable.dragging {
+    cursor: grabbing;
+    transform: scale(1.15);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+    z-index: 1000;
+    animation: none;
+  }
+  .dish-draggable.cpu-moving {
+    animation: cpuSlide 1s ease;
+    pointer-events: none;
+  }
+
+  .arrow-indicator {
+    font-size: 1.5rem;
+    color: var(--warm-yellow);
+    animation: bounce 1s infinite;
+    flex-shrink: 0;
+  }
+
+  /* STATUS MESSAGE */
+  .status-message {
+    background: white;
+    border-radius: 15px;
+    padding: 10px 20px;
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--brown);
+    box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+    text-align: center;
+    border: 2px solid var(--warm-yellow);
+    animation: slideDown 0.3s ease;
+    max-width: 500px;
+    width: 90%;
+  }
+
+  /* EFFECT OVERLAYS */
+  .effect-overlay {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    pointer-events: none;
+    z-index: 500;
+  }
+
+  .confetti-piece {
+    position: absolute;
+    width: 10px;
+    height: 10px;
+    border-radius: 2px;
+    animation: confettiFall 3s ease-in forwards;
+  }
+
+  .star-burst {
+    position: absolute;
+    font-size: 2rem;
+    animation: starPop 0.8s ease-out forwards;
+    pointer-events: none;
+  }
+
+  .steam-puff {
+    position: absolute;
+    font-size: 1.5rem;
+    animation: steamRise 1s ease-out forwards;
+    pointer-events: none;
+  }
+
+  /* GRUMPY OVERLAY */
+  .grumpy-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 300;
+    animation: fadeInUp 0.3s ease;
+  }
+
+  .grumpy-box {
+    background: white;
+    border-radius: 25px;
+    padding: 30px 40px;
+    text-align: center;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+    animation: shake 0.5s ease;
+    border: 4px solid var(--warm-red);
+  }
+
+  .grumpy-emoji { font-size: 4rem; animation: customerAngry 0.3s ease infinite; display: block; margin-bottom: 10px; }
+  .grumpy-text { font-size: 1.4rem; font-weight: 700; color: var(--warm-red); }
+  .grumpy-sub { font-size: 1rem; color: #888; margin-top: 6px; }
+
+  /* SUCCESS FLASH */
+  .success-flash {
+    position: fixed;
+    inset: 0;
+    background: rgba(6,214,160,0.2);
+    pointer-events: none;
+    z-index: 200;
+    animation: pop 0.5s ease forwards;
+  }
+
+  /* END SCREEN */
+  #end-screen {
+    background: linear-gradient(135deg, #FF6B6B, #FFD166, #06D6A0);
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+
+  .end-card {
+    background: white;
+    border-radius: 30px;
+    padding: 40px;
+    max-width: 520px;
+    width: 100%;
+    text-align: center;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+    animation: celebrate 0.6s ease;
+  }
+
+  .end-emoji { font-size: 4rem; display: block; margin-bottom: 10px; animation: bounce 1s infinite; }
+  .end-title { font-size: 2.5rem; font-weight: 800; color: var(--warm-red); text-shadow: 2px 2px 0 var(--warm-yellow); }
+  .end-score { font-size: 1.2rem; color: var(--brown); margin: 10px 0 20px; }
+  .end-big-score {
+    font-size: 5rem;
+    font-weight: 800;
+    color: var(--warm-red);
+    text-shadow: 3px 3px 0 var(--warm-yellow);
+    line-height: 1;
+    animation: sparkle 1s infinite;
+    display: block;
+  }
+
+  .end-players {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin: 20px 0;
+  }
+
+  .end-player-chip {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+  }
+  .end-avatar {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    font-weight: 800;
+    color: white;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.2);
+  }
+  .end-player-name { font-size: 0.8rem; font-weight: 600; color: #666; }
+
+  .celebrate-msg {
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: var(--p3);
+    margin: 10px 0;
+    animation: bounce 1s infinite;
+  }
+
+  .play-again-btn {
+    padding: 16px 40px;
+    background: linear-gradient(135deg, var(--warm-red), #FF8E53);
+    color: white;
+    border: none;
+    border-radius: 25px;
+    font-family: 'Baloo 2', cursive;
+    font-size: 1.3rem;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 5px 15px rgba(230,57,70,0.4);
+    transition: all 0.2s;
+    margin-top: 20px;
+  }
+  .play-again-btn:hover { transform: translateY(-3px) scale(1.05); }
+
+  /* CONFETTI CONTAINER */
+  #confetti-container {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    pointer-events: none;
+    z-index: 1000;
+    overflow: hidden;
+  }
+
+  /* RESPONSIVE */
+  @media (max-width: 600px) {
+    .wall-menu { width: 90px; }
+    .menu-emoji { font-size: 1.2rem; }
+    .station { min-height: 110px; padding: 10px 6px; }
+    .station-emoji { font-size: 1.8rem; }
+    .stations-row { gap: 6px; }
+    .dish-draggable { width: 70px; height: 70px; font-size: 2.2rem; }
+    .game-header { padding: 8px 12px; }
+    .customer-area { padding: 6px 12px; min-height: 72px; }
+    .customer-figure { font-size: 3.5rem; }
+  }
+
+  @media (max-width: 400px) {
+    .wall-menu { display: none; }
+    .stations-row { flex-direction: column; align-items: stretch; }
+    .arrow-indicator { transform: rotate(90deg); }
+  }
+</style>
+</head>
+<body>
+
+<div id="confetti-container"></div>
+
+<!-- SETUP SCREEN -->
+<div id="setup-screen" class="screen active">
+  <div class="setup-card">
+    <span class="game-title">🍕 Teeny Eats! 🍔</span>
+    <p class="game-subtitle">A yummy team cooking adventure!</p>
+
+    <div class="player-count-section">
+      <span class="section-label">How many players? 👥</span>
+      <div class="count-btns">
+        <button class="count-btn" data-count="1" onclick="selectCount(1)">1</button>
+        <button class="count-btn" data-count="2" onclick="selectCount(2)">2</button>
+        <button class="count-btn" data-count="3" onclick="selectCount(3)">3</button>
+        <button class="count-btn" data-count="4" onclick="selectCount(4)">4</button>
+        <button class="count-btn" data-count="5" onclick="selectCount(5)">5</button>
+      </div>
+    </div>
+
+    <div class="names-section" id="names-section">
+      <!-- Player name rows injected here -->
+    </div>
+
+    <button class="start-btn" onclick="startGame()">🍳 Let's Cook! 🍳</button>
+  </div>
+</div>
+
+<!-- GAME SCREEN -->
+<div id="game-screen" class="screen">
+  <div class="game-header">
+    <span class="header-title">🍴 Teeny Eats!</span>
+    <div style="display:flex;align-items:center;gap:8px;">
+      <div class="timer-display" id="main-timer">5:00</div>
+      <button class="pause-btn" id="pause-btn" onclick="togglePause()" title="Pause">⏸</button>
+    </div>
+    <div class="score-display">🌟 Meals: <span id="score-count">0</span></div>
+  </div>
+
+  <div class="game-body">
+    <!-- Wall Menu -->
+    <div class="wall-menu">
+      <div class="wall-menu-title">📋 Menu</div>
+      <div id="wall-menu-items"></div>
+    </div>
+
+    <!-- Main Area -->
+    <div class="main-area">
+      <!-- Customer Area -->
+      <div class="customer-area">
+        <div class="customer-figure" id="customer-figure">🧑</div>
+        <div class="speech-bubble">
+          <div class="bubble-order" id="order-text">Waiting for order...</div>
+          <span class="bubble-emoji" id="order-emoji"></span>
+          <div class="meal-timer-bar">
+            <div class="meal-timer-fill" id="meal-timer-fill" style="width:100%"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Players Strip -->
+      <div class="players-strip" id="players-strip"></div>
+
+      <!-- Stations Area -->
+      <div class="stations-area">
+        <div class="stations-row" id="stations-row"></div>
+        <div class="status-message" id="status-message">Get ready to cook! 🍳</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- END SCREEN -->
+<div id="end-screen" class="screen">
+  <div class="end-card" id="end-card">
+    <span class="end-emoji" id="end-emoji">🎉</span>
+    <div class="end-title" id="end-title">Time's Up!</div>
+    <div class="end-score">Your team cooked</div>
+    <span class="end-big-score" id="final-score">0</span>
+    <div class="end-score">delicious meals! 🍽️</div>
+    <div id="celebrate-msg" class="celebrate-msg" style="display:none"></div>
+    <div class="end-players" id="end-players"></div>
+    <button class="play-again-btn" onclick="resetGame()">🔄 Play Again!</button>
+  </div>
+</div>
+
+<script>
+// ===== GAME DATA =====
+const MEALS = [
+  {
+    name: 'Taco', emoji: '🌮',
+    steps: [
+      { name: 'Prep', action: 'Chop veggies', emoji: '🥕', dishEmoji: '🥕' },
+      { name: 'Cook', action: 'Heat tortilla', emoji: '🔥', dishEmoji: '🫓' },
+      { name: 'Assemble', action: 'Add toppings', emoji: '🌮', dishEmoji: '🌮' }
+    ]
+  },
+  {
+    name: 'Soup', emoji: '🍲',
+    steps: [
+      { name: 'Chop', action: 'Chop veggies', emoji: '🥕', dishEmoji: '🥕' },
+      { name: 'Boil', action: 'Heat broth', emoji: '🔥', dishEmoji: '🫕' },
+      { name: 'Serve', action: 'Ladle into bowl', emoji: '🍲', dishEmoji: '🍲' }
+    ]
+  },
+  {
+    name: 'Burger', emoji: '🍔',
+    steps: [
+      { name: 'Grill', action: 'Cook patty', emoji: '🔥', dishEmoji: '🥩' },
+      { name: 'Stack', action: 'Add bun + patty', emoji: '🍔', dishEmoji: '🍞' },
+      { name: 'Dress', action: 'Add toppings', emoji: '🧅', dishEmoji: '🍔' }
+    ]
+  },
+  {
+    name: 'Pizza', emoji: '🍕',
+    steps: [
+      { name: 'Knead', action: 'Make dough', emoji: '🫳', dishEmoji: '🫓' },
+      { name: 'Top', action: 'Add sauce + cheese', emoji: '🧀', dishEmoji: '🍅' },
+      { name: 'Bake', action: 'Into oven', emoji: '🔥', dishEmoji: '🍕' }
+    ]
+  },
+  {
+    name: 'Cake', emoji: '🍫',
+    steps: [
+      { name: 'Mix', action: 'Mix batter', emoji: '🥄', dishEmoji: '🥣' },
+      { name: 'Bake', action: 'Into oven', emoji: '🔥', dishEmoji: '🧁' },
+      { name: 'Frost', action: 'Add frosting', emoji: '🍫', dishEmoji: '🎂' }
+    ]
+  }
+];
+
+const CPU_NAMES = [
+  'Chef Bubbles', 'Spatula Sam', 'Noodle Nina', 'Biscuit Bob',
+  'Pepper Pete', 'Waffle Wendy', 'Tater Tot Tim', 'Cookie Cleo',
+  'Saucy Sue', 'Gravy Greg'
+];
+
+const PLAYER_COLORS = ['#FF6B6B','#FFD166','#06D6A0','#118AB2','#9B5DE5'];
+const CUSTOMER_EMOJIS = ['🧑','👩','🧔','👱','👴','👧','🧒','🙋','🤩','😊'];
+
+// ===== GAME STATE =====
+let state = {
+  totalPlayers: 3,
+  humanCount: 1,
+  players: [],
+  currentMeal: null,
+  currentStep: 0,    // which station the dish is AT (0,1,2 = stations; 3 = served)
+  activePlayerIdx: 0,
+  score: 0,
+  mainTimeLeft: 300,
+  mealTimeLeft: 30,
+  mainTimer: null,
+  mealTimer: null,
+  gameRunning: false,
+  dishEl: null,
+  dragStartX: 0, dragStartY: 0,
+  dragOffX: 0, dragOffY: 0,
+  isDragging: false,
+  customerEmoji: '🧑',
+  roundPlayerOffset: 0, // rotate players each round
+  paused: false,
+};
+
+// ===== SETUP =====
+let setupHumanCount = 2;
+
+function selectCount(n) {
+  setupHumanCount = n;
+  document.querySelectorAll('.count-btn').forEach(b => b.classList.remove('selected'));
+  document.querySelector(`.count-btn[data-count="${n}"]`).classList.add('selected');
+  renderNameRows(n);
+}
+
+function renderNameRows(n) {
+  const sec = document.getElementById('names-section');
+  sec.innerHTML = '';
+  // Always need at least 2 total (if 1 human, add 1 cpu min)
+  // Total players = max(2, n) but human = n
+  const total = Math.max(2, n);
+  for (let i = 0; i < total; i++) {
+    const isHuman = i < n;
+    const color = PLAYER_COLORS[i];
+    const row = document.createElement('div');
+    row.className = 'player-name-row';
+    if (isHuman) {
+      row.innerHTML = `
+        <div class="player-avatar-setup" style="background:${color}">P${i+1}</div>
+        <input class="player-name-input" id="name-input-${i}" placeholder="Player ${i+1}'s name" maxlength="15" />
+      `;
+    } else {
+      const cpuName = CPU_NAMES[(i - n) % CPU_NAMES.length];
+      row.innerHTML = `
+        <div class="player-avatar-setup" style="background:${color}">🤖</div>
+        <input class="player-name-input" value="${cpuName}" id="name-input-${i}" style="color:#999" readonly />
+        <span class="cpu-badge">CPU</span>
+      `;
+    }
+    sec.appendChild(row);
+  }
+}
+
+function startGame() {
+  const n = setupHumanCount;
+  const total = Math.max(2, n);
+
+  state.players = [];
+  state.humanCount = n;
+  state.totalPlayers = total;
+
+  for (let i = 0; i < total; i++) {
+    const inp = document.getElementById(`name-input-${i}`);
+    const nm = (inp && inp.value.trim()) ? inp.value.trim() : `Player ${i+1}`;
+    state.players.push({
+      id: i,
+      name: nm,
+      color: PLAYER_COLORS[i],
+      isCPU: i >= n,
+      initials: nm.slice(0,2).toUpperCase()
+    });
+  }
+
+  state.score = 0;
+  state.mainTimeLeft = 300;
+  state.roundPlayerOffset = 0;
+  state.paused = false;
+
+  showScreen('game-screen');
+  buildWallMenu();
+  buildPlayersStrip();
+  startMainTimer();
+  nextMeal();
+}
+
+// ===== SCREENS =====
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+// ===== WALL MENU =====
+function buildWallMenu() {
+  const c = document.getElementById('wall-menu-items');
+  c.innerHTML = '';
+  MEALS.forEach(m => {
+    const div = document.createElement('div');
+    div.className = 'menu-item-card';
+    const stepNames = m.steps.map(s => s.name).join(' → ');
+    div.innerHTML = `
+      <span class="menu-emoji">${m.emoji}</span>
+      <div class="menu-name">${m.name}</div>
+      <div class="menu-steps">${stepNames}</div>
+    `;
+    c.appendChild(div);
+  });
+}
+
+// ===== PLAYERS STRIP =====
+function buildPlayersStrip() {
+  const strip = document.getElementById('players-strip');
+  strip.innerHTML = '';
+  state.players.forEach((p, i) => {
+    const chip = document.createElement('div');
+    chip.className = 'player-chip' + (p.isCPU ? ' cpu-chip' : '');
+    chip.id = `chip-${i}`;
+    const stationIdx = getPlayerStation(i);
+    const stationName = stationIdx !== null && state.currentMeal
+      ? state.currentMeal.steps[stationIdx].name
+      : '';
+    chip.innerHTML = `
+      <div class="chip-avatar" style="background:${p.color}">${p.isCPU ? '🤖' : p.initials}</div>
+      <span class="chip-name">${p.name}</span>
+      ${stationName ? `<span class="chip-station">${stationName}</span>` : ''}
+      ${p.isCPU ? '<span class="cpu-icon">⚡</span>' : ''}
+    `;
+    strip.appendChild(chip);
+  });
+  updateActivePlayerHighlight();
+}
+
+function getPlayerStation(playerIdx) {
+  // Stations 0,1,2 need players. Rotate by roundPlayerOffset.
+  const total = state.players.length;
+  for (let s = 0; s < 3; s++) {
+    const assignedIdx = (state.roundPlayerOffset + s) % total;
+    if (assignedIdx === playerIdx) return s;
+  }
+  return null;
+}
+
+function getPlayerForStation(stationIdx) {
+  const total = state.players.length;
+  return (state.roundPlayerOffset + stationIdx) % total;
+}
+
+function updateActivePlayerHighlight() {
+  document.querySelectorAll('.player-chip').forEach(c => c.classList.remove('active-player'));
+  if (state.currentStep < 3) {
+    const activeP = getPlayerForStation(state.currentStep);
+    const chip = document.getElementById(`chip-${activeP}`);
+    if (chip) chip.classList.add('active-player');
+  }
+}
+
+// ===== STATIONS =====
+function buildStations() {
+  const row = document.getElementById('stations-row');
+  row.innerHTML = '';
+
+  const meal = state.currentMeal;
+  if (!meal) return;
+
+  meal.steps.forEach((step, i) => {
+    const playerIdx = getPlayerForStation(i);
+    const player = state.players[playerIdx];
+
+    if (i > 0) {
+      const arrow = document.createElement('div');
+      arrow.className = 'arrow-indicator';
+      arrow.textContent = '→';
+      row.appendChild(arrow);
+    }
+
+    const station = document.createElement('div');
+    station.className = 'station';
+    station.id = `station-${i}`;
+    station.dataset.stationIdx = i;
+
+    if (i === state.currentStep) station.classList.add('active-station');
+    else if (i === state.currentStep + 1 && state.currentStep < 3) station.classList.add('target-station');
+    else if (i < state.currentStep) station.classList.add('completed-station');
+
+    station.innerHTML = `
+      <div class="station-number">${i+1}</div>
+      <div class="station-emoji">${step.emoji}</div>
+      <div class="station-name">${step.name}</div>
+      <div class="station-action">${step.action}</div>
+      <div class="station-player-badge" style="background:${player.color}">${player.name}</div>
+    `;
+
+    // Make station a drop target
+    station.addEventListener('dragover', onDragOverStation);
+    station.addEventListener('drop', onDropStation);
+
+    row.appendChild(station);
+  });
+
+  // Place dish on current station
+  placeDishOnStation(state.currentStep);
+}
+
+function placeDishOnStation(stationIdx) {
+  // Remove existing dish
+  const old = document.getElementById('dish-item');
+  if (old) old.remove();
+
+  if (stationIdx >= 3) return; // served
+
+  const stationEl = document.getElementById(`station-${stationIdx}`);
+  if (!stationEl) return;
+
+  const dish = document.createElement('div');
+  dish.className = 'dish-draggable';
+  dish.id = 'dish-item';
+  dish.textContent = state.currentMeal.steps[stationIdx].dishEmoji;
+  dish.draggable = true;
+
+  const activePlayerIdx = getPlayerForStation(stationIdx);
+  const player = state.players[activePlayerIdx];
+  dish.style.borderColor = player.color;
+
+  // Check if current player is CPU
+  if (player.isCPU) {
+    dish.style.pointerEvents = 'none';
+  }
+
+  // Position dish in center of station
+  const rect = stationEl.getBoundingClientRect();
+  const gameRect = document.getElementById('game-screen').getBoundingClientRect();
+
+  dish.style.position = 'fixed';
+  dish.style.left = (rect.left + rect.width/2 - 45) + 'px';
+  dish.style.top = (rect.top + rect.height/2 - 45) + 'px';
+
+  // Mouse drag events
+  dish.addEventListener('mousedown', onDishMouseDown);
+  // Touch events
+  dish.addEventListener('touchstart', onDishTouchStart, { passive: false });
+
+  // HTML5 drag
+  dish.addEventListener('dragstart', onDragStart);
+  dish.addEventListener('dragend', onDragEnd);
+
+  document.body.appendChild(dish);
+  state.dishEl = dish;
+}
+
+// ===== DRAG & DROP =====
+let dragDishActive = false;
+let dragTarget = null;
+
+function onDishMouseDown(e) {
+  if (!state.gameRunning) return;
+  const stationIdx = state.currentStep;
+  const activePlayerIdx = getPlayerForStation(stationIdx);
+  const player = state.players[activePlayerIdx];
+  if (player.isCPU) return;
+
+  e.preventDefault();
+  dragDishActive = true;
+  const dish = document.getElementById('dish-item');
+  if (!dish) return;
+
+  const rect = dish.getBoundingClientRect();
+  state.dragOffX = e.clientX - rect.left;
+  state.dragOffY = e.clientY - rect.top;
+
+  dish.classList.add('dragging');
+  dish.style.transition = 'none';
+
+  document.addEventListener('mousemove', onMouseMove);
+  document.addEventListener('mouseup', onMouseUp);
+}
+
+function onMouseMove(e) {
+  if (!dragDishActive) return;
+  const dish = document.getElementById('dish-item');
+  if (!dish) return;
+  dish.style.left = (e.clientX - state.dragOffX) + 'px';
+  dish.style.top = (e.clientY - state.dragOffY) + 'px';
+
+  // Highlight potential drop target
+  const nextStation = state.currentStep + 1;
+  if (nextStation <= 2) {
+    const targetEl = document.getElementById(`station-${nextStation}`);
+    if (targetEl) {
+      const tRect = targetEl.getBoundingClientRect();
+      const overX = e.clientX > tRect.left && e.clientX < tRect.right;
+      const overY = e.clientY > tRect.top && e.clientY < tRect.bottom;
+      if (overX && overY) {
+        targetEl.style.background = '#CCFFE8';
+        dragTarget = nextStation;
+      } else {
+        targetEl.style.background = '';
+        if (dragTarget === nextStation) dragTarget = null;
+      }
+    }
+  }
+  // Also check "serve" zone if step=2
+  if (state.currentStep === 2) {
+    dragTarget = 'serve';
+    // If dragged to top half
+    if (e.clientY < window.innerHeight * 0.35) {
+      dragTarget = 'serve';
+    }
+  }
+}
+
+function onMouseUp(e) {
+  document.removeEventListener('mousemove', onMouseMove);
+  document.removeEventListener('mouseup', onMouseUp);
+  if (!dragDishActive) return;
+  dragDishActive = false;
+
+  const dish = document.getElementById('dish-item');
+  if (!dish) return;
+  dish.classList.remove('dragging');
+
+  // Check if dropped on next station or serve
+  checkDrop(e.clientX, e.clientY);
+}
+
+function onDishTouchStart(e) {
+  if (!state.gameRunning) return;
+  const stationIdx = state.currentStep;
+  const activePlayerIdx = getPlayerForStation(stationIdx);
+  const player = state.players[activePlayerIdx];
+  if (player.isCPU) return;
+
+  e.preventDefault();
+  const touch = e.touches[0];
+  dragDishActive = true;
+  const dish = document.getElementById('dish-item');
+  if (!dish) return;
+
+  const rect = dish.getBoundingClientRect();
+  state.dragOffX = touch.clientX - rect.left;
+  state.dragOffY = touch.clientY - rect.top;
+
+  dish.classList.add('dragging');
+  dish.style.transition = 'none';
+
+  document.addEventListener('touchmove', onTouchMove, { passive: false });
+  document.addEventListener('touchend', onTouchEnd);
+}
+
+function onTouchMove(e) {
+  if (!dragDishActive) return;
+  e.preventDefault();
+  const touch = e.touches[0];
+  const dish = document.getElementById('dish-item');
+  if (!dish) return;
+  dish.style.left = (touch.clientX - state.dragOffX) + 'px';
+  dish.style.top = (touch.clientY - state.dragOffY) + 'px';
+}
+
+function onTouchEnd(e) {
+  document.removeEventListener('touchmove', onTouchMove);
+  document.removeEventListener('touchend', onTouchEnd);
+  if (!dragDishActive) return;
+  dragDishActive = false;
+
+  const dish = document.getElementById('dish-item');
+  if (!dish) return;
+  dish.classList.remove('dragging');
+
+  const touch = e.changedTouches[0];
+  checkDrop(touch.clientX, touch.clientY);
+}
+
+// HTML5 drag (fallback)
+function onDragStart(e) {
+  if (!state.gameRunning) return;
+  const stationIdx = state.currentStep;
+  const activePlayerIdx = getPlayerForStation(stationIdx);
+  if (state.players[activePlayerIdx].isCPU) {
+    e.preventDefault();
+    return;
+  }
+  e.dataTransfer.effectAllowed = 'move';
+  e.dataTransfer.setData('text/plain', 'dish');
+}
+function onDragEnd(e) {}
+function onDragOverStation(e) { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; }
+function onDropStation(e) {
+  e.preventDefault();
+  const targetIdx = parseInt(e.currentTarget.dataset.stationIdx);
+  advanceStep(targetIdx);
+}
+
+function checkDrop(x, y) {
+  // Check against next station
+  const nextStationIdx = state.currentStep + 1;
+
+  if (state.currentStep < 2) {
+    const targetEl = document.getElementById(`station-${nextStationIdx}`);
+    if (targetEl) {
+      const tRect = targetEl.getBoundingClientRect();
+      if (x > tRect.left && x < tRect.right && y > tRect.top && y < tRect.bottom) {
+        advanceStep(nextStationIdx);
+        return;
+      }
+    }
+  } else if (state.currentStep === 2) {
+    // Check if dropped on customer area
+    const custArea = document.querySelector('.customer-area');
+    if (custArea) {
+      const cRect = custArea.getBoundingClientRect();
+      if (x > cRect.left && x < cRect.right && y > cRect.top && y < cRect.bottom) {
+        advanceStep(3); // serve
+        return;
+      }
+    }
+  }
+
+  // Snap back
+  snapDishBack();
+}
+
+function snapDishBack() {
+  const dish = document.getElementById('dish-item');
+  if (!dish || !state.currentMeal) return;
+
+  const stationEl = document.getElementById(`station-${state.currentStep}`);
+  if (!stationEl) return;
+
+  const rect = stationEl.getBoundingClientRect();
+  dish.style.transition = 'all 0.3s ease';
+  dish.style.left = (rect.left + rect.width/2 - 45) + 'px';
+  dish.style.top = (rect.top + rect.height/2 - 45) + 'px';
+}
+
+function advanceStep(toStation) {
+  if (!state.gameRunning) return;
+  if (toStation !== state.currentStep + 1 && toStation !== 3) return;
+
+  // Animate dish moving to new location
+  const dish = document.getElementById('dish-item');
+
+  if (toStation === 3) {
+    // SERVE! Animate to customer area
+    const custFig = document.getElementById('customer-figure');
+    if (custFig && dish) {
+      const cRect = custFig.getBoundingClientRect();
+      dish.style.transition = 'all 0.5s ease';
+      dish.style.left = (cRect.left + cRect.width/2 - 45) + 'px';
+      dish.style.top = (cRect.top + cRect.height/2 - 45) + 'px';
+      dish.style.transform = 'scale(0.5)';
+      dish.style.opacity = '0';
+    }
+
+    // Burst effects
+    spawnStars();
+    showSuccessFlash();
+
+    setTimeout(() => {
+      mealCompleted();
+    }, 500);
+    return;
+  }
+
+  // Move to next station
+  const nextEl = document.getElementById(`station-${toStation}`);
+  if (nextEl && dish) {
+    const rect = nextEl.getBoundingClientRect();
+    dish.style.transition = 'all 0.4s ease';
+    dish.style.left = (rect.left + rect.width/2 - 45) + 'px';
+    dish.style.top = (rect.top + rect.height/2 - 45) + 'px';
+    // Update dish appearance for new station
+    setTimeout(() => {
+      dish.style.transform = 'scale(1.3)';
+      dish.textContent = state.currentMeal.steps[toStation].dishEmoji;
+      setTimeout(() => { dish.style.transform = ''; }, 200);
+    }, 300);
+  }
+
+  state.currentStep = toStation;
+
+  // Update station visuals
+  setTimeout(() => {
+    updateStationVisuals();
+    updateActivePlayerHighlight();
+    updateStatusMessage();
+    updatePlayerChips();
+
+    // If next player is CPU, trigger auto-complete
+    const nextPlayerIdx = getPlayerForStation(state.currentStep);
+    const nextPlayer = state.players[nextPlayerIdx];
+    if (nextPlayer.isCPU) {
+      triggerCPUAction();
+    }
+
+    // Update dish ownership color
+    if (dish) {
+      dish.style.borderColor = state.players[getPlayerForStation(state.currentStep)].color;
+      if (nextPlayer.isCPU) {
+        dish.style.pointerEvents = 'none';
+      } else {
+        dish.style.pointerEvents = 'auto';
+      }
+    }
+  }, 420);
+}
+
+function updateStationVisuals() {
+  for (let i = 0; i < 3; i++) {
+    const el = document.getElementById(`station-${i}`);
+    if (!el) continue;
+    el.classList.remove('active-station', 'target-station', 'completed-station');
+    el.style.background = '';
+    if (i < state.currentStep) el.classList.add('completed-station');
+    else if (i === state.currentStep) el.classList.add('active-station');
+    else if (i === state.currentStep + 1) el.classList.add('target-station');
+  }
+}
+
+function updatePlayerChips() {
+  buildPlayersStrip();
+}
+
+// ===== CPU ACTION =====
+function triggerCPUAction() {
+  const delay = 1000 + Math.random() * 1000; // 1-2 seconds
+  const dish = document.getElementById('dish-item');
+  if (dish) {
+    dish.style.animation = 'cpuSlide 0.8s ease';
+    setTimeout(() => { dish.style.animation = ''; }, 800);
+  }
+
+  // Show CPU thinking indicator
+  const player = state.players[getPlayerForStation(state.currentStep)];
+  setStatus(`${player.name} is cooking... ⚡`);
+
+  setTimeout(() => {
+    if (!state.gameRunning) return;
+    const nextStep = state.currentStep + 1;
+    if (nextStep <= 3) {
+      advanceStep(nextStep);
+    }
+  }, delay);
+}
+
+// ===== MEAL LIFECYCLE =====
+function nextMeal() {
+  if (!state.gameRunning && state.mainTimeLeft > 0) state.gameRunning = true;
+  if (state.mainTimeLeft <= 0) return;
+
+  state.currentMeal = MEALS[Math.floor(Math.random() * MEALS.length)];
+  state.currentStep = 0;
+  state.mealTimeLeft = 30;
+  state.customerEmoji = CUSTOMER_EMOJIS[Math.floor(Math.random() * CUSTOMER_EMOJIS.length)];
+
+  // Update customer area
+  document.getElementById('customer-figure').textContent = state.customerEmoji;
+  document.getElementById('customer-figure').className = 'customer-figure';
+  document.getElementById('order-text').textContent = `I'd love a ${state.currentMeal.name}!`;
+  document.getElementById('order-emoji').textContent = state.currentMeal.emoji;
+
+  // Reset meal timer bar
+  document.getElementById('meal-timer-fill').style.width = '100%';
+  document.getElementById('meal-timer-fill').className = 'meal-timer-fill';
+
+  buildStations();
+  buildPlayersStrip();
+  updateStatusMessage();
+
+  startMealTimer();
+
+  // Check if first player is CPU
+  const firstPlayerIdx = getPlayerForStation(0);
+  if (state.players[firstPlayerIdx].isCPU) {
+    triggerCPUAction();
+  }
+}
+
+function mealCompleted() {
+  state.score++;
+  document.getElementById('score-count').textContent = state.score;
+
+  clearInterval(state.mealTimer);
+
+  // Happy customer
+  const fig = document.getElementById('customer-figure');
+  fig.textContent = '😄';
+  fig.className = 'customer-figure happy';
+
+  setStatus(`🎉 ${state.currentMeal.name} delivered! Team score: ${state.score} meals!`);
+
+  // Rotate player offset for next round
+  state.roundPlayerOffset = (state.roundPlayerOffset + 1) % state.players.length;
+
+  if (state.mainTimeLeft > 0) {
+    setTimeout(() => {
+      nextMeal();
+    }, 1500);
+  }
+}
+
+function mealFailed() {
+  clearInterval(state.mealTimer);
+  if (!state.gameRunning) return;
+
+  // Grumpy customer
+  showGrumpy();
+
+  // Rotate offset anyway
+  state.roundPlayerOffset = (state.roundPlayerOffset + 1) % state.players.length;
+
+  if (state.mainTimeLeft > 0) {
+    setTimeout(() => {
+      removeGrumpy();
+      nextMeal();
+    }, 2500);
+  }
+}
+
+// ===== TIMERS =====
+function startMainTimer() {
+  state.gameRunning = true;
+  clearInterval(state.mainTimer);
+  state.mainTimer = setInterval(() => {
+    state.mainTimeLeft--;
+    updateMainTimerDisplay();
+    if (state.mainTimeLeft <= 0) {
+      state.mainTimeLeft = 0;
+      clearInterval(state.mainTimer);
+      clearInterval(state.mealTimer);
+      state.gameRunning = false;
+      updateMainTimerDisplay();
+      setTimeout(endGame, 500);
+    }
+  }, 1000);
+}
+
+function startMealTimer() {
+  clearInterval(state.mealTimer);
+  state.mealTimeLeft = 30;
+  state.mealTimer = setInterval(() => {
+    state.mealTimeLeft--;
+    const pct = (state.mealTimeLeft / 30) * 100;
+    const fill = document.getElementById('meal-timer-fill');
+    fill.style.width = pct + '%';
+    if (state.mealTimeLeft <= 10) fill.className = 'meal-timer-fill danger';
+    if (state.mealTimeLeft <= 0) {
+      clearInterval(state.mealTimer);
+      mealFailed();
+    }
+  }, 1000);
+}
+
+function updateMainTimerDisplay() {
+  const m = Math.floor(state.mainTimeLeft / 60);
+  const s = state.mainTimeLeft % 60;
+  const disp = `${m}:${s.toString().padStart(2,'0')}`;
+  const el = document.getElementById('main-timer');
+  el.textContent = disp;
+  if (state.mainTimeLeft <= 30) el.className = 'timer-display warning';
+  else el.className = 'timer-display';
+}
+
+// ===== STATUS =====
+function setStatus(msg) {
+  const el = document.getElementById('status-message');
+  el.textContent = msg;
+  el.style.animation = 'none';
+  setTimeout(() => { el.style.animation = 'slideDown 0.3s ease'; }, 10);
+}
+
+function updateStatusMessage() {
+  if (!state.currentMeal || state.currentStep >= 3) return;
+  const step = state.currentMeal.steps[state.currentStep];
+  const playerIdx = getPlayerForStation(state.currentStep);
+  const player = state.players[playerIdx];
+  if (state.currentStep < 2) {
+    const nextStep = state.currentMeal.steps[state.currentStep + 1];
+    setStatus(`${player.name}: Drag the ${state.currentMeal.emoji} to station ${state.currentStep+2} (${nextStep.name}) ${nextStep.emoji}`);
+  } else {
+    setStatus(`${player.name}: Drag the ${state.currentMeal.emoji} to the customer! ${state.customerEmoji}`);
+  }
+}
+
+// ===== EFFECTS =====
+function spawnStars() {
+  const container = document.getElementById('confetti-container');
+  const emojis = ['⭐','✨','🌟','💫','🎉','🎊'];
+  for (let i = 0; i < 8; i++) {
+    const star = document.createElement('div');
+    star.className = 'star-burst';
+    star.textContent = emojis[Math.floor(Math.random() * emojis.length)];
+    star.style.left = (20 + Math.random() * 60) + '%';
+    star.style.top = (20 + Math.random() * 40) + '%';
+    star.style.animationDelay = (Math.random() * 0.3) + 's';
+    container.appendChild(star);
+    setTimeout(() => star.remove(), 1000);
+  }
+}
+
+function showSuccessFlash() {
+  const flash = document.createElement('div');
+  flash.className = 'success-flash';
+  document.body.appendChild(flash);
+  setTimeout(() => flash.remove(), 600);
+}
+
+function showGrumpy() {
+  const overlay = document.createElement('div');
+  overlay.className = 'grumpy-overlay';
+  overlay.id = 'grumpy-overlay';
+  overlay.innerHTML = `
+    <div class="grumpy-box">
+      <span class="grumpy-emoji">😤</span>
+      <div class="grumpy-text">Too slow! 😤</div>
+      <div class="grumpy-sub">The customer got hangry! Try faster next time!</div>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+
+  // Steam effects
+  const container = document.getElementById('confetti-container');
+  for (let i = 0; i < 5; i++) {
+    const steam = document.createElement('div');
+    steam.className = 'steam-puff';
+    steam.textContent = '💨';
+    steam.style.left = (30 + i * 8) + '%';
+    steam.style.top = '30%';
+    steam.style.animationDelay = (i * 0.15) + 's';
+    container.appendChild(steam);
+    setTimeout(() => steam.remove(), 1200);
+  }
+}
+
+function removeGrumpy() {
+  const overlay = document.getElementById('grumpy-overlay');
+  if (overlay) overlay.remove();
+}
+
+function spawnCelebrationConfetti() {
+  const container = document.getElementById('confetti-container');
+  const colors = ['#FF6B6B','#FFD166','#06D6A0','#118AB2','#9B5DE5','#FF8E53'];
+  for (let i = 0; i < 80; i++) {
+    const piece = document.createElement('div');
+    piece.className = 'confetti-piece';
+    piece.style.left = Math.random() * 100 + '%';
+    piece.style.top = '-10px';
+    piece.style.background = colors[Math.floor(Math.random() * colors.length)];
+    piece.style.width = (6 + Math.random() * 8) + 'px';
+    piece.style.height = (6 + Math.random() * 8) + 'px';
+    piece.style.borderRadius = Math.random() > 0.5 ? '50%' : '2px';
+    piece.style.animationDuration = (2 + Math.random() * 2) + 's';
+    piece.style.animationDelay = (Math.random() * 1) + 's';
+    container.appendChild(piece);
+    setTimeout(() => piece.remove(), 4000);
+  }
+}
+
+// ===== END GAME =====
+function endGame() {
+  state.gameRunning = false;
+  clearInterval(state.mainTimer);
+  clearInterval(state.mealTimer);
+
+  // Remove dish
+  const dish = document.getElementById('dish-item');
+  if (dish) dish.remove();
+  removeGrumpy();
+
+  document.getElementById('final-score').textContent = state.score;
+
+  const endEmoji = document.getElementById('end-emoji');
+  const endTitle = document.getElementById('end-title');
+  const celebMsg = document.getElementById('celebrate-msg');
+
+  if (state.score >= 10) {
+    endEmoji.textContent = '🏆';
+    endTitle.textContent = 'LEGENDARY CHEFS!';
+    celebMsg.style.display = 'block';
+    celebMsg.textContent = '🌟 You are AMAZING! 10+ meals is legendary! 🌟';
+    spawnCelebrationConfetti();
+  } else if (state.score >= 5) {
+    endEmoji.textContent = '🎉';
+    endTitle.textContent = 'Amazing Team!';
+    celebMsg.style.display = 'block';
+    celebMsg.textContent = '✨ Wow! 5+ meals! You\'re super chefs! ✨';
+    spawnCelebrationConfetti();
+  } else if (state.score >= 3) {
+    endEmoji.textContent = '😊';
+    endTitle.textContent = 'Great Job!';
+    celebMsg.style.display = 'none';
+  } else if (state.score >= 1) {
+    endEmoji.textContent = '🙂';
+    endTitle.textContent = 'Good Start!';
+    celebMsg.style.display = 'none';
+  } else {
+    endEmoji.textContent = '😅';
+    endTitle.textContent = 'Keep Practicing!';
+    celebMsg.style.display = 'none';
+  }
+
+  // Show players
+  const endPlayersDiv = document.getElementById('end-players');
+  endPlayersDiv.innerHTML = '';
+  state.players.forEach(p => {
+    const chip = document.createElement('div');
+    chip.className = 'end-player-chip';
+    chip.innerHTML = `
+      <div class="end-avatar" style="background:${p.color}">${p.isCPU ? '🤖' : p.initials}</div>
+      <div class="end-player-name">${p.name}</div>
+    `;
+    endPlayersDiv.appendChild(chip);
+  });
+
+  showScreen('end-screen');
+}
+
+function resetGame() {
+  clearInterval(state.mainTimer);
+  clearInterval(state.mealTimer);
+  state.gameRunning = false;
+  removeGrumpy();
+  const dish = document.getElementById('dish-item');
+  if (dish) dish.remove();
+  document.getElementById('confetti-container').innerHTML = '';
+  showScreen('setup-screen');
+}
+
+// ===== PAUSE =====
+function togglePause() {
+  const btn = document.getElementById('pause-btn');
+  if (!state.paused) {
+    state.paused = true;
+    state.gameRunning = false;
+    clearInterval(state.mainTimer);
+    clearInterval(state.mealTimer);
+    btn.textContent = '▶️';
+    btn.classList.add('paused');
+    setStatus('⏸ Paused! Press ▶️ to keep cooking!');
+  } else {
+    state.paused = false;
+    state.gameRunning = true;
+    btn.textContent = '⏸';
+    btn.classList.remove('paused');
+    resumeMainTimer();
+    resumeMealTimer();
+    updateStatusMessage();
+    // Re-trigger CPU if it's their turn
+    if (state.currentStep < 3) {
+      const cpIdx = getPlayerForStation(state.currentStep);
+      if (state.players[cpIdx] && state.players[cpIdx].isCPU) {
+        triggerCPUAction();
+      }
+    }
+  }
+}
+
+function resumeMainTimer() {
+  clearInterval(state.mainTimer);
+  state.mainTimer = setInterval(() => {
+    state.mainTimeLeft--;
+    updateMainTimerDisplay();
+    if (state.mainTimeLeft <= 0) {
+      state.mainTimeLeft = 0;
+      clearInterval(state.mainTimer);
+      clearInterval(state.mealTimer);
+      state.gameRunning = false;
+      updateMainTimerDisplay();
+      setTimeout(endGame, 500);
+    }
+  }, 1000);
+}
+
+function resumeMealTimer() {
+  clearInterval(state.mealTimer);
+  state.mealTimer = setInterval(() => {
+    state.mealTimeLeft--;
+    const pct = (state.mealTimeLeft / 30) * 100;
+    const fill = document.getElementById('meal-timer-fill');
+    fill.style.width = pct + '%';
+    if (state.mealTimeLeft <= 10) fill.className = 'meal-timer-fill danger';
+    if (state.mealTimeLeft <= 0) {
+      clearInterval(state.mealTimer);
+      mealFailed();
+    }
+  }, 1000);
+}
+
+// ===== INIT =====
+selectCount(2);
+
+// Prevent default touch behavior to avoid scrolling during drag
+document.addEventListener('touchmove', function(e) {
+  if (dragDishActive) e.preventDefault();
+}, { passive: false });
+</script>
+</body>
+</html>

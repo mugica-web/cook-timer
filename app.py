@@ -45,6 +45,11 @@ def board_game():
     return render_template("board_game.html")
 
 
+@app.route("/restaurant-game")
+def restaurant_game():
+    return render_template("restaurant_game.html")
+
+
 # This block runs only when you execute "python app.py" directly.
 # It starts the development server on port 5000.
 # debug=True means the server auto-restarts when you change code.
