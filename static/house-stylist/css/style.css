@@ -8,6 +8,9 @@
   padding: 0;
 }
 
+/* Ensure [hidden] always wins over display rules set by component CSS */
+[hidden] { display: none !important; }
+
 :root {
   /* Brand colours */
   --pink:         #FF4DA6;
