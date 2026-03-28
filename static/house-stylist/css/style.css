@@ -976,6 +976,9 @@ body {
   min-height: 0;
   position: relative;
   overflow: hidden;
+  margin: 10px;
+  border-radius: 10px;
+  box-shadow: 0 6px 28px rgba(0,0,0,0.22), inset 0 0 0 1px rgba(0,0,0,0.06);
   /* Warm cream back-wall colour + subtle wallpaper dot pattern */
   background-color: #FFF8EC;
   background-image: radial-gradient(circle, rgba(200,150,60,0.18) 1.5px, transparent 1.5px);
@@ -987,41 +990,44 @@ body {
 .room-ceiling {
   position: absolute;
   top: 0; left: 0; right: 0;
-  height: 18px;
-  background: linear-gradient(180deg, #D4B87A 0%, #EDD99A 100%);
-  border-bottom: 2px solid #C0A060;
+  height: 24px;
+  background: linear-gradient(180deg, #C0900A 0%, #D4B060 30%, #EDD99A 100%);
+  border-bottom: 2px solid #A88040;
   z-index: 3;
   pointer-events: none;
 }
 
-/* Left perspective wall panel */
+/* Left perspective wall panel — angled top-right corner for 3-D depth */
 .room-left-panel {
   position: absolute;
   top: 0; left: 0; bottom: 0;
   width: 44px;
-  background: linear-gradient(90deg, #C0A060 0%, #E8CEA0 100%);
-  border-right: 3px solid #A88040;
+  background: linear-gradient(90deg, #9A7030 0%, #C8A060 55%, #DEC080 100%);
+  border-right: 2px solid #9A7030;
   z-index: 3;
   pointer-events: none;
+  clip-path: polygon(0 0, 100% 8%, 100% 100%, 0 100%);
 }
 
-/* Right perspective wall panel */
+/* Right perspective wall panel — angled top-left corner for 3-D depth */
 .room-right-panel {
   position: absolute;
   top: 0; right: 0; bottom: 0;
   width: 44px;
-  background: linear-gradient(270deg, #C0A060 0%, #E8CEA0 100%);
-  border-left: 3px solid #A88040;
+  background: linear-gradient(270deg, #9A7030 0%, #C8A060 55%, #DEC080 100%);
+  border-left: 2px solid #9A7030;
   z-index: 3;
   pointer-events: none;
+  clip-path: polygon(0 8%, 100% 0, 100% 100%, 0 100%);
 }
 
-/* Floor — wood-plank stripes */
+/* Floor — wood-plank stripes with depth shadow at back */
 .room-floor {
   position: absolute;
   bottom: 0; left: 0; right: 0;
-  height: 70px;
+  height: 90px;
   background:
+    linear-gradient(180deg, rgba(0,0,0,0.20) 0%, rgba(0,0,0,0) 40%),
     repeating-linear-gradient(
       90deg,
       #C09060 0px, #C09060 74px,

@@ -16,9 +16,8 @@ const Game = (() => {
   /* ================================================================
      ROOM GEOMETRY
      ================================================================ */
-  const FLOOR_H   = 70;  // px — floor panel height
+  const FLOOR_H   = 90;  // px — floor panel height
   const SIDE_W    = 44;  // px — each side-wall panel width
-  const BASEBOARD  = 9;  // px — baseboard trim height above floor
   const CEILING_H = 18;  // px — ceiling strip height (used for paint target detection)
 
   /* ================================================================
@@ -148,229 +147,46 @@ const Game = (() => {
     return `<svg viewBox="${viewBox}" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">${inner}</svg>`;
   }
 
+  /* 3-D box: top face (lighter), right side face (darker), front face (base color) + emoji label */
+  function box3d(w, h, color, emoji) {
+    const DX = Math.round(Math.min(w * 0.20, 30));
+    const DY = Math.round(Math.min(h * 0.22, 26));
+    const fw = w - DX; const fh = h - DY;
+    const r = parseInt(color.slice(1,3),16), g = parseInt(color.slice(3,5),16), b = parseInt(color.slice(5,7),16);
+    const clamp = v => Math.max(0, Math.min(255, v));
+    const top  = `rgb(${clamp(r+65)},${clamp(g+65)},${clamp(b+65)})`;
+    const side = `rgb(${clamp(r-50)},${clamp(g-50)},${clamp(b-50)})`;
+    const fs = Math.max(10, Math.min(fh * 0.45, 24));
+    return svg(`0 0 ${w} ${h}`, `
+      <polygon points="0,${DY} ${fw},${DY} ${w},0 ${DX},0" fill="${top}"/>
+      <polygon points="${fw},${DY} ${w},0 ${w},${h-DY} ${fw},${h}" fill="${side}"/>
+      <rect x="0" y="${DY}" width="${fw}" height="${fh}" fill="${color}"/>
+      <text x="${fw/2}" y="${DY + fh*0.52}" text-anchor="middle" dominant-baseline="central"
+            font-size="${fs}" font-family="system-ui,sans-serif">${emoji}</text>
+    `);
+  }
+
   const SVG = {
-    couch: svg('0 0 200 82', `
-      <rect x="10" y="4"  width="180" height="44" rx="10" fill="#9E9E9E"/>
-      <rect x="14" y="7"  width="172" height="10" rx="4"  fill="rgba(255,255,255,0.22)"/>
-      <rect x="10" y="45" width="180" height="30" rx="6"  fill="#757575"/>
-      <rect x="0"   y="22" width="18" height="53" rx="9"  fill="#9E9E9E"/>
-      <rect x="182" y="22" width="18" height="53" rx="9"  fill="#9E9E9E"/>
-      <rect x="18"  y="47" width="50" height="24" rx="5"  fill="#EEEEEE"/>
-      <rect x="74"  y="47" width="52" height="24" rx="5"  fill="#EEEEEE"/>
-      <rect x="132" y="47" width="50" height="24" rx="5"  fill="#EEEEEE"/>
-      <line x1="43"  y1="47" x2="43"  y2="71" stroke="#BDBDBD" stroke-width="1"/>
-      <line x1="100" y1="47" x2="100" y2="71" stroke="#BDBDBD" stroke-width="1"/>
-      <line x1="157" y1="47" x2="157" y2="71" stroke="#BDBDBD" stroke-width="1"/>
-      <rect x="18"  y="74" width="12" height="8" rx="2" fill="#616161"/>
-      <rect x="170" y="74" width="12" height="8" rx="2" fill="#616161"/>`),
-
-    lamp: svg('0 0 38 115', `
-      <polygon points="6,34 32,34 27,5 11,5" fill="#F9A825"/>
-      <polygon points="6,34 32,34 27,5 11,5" fill="none" stroke="#F57F17" stroke-width="1.5"/>
-      <polygon points="11,5 15,5 10,34 6,34" fill="rgba(255,255,255,0.28)"/>
-      <ellipse cx="19" cy="34" rx="14" ry="5" fill="rgba(255,230,60,0.35)"/>
-      <rect x="17" y="34" width="4" height="70" rx="2" fill="#795548"/>
-      <ellipse cx="19" cy="104" rx="12" ry="7" fill="#5D4037"/>
-      <ellipse cx="19" cy="103" rx="9"  ry="4" fill="#795548"/>`),
-
-    coffeeTable: svg('0 0 135 52', `
-      <rect x="2"  y="5"  width="131" height="18" rx="5" fill="#A1887F"/>
-      <rect x="6"  y="7"  width="123" height="6"  rx="2" fill="rgba(255,255,255,0.28)"/>
-      <rect x="10" y="21" width="115" height="6"  rx="2" fill="#8D6E63"/>
-      <rect x="8"   y="27" width="9" height="24" rx="3" fill="#795548"/>
-      <rect x="118" y="27" width="9" height="24" rx="3" fill="#795548"/>
-      <rect x="17"  y="37" width="101" height="4" rx="2" fill="#6D4C41"/>`),
-
-    chair: svg('0 0 78 88', `
-      <rect x="6"  y="4"  width="66" height="36" rx="7" fill="#A1887F"/>
-      <rect x="10" y="7"  width="58" height="9"  rx="3" fill="rgba(255,255,255,0.26)"/>
-      <rect x="22" y="10" width="10" height="26" rx="3" fill="#8D6E63"/>
-      <rect x="46" y="10" width="10" height="26" rx="3" fill="#8D6E63"/>
-      <rect x="6"  y="37" width="66" height="18" rx="5" fill="#BCAAA4"/>
-      <path d="M10,46 Q39,52 68,46" fill="none" stroke="#A1887F" stroke-width="1.5" opacity="0.5"/>
-      <rect x="10" y="55" width="9" height="32" rx="3" fill="#795548"/>
-      <rect x="59" y="55" width="9" height="32" rx="3" fill="#795548"/>
-      <rect x="19" y="68" width="40" height="4"  rx="2" fill="#6D4C41"/>`),
-
-    shelf: svg('0 0 120 30', `
-      <rect x="8"   y="0" width="7" height="24" rx="2" fill="#795548"/>
-      <rect x="105" y="0" width="7" height="24" rx="2" fill="#795548"/>
-      <line x1="8"   y1="18" x2="18"  y2="4" stroke="#6D4C41" stroke-width="2.5" stroke-linecap="round"/>
-      <line x1="112" y1="18" x2="102" y2="4" stroke="#6D4C41" stroke-width="2.5" stroke-linecap="round"/>
-      <rect x="2"  y="16" width="116" height="13" rx="3" fill="#A1887F"/>
-      <rect x="4"  y="17" width="112" height="4"  rx="2" fill="rgba(255,255,255,0.32)"/>
-      <line x1="25" y1="16" x2="25" y2="29" stroke="rgba(0,0,0,0.07)" stroke-width="1"/>
-      <line x1="55" y1="16" x2="55" y2="29" stroke="rgba(0,0,0,0.07)" stroke-width="1"/>
-      <line x1="85" y1="16" x2="85" y2="29" stroke="rgba(0,0,0,0.07)" stroke-width="1"/>`),
-
-    /* ── Bedroom ─────────────────────────────────────────── */
-    bed: svg('0 0 180 100', `
-      <rect x="0"   y="0"  width="180" height="32" rx="6"  fill="#1565C0"/>
-      <rect x="4"   y="3"  width="172" height="22" rx="4"  fill="#1E88E5"/>
-      <circle cx="20"  cy="16" r="6" fill="#0D47A1" opacity="0.4"/>
-      <circle cx="160" cy="16" r="6" fill="#0D47A1" opacity="0.4"/>
-      <rect x="0"   y="30" width="180" height="60" rx="4"  fill="#90CAF9"/>
-      <rect x="6"   y="34" width="74"  height="26" rx="6"  fill="white" opacity="0.88"/>
-      <rect x="100" y="34" width="74"  height="26" rx="6"  fill="white" opacity="0.88"/>
-      <rect x="0"   y="56" width="180" height="34" rx="4"  fill="#42A5F5"/>
-      <path d="M0,56 Q90,63 180,56" fill="rgba(255,255,255,0.18)"/>
-      <rect x="4"   y="88" width="14"  height="12" rx="3"  fill="#0D47A1"/>
-      <rect x="162" y="88" width="14"  height="12" rx="3"  fill="#0D47A1"/>`),
-
-    wardrobe: svg('0 0 100 130', `
-      <rect x="0"  y="0"   width="100" height="130" rx="6" fill="#7B1FA2"/>
-      <rect x="0"  y="0"   width="100" height="10"  rx="6" fill="#6A1B9A"/>
-      <rect x="0"  y="118" width="100" height="12"  rx="4" fill="#6A1B9A"/>
-      <line x1="50" y1="10" x2="50" y2="118" stroke="#6A1B9A" stroke-width="2.5"/>
-      <rect x="4"  y="14"  width="42"  height="100" rx="4" fill="#8E24AA"/>
-      <rect x="54" y="14"  width="42"  height="100" rx="4" fill="#8E24AA"/>
-      <rect x="2"  y="62"  width="44"  height="2"   fill="#6A1B9A" opacity="0.5"/>
-      <rect x="54" y="62"  width="44"  height="2"   fill="#6A1B9A" opacity="0.5"/>
-      <circle cx="40" cy="62" r="4" fill="#CE93D8"/>
-      <circle cx="60" cy="62" r="4" fill="#CE93D8"/>`),
-
-    dresser: svg('0 0 90 80', `
-      <rect x="0"  y="0"  width="90" height="80" rx="5" fill="#FF4DA6"/>
-      <rect x="0"  y="0"  width="90" height="8"  rx="5" fill="#D81B7A"/>
-      <rect x="3"  y="11" width="84" height="16" rx="3" fill="#D81B7A"/>
-      <rect x="3"  y="31" width="84" height="16" rx="3" fill="#D81B7A"/>
-      <rect x="3"  y="51" width="84" height="16" rx="3" fill="#D81B7A"/>
-      <circle cx="45" cy="19" r="4" fill="#FFB3D9"/>
-      <circle cx="45" cy="39" r="4" fill="#FFB3D9"/>
-      <circle cx="45" cy="59" r="4" fill="#FFB3D9"/>
-      <rect x="6"  y="69" width="12" height="11" rx="3" fill="#C2185B"/>
-      <rect x="72" y="69" width="12" height="11" rx="3" fill="#C2185B"/>`),
-
-    nightstand: svg('0 0 55 70', `
-      <rect x="0"  y="0"  width="55" height="10" rx="4" fill="#D4A96A"/>
-      <rect x="0"  y="8"  width="55" height="48" rx="4" fill="#BF7F45"/>
-      <rect x="3"  y="14" width="49" height="20" rx="3" fill="#8B5E3C"/>
-      <circle cx="27" cy="24" r="4" fill="#D4A96A"/>
-      <rect x="3"  y="38" width="49" height="14" rx="3" fill="#8B5E3C"/>
-      <rect x="6"  y="56" width="8"  height="14" rx="3" fill="#6D4C41"/>
-      <rect x="41" y="56" width="8"  height="14" rx="3" fill="#6D4C41"/>`),
-
-    /* ── Bathroom ────────────────────────────────────────── */
-    toilet: svg('0 0 60 85', `
-      <rect x="5"  y="0"  width="50" height="28" rx="5" fill="#E3F2FD"/>
-      <rect x="5"  y="0"  width="50" height="8"  rx="5" fill="#BBDEFB"/>
-      <rect x="5"  y="24" width="50" height="10" rx="3" fill="#90CAF9"/>
-      <ellipse cx="30" cy="60" rx="24" ry="20" fill="#E3F2FD"/>
-      <ellipse cx="30" cy="58" rx="20" ry="16" fill="#BBDEFB"/>
-      <rect x="20" y="34" width="20" height="10" rx="3" fill="#90CAF9"/>
-      <ellipse cx="30" cy="78" rx="24" ry="6"   fill="#CFD8DC"/>
-      <circle cx="30" cy="10" r="4"  fill="#90CAF9"/>`),
-
-    bathtub: svg('0 0 150 70', `
-      <rect x="0"   y="14" width="150" height="46" rx="14" fill="#E3F2FD"/>
-      <rect x="6"   y="18" width="138" height="38" rx="10" fill="#BBDEFB"/>
-      <rect x="6"   y="18" width="138" height="14" rx="10" fill="rgba(100,181,246,0.4)"/>
-      <rect x="118" y="4"  width="12"  height="18" rx="4"  fill="#90CAF9"/>
-      <circle cx="124" cy="4" r="6" fill="#42A5F5"/>
-      <circle cx="120" cy="3" r="2" fill="white" opacity="0.7"/>
-      <rect x="0"   y="58" width="14"  height="10" rx="3" fill="#90CAF9"/>
-      <rect x="136" y="58" width="14"  height="10" rx="3" fill="#90CAF9"/>`),
-
-    bathroomSink: svg('0 0 65 70', `
-      <rect x="0"  y="0"  width="65" height="14" rx="4" fill="#90CAF9"/>
-      <rect x="0"  y="12" width="65" height="8"  rx="2" fill="#64B5F6"/>
-      <path d="M4,20 L8,60 Q32,68 57,60 L61,20 Z" fill="#E3F2FD"/>
-      <path d="M8,20 L11,56 Q32,63 54,56 L57,20 Z" fill="#BBDEFB"/>
-      <circle cx="32" cy="38" r="5" fill="#64B5F6"/>
-      <rect x="28" y="4"  width="9"  height="12" rx="3" fill="#64B5F6"/>
-      <circle cx="32" cy="3" r="5" fill="#42A5F5"/>
-      <rect x="4"  y="60" width="8"  height="10" rx="2" fill="#BBDEFB"/>
-      <rect x="53" y="60" width="8"  height="10" rx="2" fill="#BBDEFB"/>`),
-
-    bathroomMirror: svg('0 0 80 60', `
-      <rect x="0"  y="0"  width="80" height="60" rx="8" fill="#42A5F5"/>
-      <rect x="4"  y="4"  width="72" height="52" rx="5" fill="#E3F2FD"/>
-      <rect x="8"  y="8"  width="64" height="44" rx="3" fill="#F0F8FF"/>
-      <rect x="8"  y="8"  width="26" height="44" rx="3" fill="rgba(255,255,255,0.4)"/>
-      <line x1="14" y1="14" x2="20" y2="20" stroke="white" stroke-width="2.5" opacity="0.7"/>
-      <line x1="14" y1="22" x2="19" y2="25" stroke="white" stroke-width="1.5" opacity="0.5"/>`),
-
-    /* ── Kitchen ─────────────────────────────────────────── */
-    fridge: svg('0 0 70 130', `
-      <rect x="0"  y="0"   width="70" height="130" rx="6" fill="#E0F2F1"/>
-      <rect x="0"  y="0"   width="70" height="40"  rx="6" fill="#B2DFDB"/>
-      <rect x="0"  y="36"  width="70" height="6"   fill="#80CBC4"/>
-      <rect x="0"  y="40"  width="70" height="90"  rx="6" fill="#E0F2F1"/>
-      <rect x="54" y="10"  width="6"  height="22"  rx="3" fill="#4DB6AC"/>
-      <rect x="54" y="52"  width="6"  height="68"  rx="3" fill="#4DB6AC"/>
-      <rect x="4"  y="12"  width="44" height="2"   rx="1" fill="rgba(255,255,255,0.5)"/>
-      <rect x="4"  y="18"  width="44" height="2"   rx="1" fill="rgba(255,255,255,0.4)"/>
-      <rect x="4"  y="24"  width="36" height="2"   rx="1" fill="rgba(255,255,255,0.35)"/>`),
-
-    stove: svg('0 0 90 95', `
-      <rect x="0"  y="0"  width="90" height="95" rx="5" fill="#CFD8DC"/>
-      <rect x="0"  y="0"  width="90" height="38" rx="5" fill="#B0BEC5"/>
-      <rect x="0"  y="34" width="90" height="6"  fill="#90A4AE"/>
-      <circle cx="22" cy="16" r="10" fill="#78909C"/>
-      <circle cx="22" cy="16" r="5"  fill="#546E7A"/>
-      <circle cx="68" cy="16" r="10" fill="#78909C"/>
-      <circle cx="68" cy="16" r="5"  fill="#546E7A"/>
-      <rect x="4"  y="40" width="82" height="50" rx="4" fill="#B0BEC5"/>
-      <rect x="8"  y="46" width="74" height="38" rx="3" fill="#90A4AE"/>
-      <rect x="12" y="50" width="66" height="28" rx="2" fill="#78909C"/>
-      <circle cx="80" cy="10" r="5" fill="#FF8F00"/>`),
-
-    counter: svg('0 0 130 70', `
-      <rect x="0"   y="0"  width="130" height="15" rx="4" fill="#78909C"/>
-      <rect x="0"   y="0"  width="130" height="8"  rx="4" fill="#90A4AE"/>
-      <rect x="0"   y="13" width="130" height="57" rx="4" fill="#CFD8DC"/>
-      <line x1="43"  y1="15" x2="43"  y2="70" stroke="#B0BEC5" stroke-width="1.5"/>
-      <line x1="87"  y1="15" x2="87"  y2="70" stroke="#B0BEC5" stroke-width="1.5"/>
-      <circle cx="21"  cy="42" r="4" fill="#90A4AE"/>
-      <circle cx="65"  cy="42" r="4" fill="#90A4AE"/>
-      <circle cx="109" cy="42" r="4" fill="#90A4AE"/>
-      <rect x="18"  y="50" width="8"  height="16" rx="2" fill="#B0BEC5"/>
-      <rect x="62"  y="50" width="8"  height="16" rx="2" fill="#B0BEC5"/>
-      <rect x="106" y="50" width="8"  height="16" rx="2" fill="#B0BEC5"/>`),
-
-    kitchenCabinet: svg('0 0 90 60', `
-      <rect x="0"  y="0"  width="90" height="60" rx="5" fill="#43A047"/>
-      <rect x="0"  y="0"  width="90" height="8"  rx="5" fill="#2E7D32"/>
-      <rect x="0"  y="52" width="90" height="8"  rx="4" fill="#2E7D32"/>
-      <line x1="45" y1="8" x2="45" y2="52" stroke="#2E7D32" stroke-width="2"/>
-      <rect x="3"  y="11" width="39" height="38" rx="3" fill="#388E3C"/>
-      <rect x="48" y="11" width="39" height="38" rx="3" fill="#388E3C"/>
-      <circle cx="37" cy="30" r="4" fill="#A5D6A7"/>
-      <circle cx="53" cy="30" r="4" fill="#A5D6A7"/>`),
-
-    /* ── Dining Room ─────────────────────────────────────── */
-    diningTable: svg('0 0 160 75', `
-      <rect x="0"   y="0"  width="160" height="18" rx="5" fill="#E8C48A"/>
-      <rect x="0"   y="0"  width="160" height="10" rx="5" fill="#F5D9A8"/>
-      <rect x="0"   y="16" width="160" height="8"  rx="2" fill="#BF7F45"/>
-      <rect x="8"   y="24" width="10"  height="46" rx="4" fill="#8B5E3C"/>
-      <rect x="142" y="24" width="10"  height="46" rx="4" fill="#8B5E3C"/>
-      <rect x="22"  y="24" width="10"  height="40" rx="3" fill="#8B5E3C"/>
-      <rect x="128" y="24" width="10"  height="40" rx="3" fill="#8B5E3C"/>
-      <rect x="8"   y="62" width="144" height="4"  rx="2" fill="#6D4C41"/>`),
-
-    diningChair: svg('0 0 60 80', `
-      <rect x="6"  y="0"  width="48" height="34" rx="6" fill="#43A047"/>
-      <rect x="6"  y="0"  width="48" height="10" rx="6" fill="#2E7D32"/>
-      <rect x="10" y="10" width="10" height="20" rx="3" fill="#388E3C"/>
-      <rect x="40" y="10" width="10" height="20" rx="3" fill="#388E3C"/>
-      <rect x="6"  y="32" width="48" height="18" rx="4" fill="#66BB6A"/>
-      <path d="M10,40 Q30,46 50,40" fill="none" stroke="#43A047" stroke-width="1.5" opacity="0.5"/>
-      <rect x="10" y="50" width="8"  height="28" rx="3" fill="#2E7D32"/>
-      <rect x="42" y="50" width="8"  height="28" rx="3" fill="#2E7D32"/>
-      <rect x="18" y="64" width="24" height="4"  rx="2" fill="#1B5E20"/>`),
-
-    buffet: svg('0 0 130 75', `
-      <rect x="0"   y="0"  width="130" height="14" rx="4" fill="#F5D9A8"/>
-      <rect x="0"   y="12" width="130" height="52" rx="4" fill="#BF7F45"/>
-      <rect x="0"   y="12" width="130" height="8"  rx="4" fill="#D4A96A"/>
-      <line x1="65" y1="20" x2="65"  y2="64" stroke="#8B5E3C" stroke-width="2"/>
-      <rect x="4"   y="22" width="57" height="38" rx="3" fill="#8B5E3C"/>
-      <rect x="69"  y="22" width="57" height="38" rx="3" fill="#8B5E3C"/>
-      <circle cx="54" cy="41" r="4" fill="#D4A96A"/>
-      <circle cx="76" cy="41" r="4" fill="#D4A96A"/>
-      <rect x="4"   y="62" width="10" height="12" rx="3" fill="#6D4C41"/>
-      <rect x="116" y="62" width="10" height="12" rx="3" fill="#6D4C41"/>`),
+    couch:          box3d(200, 82,  '#8D6E63', '🛋'),
+    lamp:           box3d( 38, 115, '#F9A825', '💡'),
+    coffeeTable:    box3d(135, 52,  '#6D4C41', '☕'),
+    chair:          box3d( 78, 88,  '#A1887F', '🪑'),
+    shelf:          box3d(120, 30,  '#795548', '📚'),
+    bed:            box3d(180, 100, '#1565C0', '🛏'),
+    wardrobe:       box3d(100, 130, '#7B1FA2', '👗'),
+    dresser:        box3d( 90, 80,  '#E91E8C', '💄'),
+    nightstand:     box3d( 55, 70,  '#BF7F45', '🕯'),
+    toilet:         box3d( 60, 85,  '#64B5F6', '🚽'),
+    bathtub:        box3d(150, 70,  '#29B6F6', '🛁'),
+    bathroomSink:   box3d( 65, 70,  '#0288D1', '🚿'),
+    bathroomMirror: box3d( 80, 60,  '#78909C', '🪞'),
+    fridge:         box3d( 70, 130, '#546E7A', '❄️'),
+    stove:          box3d( 90, 95,  '#37474F', '🍳'),
+    counter:        box3d(130, 70,  '#607D8B', '🔪'),
+    kitchenCabinet: box3d( 90, 60,  '#2E7D32', '🍽'),
+    diningTable:    box3d(160, 75,  '#8B5E3C', '🍽'),
+    diningChair:    box3d( 60, 80,  '#D84315', '🪑'),
+    buffet:         box3d(130, 75,  '#5D4037', '🍾'),
   };
 
   /* ── Paint bucket SVG (per-color) ──────────────────────── */
@@ -931,7 +747,7 @@ const Game = (() => {
       const idx = itemsArr.indexOf(placed);
       if (idx !== -1) itemsArr.splice(idx, 1);
       placed.el.remove();
-      state = { item, ghost, fromTray: false, prevX: placed.x, prevY: placed.y, canvasEl, itemsArr, touchId };
+      state = { item, ghost, fromTray: false, prevX: placed.x, prevY: placed.y, prevZone: placed.zone, canvasEl, itemsArr, touchId };
     }
 
     if (isP2) dragState2 = state;
@@ -975,7 +791,7 @@ const Game = (() => {
     if (isP2) dragState2 = null;
     else dragState = null;
 
-    const { item, ghost, fromTray, trayEl, prevX, prevY, canvasEl, itemsArr } = state;
+    const { item, ghost, fromTray, trayEl, prevX, prevY, prevZone, canvasEl, itemsArr } = state;
 
     const canvasRect = canvasEl.getBoundingClientRect();
     const overCanvas = pos.x >= canvasRect.left && pos.x <= canvasRect.right
@@ -1019,7 +835,7 @@ const Game = (() => {
     if (fromTray) {
       if (trayEl) trayEl.style.opacity = '1';
     } else {
-      placeItem(item, prevX, prevY, itemsArr, canvasEl);
+      placeItem(item, prevX, prevY, prevZone, itemsArr, canvasEl);
     }
   }
 
@@ -1034,6 +850,38 @@ const Game = (() => {
      PLACEMENT & COLLISION
      ================================================================ */
 
+  /* ── Depth zones ────────────────────────────────────────────
+     The floor is split into 3 depth zones.  Items in a back zone
+     render behind items in a closer zone (z-index).  Collision is
+     only checked within the same zone so items in different zones
+     can visually overlap freely.
+
+     Zone snap Y values (item bottom edge lands here):
+       back  → 10% into floor strip
+       mid   → 45% into floor strip
+       front → 80% into floor strip
+  ─────────────────────────────────────────────────────────── */
+  const DEPTH_ZONES = {
+    wall:  { z: 1 },
+    back:  { z: 2, floorFrac: 0.10 },
+    mid:   { z: 3, floorFrac: 0.45 },
+    front: { z: 4, floorFrac: 0.80 },
+  };
+
+  function depthZoneForCursorY(cursorY, canvasTop, cH) {
+    const floorTop = cH - FLOOR_H;
+    const relY = cursorY - canvasTop - floorTop;   // px below floor top (can be negative)
+    if (relY < FLOOR_H / 3)       return 'back';
+    if (relY < FLOOR_H * 2 / 3)   return 'mid';
+    return 'front';
+  }
+
+  function snapYForZone(zone, cH, itemH) {
+    const floorTop = cH - FLOOR_H;
+    if (zone === 'wall') return Math.round(cH * 0.38);
+    return floorTop + Math.round(FLOOR_H * DEPTH_ZONES[zone].floorFrac) - itemH;
+  }
+
   function attemptPlace(item, cursorPos, canvasRect, itemsArr, canvasEl) {
     itemsArr = itemsArr || placedItems;
     canvasEl = canvasEl || elCanvas;
@@ -1041,32 +889,28 @@ const Game = (() => {
     const cW = canvasRect.width;
     const cH = canvasRect.height;
 
-    const floorTop = cH - FLOOR_H;
-    const minX     = SIDE_W;
-    const maxX     = cW - SIDE_W - item.w;
+    const minX = SIDE_W;
+    const maxX = cW - SIDE_W - item.w;
 
     let x = (cursorPos.x - canvasRect.left) - item.w / 2;
-    let y;
-
-    if (item.wallMounted) {
-      y = Math.round(cH * 0.38);  // fixed wall-mount height
-    } else {
-      y = floorTop - BASEBOARD - item.h;  // sit on floor above baseboard
-    }
-
     x = Math.max(minX, Math.min(x, maxX));
 
-    const newRect = { x, y, w: item.w, h: item.h };
-    if (itemsArr.some(p => rectsOverlap(newRect, { x: p.x, y: p.y, w: p.w, h: p.h }, 10))) {
+    const zone = item.wallMounted ? 'wall' : depthZoneForCursorY(cursorPos.y, canvasRect.top, cH);
+    const y    = snapYForZone(zone, cH, item.h);
+
+    const newRect  = { x, y, w: item.w, h: item.h };
+    const sameZone = itemsArr.filter(p => p.zone === zone);
+    if (sameZone.some(p => rectsOverlap(newRect, { x: p.x, y: p.y, w: p.w, h: p.h }, 10))) {
       return null;
     }
 
-    return placeItem(item, x, y, itemsArr, canvasEl);
+    return placeItem(item, x, y, zone, itemsArr, canvasEl);
   }
 
-  function placeItem(item, x, y, itemsArr, canvasEl) {
+  function placeItem(item, x, y, zone, itemsArr, canvasEl) {
     itemsArr = itemsArr || placedItems;
     canvasEl = canvasEl || elCanvas;
+    zone     = zone || 'mid';
 
     const el = document.createElement('div');
     el.className    = 'placed-item';
@@ -1074,12 +918,13 @@ const Game = (() => {
     el.style.top    = y + 'px';
     el.style.width  = item.w + 'px';
     el.style.height = item.h + 'px';
+    el.style.zIndex = (DEPTH_ZONES[zone] || DEPTH_ZONES.mid).z;
     el.innerHTML    = item.svg;
     const s = el.querySelector('svg');
     if (s) { s.style.width = item.w + 'px'; s.style.height = item.h + 'px'; s.style.display = 'block'; }
     canvasEl.appendChild(el);
 
-    const placed = { item, x, y, w: item.w, h: item.h, el };
+    const placed = { item, x, y, zone, w: item.w, h: item.h, el };
     itemsArr.push(placed);
 
     el.addEventListener('mousedown',  ev => startDrag(ev, item, { fromTray: false, placed, canvasEl, itemsArr }));
