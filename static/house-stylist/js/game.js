@@ -545,7 +545,7 @@ const Game = (() => {
       cc.id        = 'coin-counter';
       cc.className = 'coin-counter';
       cc.innerHTML = `🪙 <span id="coin-counter-val">${Storage.getCoins()}</span>`;
-      document.querySelector('.game-header')?.appendChild(cc);
+      document.querySelector('.game-header-right')?.appendChild(cc);
       elCoinCounter = document.getElementById('coin-counter-val');
     } else {
       elCoinCounter = document.getElementById('coin-counter-val');

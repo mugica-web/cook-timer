@@ -353,13 +353,18 @@
     ======================================== -->
     <div id="screen-game" class="screen">
 
-      <!-- Top bar: nav + room name + timer -->
+      <!-- Top bar: timer (left) | room name (centre) | coins (right) -->
       <header class="game-header">
-        <button class="btn-nav" id="game-home">🏠 Home</button>
+        <div class="game-header-left">
+          <button class="btn-nav" id="game-home">🏠</button>
+          <div class="timer-box">
+            <span class="timer-icon">⏱</span>
+            <span class="timer-display" id="timer-display">2:00</span>
+          </div>
+        </div>
         <h2 class="room-name" id="room-name">Living Room</h2>
-        <div class="timer-box">
-          <span class="timer-icon">⏱</span>
-          <span class="timer-display" id="timer-display">2:00</span>
+        <div class="game-header-right">
+          <!-- coin counter injected here by JS -->
         </div>
       </header>
 
