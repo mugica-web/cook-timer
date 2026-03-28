@@ -147,46 +147,317 @@ const Game = (() => {
     return `<svg viewBox="${viewBox}" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">${inner}</svg>`;
   }
 
-  /* 3-D box: top face (lighter), right side face (darker), front face (base color) + emoji label */
-  function box3d(w, h, color, emoji) {
-    const DX = Math.round(Math.min(w * 0.20, 30));
-    const DY = Math.round(Math.min(h * 0.22, 26));
-    const fw = w - DX; const fh = h - DY;
-    const r = parseInt(color.slice(1,3),16), g = parseInt(color.slice(3,5),16), b = parseInt(color.slice(5,7),16);
-    const clamp = v => Math.max(0, Math.min(255, v));
-    const top  = `rgb(${clamp(r+65)},${clamp(g+65)},${clamp(b+65)})`;
-    const side = `rgb(${clamp(r-50)},${clamp(g-50)},${clamp(b-50)})`;
-    const fs = Math.max(10, Math.min(fh * 0.45, 24));
-    return svg(`0 0 ${w} ${h}`, `
-      <polygon points="0,${DY} ${fw},${DY} ${w},0 ${DX},0" fill="${top}"/>
-      <polygon points="${fw},${DY} ${w},0 ${w},${h-DY} ${fw},${h}" fill="${side}"/>
-      <rect x="0" y="${DY}" width="${fw}" height="${fh}" fill="${color}"/>
-      <text x="${fw/2}" y="${DY + fh*0.52}" text-anchor="middle" dominant-baseline="central"
-            font-size="${fs}" font-family="system-ui,sans-serif">${emoji}</text>
-    `);
-  }
-
+  /*
+   * Cabinet-oblique furniture SVGs.
+   * Light source: upper-left.  Top face = lightest, front face = mid, right side = darkest.
+   * Depth offset direction: right +DX, up -DY  (matches floor/left-wall projection).
+   * viewBox always equals item w × h; front face starts at y=DY.
+   */
   const SVG = {
-    couch:          box3d(200, 82,  '#8D6E63', '🛋'),
-    lamp:           box3d( 38, 115, '#F9A825', '💡'),
-    coffeeTable:    box3d(135, 52,  '#6D4C41', '☕'),
-    chair:          box3d( 78, 88,  '#A1887F', '🪑'),
-    shelf:          box3d(120, 30,  '#795548', '📚'),
-    bed:            box3d(180, 100, '#1565C0', '🛏'),
-    wardrobe:       box3d(100, 130, '#7B1FA2', '👗'),
-    dresser:        box3d( 90, 80,  '#E91E8C', '💄'),
-    nightstand:     box3d( 55, 70,  '#BF7F45', '🕯'),
-    toilet:         box3d( 60, 85,  '#64B5F6', '🚽'),
-    bathtub:        box3d(150, 70,  '#29B6F6', '🛁'),
-    bathroomSink:   box3d( 65, 70,  '#0288D1', '🚿'),
-    bathroomMirror: box3d( 80, 60,  '#78909C', '🪞'),
-    fridge:         box3d( 70, 130, '#546E7A', '❄️'),
-    stove:          box3d( 90, 95,  '#37474F', '🍳'),
-    counter:        box3d(130, 70,  '#607D8B', '🔪'),
-    kitchenCabinet: box3d( 90, 60,  '#2E7D32', '🍽'),
-    diningTable:    box3d(160, 75,  '#8B5E3C', '🍽'),
-    diningChair:    box3d( 60, 80,  '#D84315', '🪑'),
-    buffet:         box3d(130, 75,  '#5D4037', '🍾'),
+
+    /* ── COUCH (200×82)  DX=20 DY=10 ── */
+    couch: svg('0 0 200 82', `
+      <polygon points="0,10 180,10 200,0 20,0" fill="#8FA8B6"/>
+      <polygon points="180,10 200,0 200,72 180,82" fill="#3D5662"/>
+      <rect x="0" y="10" width="18" height="72" fill="#506878"/>
+      <rect x="18" y="10" width="144" height="30" fill="#607D8B"/>
+      <rect x="22" y="14" width="66" height="22" rx="4" fill="#7896A6"/>
+      <rect x="94" y="14" width="64" height="22" rx="4" fill="#7896A6"/>
+      <line x1="90" y1="10" x2="90" y2="40" stroke="#3D5662" stroke-width="1.5"/>
+      <rect x="162" y="10" width="18" height="72" fill="#506878"/>
+      <rect x="18" y="40" width="144" height="32" fill="#607D8B"/>
+      <rect x="22" y="43" width="66" height="26" rx="3" fill="#7896A6"/>
+      <rect x="94" y="43" width="64" height="26" rx="3" fill="#7896A6"/>
+      <line x1="90" y1="40" x2="90" y2="72" stroke="#3D5662" stroke-width="1.5"/>
+      <rect x="23" y="72" width="7" height="10" rx="1" fill="#2C1A0A"/>
+      <rect x="150" y="72" width="7" height="10" rx="1" fill="#2C1A0A"/>
+    `),
+
+    /* ── FLOOR LAMP (38×115)  DX=5 DY=8 ── */
+    lamp: svg('0 0 38 115', `
+      <polygon points="4,8 28,8 33,0 9,0" fill="#FDD835"/>
+      <polygon points="28,8 33,0 33,28 28,33" fill="#E0A800"/>
+      <polygon points="4,8 28,8 28,33 4,33" fill="#FFF176"/>
+      <ellipse cx="16" cy="32" rx="10" ry="3" fill="rgba(255,255,160,0.5)"/>
+      <rect x="14" y="33" width="5" height="4" fill="#9E9E9E"/>
+      <rect x="15" y="37" width="3" height="54" fill="#757575"/>
+      <polygon points="4,95 29,95 33,91 8,91" fill="#BDBDBD"/>
+      <polygon points="29,95 33,91 33,107 29,111" fill="#616161"/>
+      <rect x="4" y="95" width="25" height="16" rx="2" fill="#9E9E9E"/>
+      <rect x="7" y="111" width="19" height="4" fill="#616161"/>
+    `),
+
+    /* ── COFFEE TABLE (135×52)  DX=14 DY=8 ── */
+    coffeeTable: svg('0 0 135 52', `
+      <polygon points="0,8 121,8 135,0 14,0" fill="#D4A96A"/>
+      <polygon points="121,8 135,0 135,20 121,28" fill="#6D4C41"/>
+      <rect x="0" y="8" width="121" height="20" fill="#BF7F45"/>
+      <rect x="2" y="10" width="117" height="7" fill="#C89450" opacity="0.55"/>
+      <rect x="10" y="34" width="101" height="6" fill="#A06838"/>
+      <polygon points="10,34 111,34 121,27 20,27" fill="#C08040"/>
+      <rect x="10" y="28" width="8" height="24" rx="2" fill="#7A5230"/>
+      <rect x="103" y="28" width="8" height="24" rx="2" fill="#7A5230"/>
+      <rect x="18" y="22" width="5" height="7" fill="#5C3820"/>
+      <rect x="107" y="22" width="5" height="7" fill="#5C3820"/>
+    `),
+
+    /* ── ARMCHAIR (78×88)  DX=10 DY=10 ── */
+    chair: svg('0 0 78 88', `
+      <polygon points="8,10 68,10 78,0 18,0" fill="#B09AB5"/>
+      <polygon points="68,10 78,0 78,44 68,54" fill="#4A3050"/>
+      <rect x="8" y="10" width="60" height="44" fill="#7B5F86"/>
+      <rect x="12" y="14" width="52" height="36" rx="5" fill="#8D6F96"/>
+      <line x1="38" y1="10" x2="38" y2="54" stroke="#4A3050" stroke-width="1.5"/>
+      <polygon points="4,52 64,52 68,48 8,48" fill="#B09AB5"/>
+      <polygon points="64,52 68,48 68,66 64,70" fill="#4A3050"/>
+      <rect x="0" y="10" width="14" height="58" rx="3" fill="#6A4F74"/>
+      <rect x="64" y="10" width="14" height="58" rx="3" fill="#6A4F74"/>
+      <rect x="4" y="52" width="60" height="18" fill="#7B5F86"/>
+      <rect x="8" y="55" width="52" height="12" rx="3" fill="#8D6F96"/>
+      <rect x="8" y="70" width="7" height="18" rx="2" fill="#2E1A08"/>
+      <rect x="55" y="70" width="7" height="18" rx="2" fill="#2E1A08"/>
+      <rect x="14" y="66" width="5" height="14" rx="1" fill="#1E1006"/>
+      <rect x="59" y="64" width="5" height="14" rx="1" fill="#1E1006"/>
+    `),
+
+    /* ── WALL SHELF (120×30)  DX=10 DY=6 — wall-mounted ── */
+    shelf: svg('0 0 120 30', `
+      <polygon points="0,6 110,6 120,0 10,0" fill="#D4A96A"/>
+      <polygon points="110,6 120,0 120,16 110,22" fill="#6D4C41"/>
+      <rect x="0" y="6" width="110" height="16" fill="#BF7F45"/>
+      <rect x="5" y="2" width="6" height="4" fill="#C62828"/>
+      <rect x="12" y="1" width="5" height="5" fill="#1565C0"/>
+      <rect x="18" y="2" width="7" height="4" fill="#2E7D32"/>
+      <rect x="70" y="1" width="6" height="5" fill="#E65100"/>
+      <rect x="77" y="2" width="5" height="4" fill="#6A1B9A"/>
+      <rect x="83" y="1" width="8" height="5" fill="#558B2F"/>
+      <polygon points="0,22 7,22 7,30 2,30" fill="#A06838"/>
+      <polygon points="103,22 110,22 108,30 101,30" fill="#A06838"/>
+    `),
+
+    /* ── BED (180×100)  DX=18 DY=12 ── */
+    bed: svg('0 0 180 100', `
+      <polygon points="4,12 162,12 180,0 22,0" fill="#5B8BC0"/>
+      <polygon points="162,12 180,0 180,88 162,100" fill="#0D47A1"/>
+      <rect x="4" y="12" width="158" height="36" fill="#1565C0"/>
+      <rect x="4" y="12" width="158" height="7" fill="#0D47A1"/>
+      <rect x="10" y="19" width="66" height="25" rx="5" fill="#1976D2" opacity="0.65"/>
+      <rect x="82" y="19" width="76" height="25" rx="5" fill="#1976D2" opacity="0.65"/>
+      <polygon points="4,44 162,44 180,32 22,32" fill="#B3D9F5"/>
+      <rect x="4" y="44" width="158" height="56" fill="#90CAF9"/>
+      <rect x="8" y="48" width="150" height="42" rx="5" fill="#BBDEFB"/>
+      <rect x="12" y="50" width="56" height="22" rx="6" fill="white" opacity="0.88"/>
+      <rect x="90" y="50" width="64" height="22" rx="6" fill="white" opacity="0.88"/>
+      <rect x="4" y="90" width="158" height="8" rx="2" fill="#1565C0"/>
+      <rect x="8" y="94" width="9" height="6" fill="#0D3A7A"/>
+      <rect x="149" y="94" width="9" height="6" fill="#0D3A7A"/>
+    `),
+
+    /* ── WARDROBE (100×130)  DX=12 DY=14 ── */
+    wardrobe: svg('0 0 100 130', `
+      <polygon points="0,14 88,14 100,0 12,0" fill="#CE93D8"/>
+      <polygon points="88,14 100,0 100,116 88,130" fill="#4A0072"/>
+      <rect x="0" y="14" width="88" height="116" fill="#7B1FA2"/>
+      <rect x="0" y="14" width="88" height="8" fill="#6A1B9A"/>
+      <line x1="44" y1="22" x2="44" y2="130" stroke="#6A1B9A" stroke-width="2"/>
+      <rect x="3" y="26" width="38" height="72" rx="3" fill="#6A1B9A" opacity="0.45"/>
+      <rect x="47" y="26" width="38" height="72" rx="3" fill="#6A1B9A" opacity="0.45"/>
+      <circle cx="39" cy="64" r="4" fill="#CE93D8"/>
+      <circle cx="53" cy="64" r="4" fill="#CE93D8"/>
+      <rect x="0" y="120" width="88" height="10" fill="#6A1B9A"/>
+    `),
+
+    /* ── DRESSER (90×80)  DX=10 DY=10 ── */
+    dresser: svg('0 0 90 80', `
+      <polygon points="0,10 80,10 90,0 10,0" fill="#F48FB1"/>
+      <polygon points="80,10 90,0 90,70 80,80" fill="#880E4F"/>
+      <rect x="0" y="10" width="80" height="70" fill="#E91E8C"/>
+      <rect x="0" y="10" width="80" height="7" fill="#D81B7A"/>
+      <rect x="4" y="20" width="72" height="15" rx="2" fill="#C2185B"/>
+      <circle cx="40" cy="27" r="4" fill="#F48FB1"/>
+      <rect x="4" y="38" width="72" height="15" rx="2" fill="#C2185B"/>
+      <circle cx="40" cy="45" r="4" fill="#F48FB1"/>
+      <rect x="4" y="56" width="72" height="15" rx="2" fill="#C2185B"/>
+      <circle cx="40" cy="63" r="4" fill="#F48FB1"/>
+      <rect x="5" y="74" width="7" height="6" rx="1" fill="#880E4F"/>
+      <rect x="68" y="74" width="7" height="6" rx="1" fill="#880E4F"/>
+    `),
+
+    /* ── NIGHTSTAND (55×70)  DX=7 DY=8 ── */
+    nightstand: svg('0 0 55 70', `
+      <polygon points="0,8 48,8 55,0 7,0" fill="#D4A96A"/>
+      <polygon points="48,8 55,0 55,62 48,70" fill="#6D4C41"/>
+      <rect x="0" y="8" width="48" height="62" fill="#BF7F45"/>
+      <rect x="0" y="8" width="48" height="5" fill="#C8904E"/>
+      <rect x="3" y="16" width="42" height="20" rx="2" fill="#A06838"/>
+      <circle cx="24" cy="26" r="3" fill="#D4A96A"/>
+      <rect x="3" y="40" width="42" height="2" fill="#8B6040"/>
+      <rect x="5" y="42" width="12" height="18" rx="1" fill="#D32F2F"/>
+      <rect x="19" y="44" width="8" height="16" rx="1" fill="#1565C0"/>
+      <rect x="4" y="62" width="7" height="8" rx="1" fill="#4A2C0A"/>
+      <rect x="37" y="62" width="7" height="8" rx="1" fill="#4A2C0A"/>
+    `),
+
+    /* ── TOILET (60×85)  DX=8 DY=10 ── */
+    toilet: svg('0 0 60 85', `
+      <polygon points="8,10 44,10 52,0 16,0" fill="#E8F6FF"/>
+      <polygon points="44,10 52,0 52,30 44,40" fill="#90CAF9"/>
+      <rect x="8" y="10" width="36" height="30" rx="3" fill="#E3F2FD"/>
+      <rect x="8" y="10" width="36" height="5" rx="2" fill="#BBDEFB"/>
+      <circle cx="26" cy="16" r="3" fill="#64B5F6"/>
+      <polygon points="2,38 50,38 56,32 8,32" fill="#E8F6FF"/>
+      <polygon points="50,38 56,32 56,66 50,72" fill="#90CAF9"/>
+      <ellipse cx="26" cy="46" rx="22" ry="8" fill="#DDEEFF" stroke="#90CAF9" stroke-width="1"/>
+      <ellipse cx="26" cy="56" rx="20" ry="14" fill="#E3F2FD"/>
+      <ellipse cx="25" cy="54" rx="16" ry="11" fill="#BBDEFB"/>
+      <rect x="10" y="68" width="38" height="10" rx="3" fill="#B3D9F0"/>
+    `),
+
+    /* ── BATHTUB (150×70)  DX=14 DY=8 ── */
+    bathtub: svg('0 0 150 70', `
+      <polygon points="4,8 132,8 146,0 18,0" fill="#E8F6FF"/>
+      <polygon points="132,8 146,0 146,54 132,62" fill="#90CAF9"/>
+      <rect x="4" y="8" width="128" height="54" rx="10" fill="#E3F2FD"/>
+      <rect x="12" y="16" width="112" height="40" rx="7" fill="#BBDEFB"/>
+      <rect x="16" y="18" width="104" height="12" rx="5" fill="#90CAF9" opacity="0.35"/>
+      <rect x="116" y="4" width="6" height="12" rx="2" fill="#90A4AE"/>
+      <circle cx="119" cy="4" r="4" fill="#42A5F5"/>
+      <circle cx="64" cy="52" r="4" fill="#90A4AE"/>
+      <rect x="6" y="58" width="10" height="12" rx="3" fill="#BBDEFB"/>
+      <rect x="120" y="58" width="10" height="12" rx="3" fill="#BBDEFB"/>
+    `),
+
+    /* ── SINK (65×70)  DX=8 DY=8 ── */
+    bathroomSink: svg('0 0 65 70', `
+      <polygon points="0,8 57,8 65,0 8,0" fill="#E8F6FF"/>
+      <polygon points="57,8 65,0 65,22 57,30" fill="#90CAF9"/>
+      <rect x="0" y="8" width="57" height="22" fill="#E3F2FD"/>
+      <polygon points="6,28 52,28 58,22 12,22" fill="#BBDEFB"/>
+      <polygon points="52,28 58,22 58,54 52,60" fill="#64B5F6"/>
+      <rect x="6" y="28" width="46" height="32" rx="4" fill="#E3F2FD"/>
+      <ellipse cx="29" cy="46" rx="18" ry="12" fill="#BBDEFB"/>
+      <rect x="24" y="22" width="8" height="8" rx="2" fill="#90A4AE"/>
+      <path d="M28,22 Q28,14 33,14" fill="none" stroke="#90A4AE" stroke-width="3" stroke-linecap="round"/>
+      <circle cx="29" cy="52" r="3" fill="#90A4AE"/>
+      <rect x="0" y="60" width="57" height="10" fill="#BBDEFB"/>
+    `),
+
+    /* ── BATHROOM MIRROR (80×60)  DX=8 DY=6 — wall-mounted ── */
+    bathroomMirror: svg('0 0 80 60', `
+      <polygon points="0,6 72,6 80,0 8,0" fill="#B0C4D4"/>
+      <polygon points="72,6 80,0 80,54 72,60" fill="#455A64"/>
+      <rect x="0" y="6" width="72" height="54" rx="5" fill="#78909C"/>
+      <rect x="4" y="10" width="64" height="46" rx="3" fill="#D9EBFF"/>
+      <rect x="8" y="14" width="22" height="38" rx="2" fill="rgba(255,255,255,0.34)"/>
+      <line x1="36" y1="14" x2="32" y2="52" stroke="rgba(255,255,255,0.22)" stroke-width="3"/>
+    `),
+
+    /* ── FRIDGE (70×130)  DX=9 DY=12 ── */
+    fridge: svg('0 0 70 130', `
+      <polygon points="0,12 61,12 70,0 9,0" fill="#B0BEC5"/>
+      <polygon points="61,12 70,0 70,118 61,130" fill="#37474F"/>
+      <rect x="0" y="12" width="61" height="118" rx="3" fill="#546E7A"/>
+      <rect x="0" y="50" width="61" height="4" fill="#37474F"/>
+      <rect x="3" y="16" width="55" height="30" rx="2" fill="#607D8B"/>
+      <rect x="3" y="58" width="55" height="62" rx="2" fill="#607D8B"/>
+      <rect x="45" y="22" width="4" height="18" rx="2" fill="#90A4AE"/>
+      <rect x="45" y="66" width="4" height="46" rx="2" fill="#90A4AE"/>
+      <rect x="3" y="122" width="55" height="5" fill="#37474F"/>
+    `),
+
+    /* ── STOVE (90×95)  DX=10 DY=10 ── */
+    stove: svg('0 0 90 95', `
+      <polygon points="0,10 80,10 90,0 10,0" fill="#607D8B"/>
+      <polygon points="80,10 90,0 90,85 80,95" fill="#263238"/>
+      <rect x="0" y="10" width="80" height="85" fill="#455A64"/>
+      <polygon points="2,12 78,12 88,2 12,2" fill="#37474F"/>
+      <circle cx="20" cy="21" r="8" fill="#37474F"/>
+      <circle cx="20" cy="21" r="4" fill="#546E7A"/>
+      <circle cx="54" cy="21" r="8" fill="#37474F"/>
+      <circle cx="54" cy="21" r="4" fill="#546E7A"/>
+      <circle cx="11" cy="40" r="5" fill="#546E7A"/>
+      <circle cx="26" cy="40" r="5" fill="#546E7A"/>
+      <circle cx="41" cy="40" r="5" fill="#546E7A"/>
+      <circle cx="56" cy="40" r="5" fill="#546E7A"/>
+      <rect x="4" y="50" width="72" height="36" rx="3" fill="#37474F"/>
+      <rect x="10" y="55" width="60" height="22" rx="3" fill="#263238"/>
+      <rect x="16" y="51" width="48" height="4" rx="2" fill="#546E7A"/>
+    `),
+
+    /* ── COUNTER (130×70)  DX=14 DY=8 ── */
+    counter: svg('0 0 130 70', `
+      <polygon points="0,8 116,8 130,0 14,0" fill="#90A4AE"/>
+      <polygon points="116,8 130,0 130,62 116,70" fill="#37474F"/>
+      <rect x="0" y="8" width="116" height="22" fill="#78909C"/>
+      <rect x="0" y="8" width="116" height="5" fill="#9DB0BA"/>
+      <ellipse cx="38" cy="19" rx="20" ry="8" fill="#607D8B"/>
+      <ellipse cx="38" cy="19" rx="16" ry="6" fill="#455A64"/>
+      <rect x="36" y="9" width="4" height="8" rx="1" fill="#B0BEC5"/>
+      <rect x="0" y="30" width="116" height="40" fill="#546E7A"/>
+      <rect x="3" y="33" width="52" height="34" rx="2" fill="#607D8B"/>
+      <rect x="58" y="33" width="55" height="34" rx="2" fill="#607D8B"/>
+      <circle cx="52" cy="50" r="3" fill="#90A4AE"/>
+      <circle cx="61" cy="50" r="3" fill="#90A4AE"/>
+    `),
+
+    /* ── KITCHEN CABINET (90×60)  DX=10 DY=7 — wall-mounted ── */
+    kitchenCabinet: svg('0 0 90 60', `
+      <polygon points="0,7 80,7 90,0 10,0" fill="#81C784"/>
+      <polygon points="80,7 90,0 90,53 80,60" fill="#1B5E20"/>
+      <rect x="0" y="7" width="80" height="53" fill="#43A047"/>
+      <rect x="0" y="7" width="80" height="6" fill="#388E3C"/>
+      <line x1="40" y1="13" x2="40" y2="60" stroke="#388E3C" stroke-width="2"/>
+      <rect x="3" y="15" width="34" height="40" rx="2" fill="#388E3C" opacity="0.55"/>
+      <rect x="43" y="15" width="34" height="40" rx="2" fill="#388E3C" opacity="0.55"/>
+      <circle cx="35" cy="36" r="3" fill="#A5D6A7"/>
+      <circle cx="45" cy="36" r="3" fill="#A5D6A7"/>
+    `),
+
+    /* ── DINING TABLE (160×75)  DX=16 DY=10 ── */
+    diningTable: svg('0 0 160 75', `
+      <polygon points="0,10 144,10 160,0 16,0" fill="#D4A96A"/>
+      <polygon points="144,10 160,0 160,22 144,32" fill="#6D4C41"/>
+      <rect x="0" y="10" width="144" height="22" fill="#BF7F45"/>
+      <rect x="2" y="12" width="140" height="6" fill="#C89450" opacity="0.55"/>
+      <rect x="8" y="30" width="128" height="7" fill="#A06838"/>
+      <rect x="10" y="32" width="10" height="43" rx="2" fill="#8B5E3C"/>
+      <rect x="124" y="32" width="10" height="43" rx="2" fill="#8B5E3C"/>
+      <rect x="18" y="26" width="7" height="8" fill="#6D4C41"/>
+      <rect x="130" y="26" width="7" height="8" fill="#6D4C41"/>
+    `),
+
+    /* ── DINING CHAIR (60×80)  DX=8 DY=8 ── */
+    diningChair: svg('0 0 60 80', `
+      <polygon points="8,8 52,8 60,0 16,0" fill="#FF7043"/>
+      <polygon points="52,8 60,0 60,38 52,46" fill="#BF360C"/>
+      <rect x="8" y="8" width="44" height="38" fill="#E64A19"/>
+      <rect x="10" y="14" width="40" height="5" rx="2" fill="#BF360C"/>
+      <rect x="10" y="26" width="40" height="5" rx="2" fill="#BF360C"/>
+      <polygon points="4,44 52,44 60,38 12,38" fill="#FF7043"/>
+      <polygon points="52,44 60,38 60,58 52,64" fill="#BF360C"/>
+      <rect x="4" y="44" width="48" height="20" fill="#E64A19"/>
+      <rect x="6" y="46" width="44" height="16" rx="3" fill="#EF6C00" opacity="0.55"/>
+      <rect x="10" y="62" width="7" height="18" rx="2" fill="#2E1A08"/>
+      <rect x="43" y="62" width="7" height="18" rx="2" fill="#2E1A08"/>
+      <rect x="4" y="64" width="6" height="16" rx="2" fill="#3D2510"/>
+      <rect x="50" y="64" width="6" height="16" rx="2" fill="#3D2510"/>
+    `),
+
+    /* ── BUFFET (130×75)  DX=14 DY=10 ── */
+    buffet: svg('0 0 130 75', `
+      <polygon points="0,10 116,10 130,0 14,0" fill="#8D6E63"/>
+      <polygon points="116,10 130,0 130,65 116,75" fill="#3E2723"/>
+      <rect x="0" y="10" width="116" height="65" fill="#5D4037"/>
+      <rect x="0" y="10" width="116" height="7" fill="#4E342E"/>
+      <line x1="58" y1="17" x2="58" y2="75" stroke="#4E342E" stroke-width="2"/>
+      <rect x="3" y="20" width="52" height="48" rx="2" fill="#4E342E" opacity="0.48"/>
+      <rect x="61" y="20" width="52" height="48" rx="2" fill="#4E342E" opacity="0.48"/>
+      <circle cx="52" cy="46" r="4" fill="#8D6E63"/>
+      <circle cx="64" cy="46" r="4" fill="#8D6E63"/>
+      <rect x="0" y="68" width="116" height="7" fill="#4E342E"/>
+      <rect x="4" y="68" width="8" height="7" rx="1" fill="#3E2723"/>
+      <rect x="104" y="68" width="8" height="7" rx="1" fill="#3E2723"/>
+    `),
   };
 
   /* ── Paint bucket SVG (per-color) ──────────────────────── */
