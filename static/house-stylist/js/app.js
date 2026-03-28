@@ -303,7 +303,7 @@ let _shopBackTarget = 'screen-home';
 
 function openShop(backTarget) {
   _shopBackTarget = backTarget || 'screen-home';
-  if (typeof Shop !== 'undefined') Shop.open(_shopBackTarget);
+  if (typeof Shop !== 'undefined') Shop.open();
   ScreenManager.show('screen-shop');
 }
 
@@ -512,6 +512,7 @@ function init() {
   });
 
   document.getElementById('rd-back')?.addEventListener('click', () => {
+    if (typeof Shop !== 'undefined') Shop.refresh();
     ScreenManager.show('screen-shop');
   });
 

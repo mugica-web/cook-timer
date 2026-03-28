@@ -288,7 +288,11 @@ const ShopStorage = (() => {
   }
 
   // Coins — shared key with game.js
-  function getCoins()    { return load(K_COINS, 0); }
+  function getCoins() {
+    const raw = load(K_COINS, 0);
+    const n   = parseInt(raw, 10);
+    return isNaN(n) ? 0 : Math.max(0, n);
+  }
   function spendCoins(n) {
     const cur = getCoins();
     if (cur < n) return false;
@@ -340,18 +344,22 @@ const ShopStorage = (() => {
    ================================================================ */
 
 const Shop = (() => {
-  let _backTarget = 'screen-home';
   let _activeTab  = 'items';
   let _itemFilter = 'all';
 
-  /* ── Public: open the shop ─────────────────────────────── */
-  function open(backTarget) {
-    _backTarget = backTarget || 'screen-home';
+  /* ── Public: open the shop (resets to Items tab) ───────── */
+  function open() {
     _activeTab  = 'items';
     _itemFilter = 'all';
     _updateCoinDisplay();
     _activateTab('items');
     _setFilter('all');
+  }
+
+  /* ── Public: refresh current tab (e.g. on back-navigate) ─ */
+  function refresh() {
+    _updateCoinDisplay();
+    _renderGrid();
   }
 
   /* ── Coin display ──────────────────────────────────────── */
@@ -398,11 +406,12 @@ const Shop = (() => {
     return el;
   }
 
-  function _buyBtn(type, id, price, coins) {
-    const canAfford = coins >= price;
+  function _buyBtn(type, id, price) {
+    const canAfford = getCoins() >= Number(price);
     return `<span class="shop-price">🪙 ${price}</span>
             <button class="btn shop-buy-btn${canAfford ? '' : ' cant-afford'}"
-                    data-type="${type}" data-id="${id}" data-price="${price}">
+                    data-type="${type}" data-id="${id}" data-price="${price}"
+                    ${canAfford ? '' : 'disabled aria-disabled="true"'}>
               Buy
             </button>`;
   }
@@ -412,8 +421,7 @@ const Shop = (() => {
   }
 
   function _renderItems(grid) {
-    const coins = ShopStorage.getCoins();
-    const list  = _itemFilter === 'all'
+    const list = _itemFilter === 'all'
       ? SHOP_CATALOG.items
       : SHOP_CATALOG.items.filter(it => it.room === _itemFilter);
 
@@ -424,7 +432,7 @@ const Shop = (() => {
         <div class="shop-card-name">${item.name}</div>
         <div class="shop-card-tag">${_roomLabel(item.room)}</div>
         <div class="shop-card-bottom">
-          ${owned ? _ownedBadge() : _buyBtn('item', item.id, item.price, coins)}
+          ${owned ? _ownedBadge() : _buyBtn('item', item.id, item.price)}
         </div>
       `);
       grid.appendChild(card);
@@ -443,8 +451,6 @@ const Shop = (() => {
   }
 
   function _renderRooms(grid) {
-    const coins = ShopStorage.getCoins();
-
     // Living Room — always owned (starter)
     grid.appendChild(_card(`
       <div class="shop-card-room-icon">🛋</div>
@@ -463,7 +469,7 @@ const Shop = (() => {
         <div class="shop-card-bottom">
           ${owned
             ? `${_ownedBadge()} ${_playRoomBtn(room.id)}`
-            : _buyBtn('room', room.id, room.price, coins)
+            : _buyBtn('room', room.id, room.price)
           }
         </div>
       `));
@@ -471,14 +477,13 @@ const Shop = (() => {
   }
 
   function _renderPaints(grid) {
-    const coins = ShopStorage.getCoins();
     SHOP_CATALOG.paints.forEach(paint => {
       const owned = ShopStorage.hasPaint(paint.id);
       grid.appendChild(_card(`
         <div class="shop-card-swatch" style="background:${paint.color}"></div>
         <div class="shop-card-name">${paint.name}</div>
         <div class="shop-card-bottom">
-          ${owned ? _ownedBadge() : _buyBtn('paint', paint.id, paint.price, coins)}
+          ${owned ? _ownedBadge() : _buyBtn('paint', paint.id, paint.price)}
         </div>
       `));
     });
@@ -536,11 +541,11 @@ const Shop = (() => {
       }
       // Buy button
       const buyBtn = e.target.closest('.shop-buy-btn');
-      if (buyBtn && !buyBtn.disabled) _handleBuy(buyBtn);
+      if (buyBtn) _handleBuy(buyBtn);
     });
   }
 
-  return { open, wireEvents };
+  return { open, refresh, wireEvents };
 })();
 
 document.addEventListener('DOMContentLoaded', () => Shop.wireEvents());
