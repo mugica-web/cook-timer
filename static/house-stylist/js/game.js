@@ -1057,7 +1057,7 @@ const Game = (() => {
     x = Math.max(minX, Math.min(x, maxX));
 
     const newRect = { x, y, w: item.w, h: item.h };
-    if (itemsArr.some(p => rectsOverlap(newRect, { x: p.x, y: p.y, w: p.w, h: p.h }))) {
+    if (itemsArr.some(p => rectsOverlap(newRect, { x: p.x, y: p.y, w: p.w, h: p.h }, 10))) {
       return null;
     }
 
@@ -1089,9 +1089,11 @@ const Game = (() => {
     return placed;
   }
 
-  function rectsOverlap(a, b) {
-    return !(a.x + a.w <= b.x || b.x + b.w <= a.x ||
-             a.y + a.h <= b.y || b.y + b.h <= a.y);
+  // tol: how many px of overlap are acceptable (default 0 = no overlap allowed)
+  function rectsOverlap(a, b, tol) {
+    tol = tol || 0;
+    return !(a.x + a.w <= b.x + tol || b.x + b.w <= a.x + tol ||
+             a.y + a.h <= b.y + tol || b.y + b.h <= a.y + tol);
   }
 
   /* ================================================================
