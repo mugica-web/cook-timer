@@ -399,25 +399,44 @@ const Shop = (() => {
     if (_activeTab === 'paints') _renderPaints(grid);
   }
 
-  function _card(children) {
+  /**
+   * Build a shop card element.
+   * @param {object} opts
+   *   type        — 'item' | 'room' | 'paint'
+   *   id          — item id
+   *   price       — coin price
+   *   owned       — already purchased
+   *   mediaHtml   — inner HTML for the illustration area
+   *   name        — display label
+   *   tag         — optional small tag (room label for items)
+   *   extraBottom — optional HTML appended below name (e.g. Play button)
+   */
+  function _makeCard(opts) {
+    const { type, id, price, owned, mediaHtml, name, tag = '', extraBottom = '' } = opts;
+    const canAfford = owned ? false : ShopStorage.getCoins() >= Number(price);
+    const state     = owned ? 'owned' : canAfford ? 'buyable' : 'locked';
+
+    const overlay   = owned
+      ? '<div class="shop-overlay shop-overlay--owned">✓</div>'
+      : !canAfford
+        ? '<div class="shop-overlay shop-overlay--locked">🔒</div>'
+        : '';
+    const costBadge = owned ? '' : `<div class="shop-cost-badge">🪙 ${price}</div>`;
+
     const el = document.createElement('div');
-    el.className = 'shop-card';
-    el.innerHTML = children;
+    el.className = `shop-card shop-card--${state}`;
+    if (!owned) {
+      el.dataset.type  = type;
+      el.dataset.id    = id;
+      el.dataset.price = price;
+    }
+    el.innerHTML = `
+      <div class="shop-card-media">${mediaHtml}${overlay}${costBadge}</div>
+      <div class="shop-card-name">${name}</div>
+      ${tag ? `<div class="shop-card-tag">${tag}</div>` : ''}
+      ${extraBottom}
+    `;
     return el;
-  }
-
-  function _buyBtn(type, id, price) {
-    const canAfford = getCoins() >= Number(price);
-    return `<span class="shop-price">🪙 ${price}</span>
-            <button class="btn shop-buy-btn${canAfford ? '' : ' cant-afford'}"
-                    data-type="${type}" data-id="${id}" data-price="${price}"
-                    ${canAfford ? '' : 'disabled aria-disabled="true"'}>
-              Buy
-            </button>`;
-  }
-
-  function _ownedBadge() {
-    return '<span class="shop-badge-owned">Owned ✓</span>';
   }
 
   function _renderItems(grid) {
@@ -426,16 +445,15 @@ const Shop = (() => {
       : SHOP_CATALOG.items.filter(it => it.room === _itemFilter);
 
     list.forEach(item => {
-      const owned = ShopStorage.hasItem(item.id);
-      const card  = _card(`
-        <div class="shop-card-thumb">${item.svg}</div>
-        <div class="shop-card-name">${item.name}</div>
-        <div class="shop-card-tag">${_roomLabel(item.room)}</div>
-        <div class="shop-card-bottom">
-          ${owned ? _ownedBadge() : _buyBtn('item', item.id, item.price)}
-        </div>
-      `);
-      grid.appendChild(card);
+      grid.appendChild(_makeCard({
+        type:      'item',
+        id:        item.id,
+        price:     item.price,
+        owned:     ShopStorage.hasItem(item.id),
+        mediaHtml: item.svg,
+        name:      item.name,
+        tag:       _roomLabel(item.room),
+      }));
     });
 
     if (list.length === 0) {
@@ -446,46 +464,44 @@ const Shop = (() => {
     }
   }
 
-  function _playRoomBtn(roomId) {
-    return `<button class="btn shop-play-room-btn" data-room-id="${roomId}">▶ Play</button>`;
-  }
-
   function _renderRooms(grid) {
     // Living Room — always owned (starter)
-    grid.appendChild(_card(`
-      <div class="shop-card-room-icon">🛋</div>
-      <div class="shop-card-name">Living Room</div>
-      <div class="shop-card-bottom">
-        ${_ownedBadge()}
-        ${_playRoomBtn('living-room')}
-      </div>
-    `));
+    grid.appendChild(_makeCard({
+      type:        'room',
+      id:          'living-room',
+      price:       0,
+      owned:       true,
+      mediaHtml:   '<span class="shop-card-emoji">🛋</span>',
+      name:        'Living Room',
+      extraBottom: `<button class="btn shop-play-room-btn" data-room-id="living-room">▶ Play</button>`,
+    }));
 
     SHOP_CATALOG.rooms.forEach(room => {
       const owned = ShopStorage.hasRoom(room.id);
-      grid.appendChild(_card(`
-        <div class="shop-card-room-icon">${room.emoji}</div>
-        <div class="shop-card-name">${room.name}</div>
-        <div class="shop-card-bottom">
-          ${owned
-            ? `${_ownedBadge()} ${_playRoomBtn(room.id)}`
-            : _buyBtn('room', room.id, room.price)
-          }
-        </div>
-      `));
+      grid.appendChild(_makeCard({
+        type:        'room',
+        id:          room.id,
+        price:       room.price,
+        owned,
+        mediaHtml:   `<span class="shop-card-emoji">${room.emoji}</span>`,
+        name:        room.name,
+        extraBottom: owned
+          ? `<button class="btn shop-play-room-btn" data-room-id="${room.id}">▶ Play</button>`
+          : '',
+      }));
     });
   }
 
   function _renderPaints(grid) {
     SHOP_CATALOG.paints.forEach(paint => {
-      const owned = ShopStorage.hasPaint(paint.id);
-      grid.appendChild(_card(`
-        <div class="shop-card-swatch" style="background:${paint.color}"></div>
-        <div class="shop-card-name">${paint.name}</div>
-        <div class="shop-card-bottom">
-          ${owned ? _ownedBadge() : _buyBtn('paint', paint.id, paint.price)}
-        </div>
-      `));
+      grid.appendChild(_makeCard({
+        type:      'paint',
+        id:        paint.id,
+        price:     paint.price,
+        owned:     ShopStorage.hasPaint(paint.id),
+        mediaHtml: `<div class="shop-swatch-circle" style="background:${paint.color}"></div>`,
+        name:      paint.name,
+      }));
     });
   }
 
@@ -539,9 +555,9 @@ const Shop = (() => {
         if (typeof openRoomDetail === 'function') openRoomDetail(playBtn.dataset.roomId);
         return;
       }
-      // Buy button
-      const buyBtn = e.target.closest('.shop-buy-btn');
-      if (buyBtn) _handleBuy(buyBtn);
+      // Buy card
+      const card = e.target.closest('.shop-card--buyable');
+      if (card) _handleBuy(card);
     });
   }
 

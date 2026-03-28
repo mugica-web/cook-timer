@@ -1764,37 +1764,69 @@ body {
   transition: transform 0.12s;
 }
 
-.shop-card:hover { transform: translateY(-3px); }
+.shop-card--buyable { cursor: pointer; }
+.shop-card--buyable:hover { transform: translateY(-3px); }
+.shop-card--owned   { opacity: 0.80; }
+.shop-card--locked  { opacity: 0.70; cursor: not-allowed; }
 
-/* SVG thumbnail (items) */
-.shop-card-thumb {
-  width: 68px;
-  height: 68px;
+/* Media area — illustration, emoji, or swatch — with overlay support */
+.shop-card-media {
+  position: relative;
+  width: 72px;
+  height: 72px;
   display: flex;
   align-items: center;
   justify-content: center;
+  border-radius: 12px;
+  overflow: hidden;
 }
 
-.shop-card-thumb svg {
+.shop-card-media svg {
   width: 100%;
   height: 100%;
 }
 
-/* Big emoji icon (rooms) */
-.shop-card-room-icon {
-  font-size: 2.8rem;
+/* Plain emoji rooms */
+.shop-card-emoji {
+  font-size: 2.6rem;
   line-height: 1;
-  padding: 8px 0 4px;
+}
+
+/* Overlay (owned ✓ or locked 🔒) */
+.shop-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.6rem;
+  border-radius: 12px;
+}
+.shop-overlay--owned  { background: rgba(67,160,71,0.30); color: #2e7d32; font-weight: 900; }
+.shop-overlay--locked { background: rgba(0,0,0,0.38); }
+
+/* Coin cost badge — bottom-right of media */
+.shop-cost-badge {
+  position: absolute;
+  bottom: 4px;
+  right: 4px;
+  background: rgba(0,0,0,0.65);
+  color: #fff;
+  font-family: var(--font-display);
+  font-size: 0.68rem;
+  border-radius: 50px;
+  padding: 2px 6px;
+  line-height: 1.4;
+  pointer-events: none;
 }
 
 /* Color swatch circle (paints) */
-.shop-card-swatch {
+.shop-swatch-circle {
   width: 60px;
   height: 60px;
   border-radius: 50%;
   border: 4px solid rgba(0,0,0,0.10);
   box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-  margin: 4px 0;
 }
 
 /* Item name */
@@ -1815,50 +1847,6 @@ body {
   background: rgba(142,36,170,0.12);
   border-radius: 50px;
   padding: 2px 8px;
-}
-
-/* Bottom row: price + buy, or "Owned" */
-.shop-card-bottom {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  flex-wrap: wrap;
-  margin-top: 2px;
-  width: 100%;
-}
-
-.shop-price {
-  font-family: var(--font-display);
-  font-size: 0.9rem;
-  color: var(--pink-dark);
-}
-
-.shop-buy-btn {
-  padding: 5px 14px !important;
-  font-size: 0.82rem !important;
-  border-radius: 10px !important;
-  box-shadow: 0 2px 0 var(--pink-dark) !important;
-  min-width: 52px;
-}
-
-.shop-buy-btn.cant-afford {
-  background: #bbb !important;
-  box-shadow: 0 2px 0 #999 !important;
-  color: white !important;
-  cursor: not-allowed;
-}
-
-.shop-badge-owned {
-  display: inline-block;
-  font-family: var(--font-ui);
-  font-size: 0.75rem;
-  font-weight: 700;
-  color: var(--green-dark);
-  background: rgba(67,160,71,0.14);
-  border: 1px solid rgba(67,160,71,0.35);
-  border-radius: 50px;
-  padding: 3px 10px;
 }
 
 .shop-play-room-btn {
