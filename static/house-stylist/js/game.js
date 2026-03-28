@@ -850,36 +850,39 @@ const Game = (() => {
      PLACEMENT & COLLISION
      ================================================================ */
 
-  /* ── Depth zones ────────────────────────────────────────────
-     The floor is split into 3 depth zones.  Items in a back zone
-     render behind items in a closer zone (z-index).  Collision is
-     only checked within the same zone so items in different zones
-     can visually overlap freely.
+  /* ── Depth system ───────────────────────────────────────────
+     Items land freely anywhere on the floor strip (no fixed snap rows).
+     Z-index = ZONE_Z_BASE + item-bottom-Y so items lower on screen
+     (closer to viewer) always render in front of items higher up.
+     Collision detection is restricted to items in the same floor-third
+     (back / mid / front), so a coffee table in mid can sit in front of
+     a couch in back without any conflict.
 
-     Zone snap Y values (item bottom edge lands here):
-       back  → 10% into floor strip
-       mid   → 45% into floor strip
-       front → 80% into floor strip
+     Zone boundaries (relative to floor strip height FLOOR_H):
+       back  — top third    (0 … FLOOR_H/3)
+       mid   — middle third (FLOOR_H/3 … 2*FLOOR_H/3)
+       front — bottom third (2*FLOOR_H/3 … FLOOR_H)
+
+     Wall-mounted items use zone='wall' and z-index 5 (above CSS panels
+     at 3, below all floor items which start at ZONE_Z_BASE ≈ 20+Y).
   ─────────────────────────────────────────────────────────── */
-  const DEPTH_ZONES = {
-    wall:  { z: 1 },
-    back:  { z: 2, floorFrac: 0.10 },
-    mid:   { z: 3, floorFrac: 0.45 },
-    front: { z: 4, floorFrac: 0.80 },
-  };
+  const ZONE_Z_BASE = 20;   // floor items start here, well above CSS z-index 3
 
-  function depthZoneForCursorY(cursorY, canvasTop, cH) {
+  /** Which third of the floor strip does this item occupy? */
+  function zoneForY(bottomY, cH) {
     const floorTop = cH - FLOOR_H;
-    const relY = cursorY - canvasTop - floorTop;   // px below floor top (can be negative)
-    if (relY < FLOOR_H / 3)       return 'back';
-    if (relY < FLOOR_H * 2 / 3)   return 'mid';
+    const rel      = bottomY - floorTop;   // 0 = top of floor strip
+    if (rel < FLOOR_H / 3)           return 'back';
+    if (rel < (FLOOR_H * 2) / 3)     return 'mid';
     return 'front';
   }
 
-  function snapYForZone(zone, cH, itemH) {
+  /** Clamp item onto the floor strip: item bottom aligns to cursor Y. */
+  function floorY(cursorY, canvasTop, cH, itemH) {
     const floorTop = cH - FLOOR_H;
-    if (zone === 'wall') return Math.round(cH * 0.38);
-    return floorTop + Math.round(FLOOR_H * DEPTH_ZONES[zone].floorFrac) - itemH;
+    let bottom = cursorY - canvasTop;
+    bottom = Math.max(floorTop, Math.min(floorTop + FLOOR_H, bottom));
+    return bottom - itemH;   // item top Y
   }
 
   function attemptPlace(item, cursorPos, canvasRect, itemsArr, canvasEl) {
@@ -895,8 +898,14 @@ const Game = (() => {
     let x = (cursorPos.x - canvasRect.left) - item.w / 2;
     x = Math.max(minX, Math.min(x, maxX));
 
-    const zone = item.wallMounted ? 'wall' : depthZoneForCursorY(cursorPos.y, canvasRect.top, cH);
-    const y    = snapYForZone(zone, cH, item.h);
+    let y, zone;
+    if (item.wallMounted) {
+      y    = Math.round(cH * 0.38);
+      zone = 'wall';
+    } else {
+      y    = floorY(cursorPos.y, canvasRect.top, cH, item.h);
+      zone = zoneForY(y + item.h, cH);
+    }
 
     const newRect  = { x, y, w: item.w, h: item.h };
     const sameZone = itemsArr.filter(p => p.zone === zone);
@@ -918,7 +927,9 @@ const Game = (() => {
     el.style.top    = y + 'px';
     el.style.width  = item.w + 'px';
     el.style.height = item.h + 'px';
-    el.style.zIndex = (DEPTH_ZONES[zone] || DEPTH_ZONES.mid).z;
+    // Wall items sit just above CSS panels (z=5); floor items use continuous
+    // z-index so visually lower items always render in front.
+    el.style.zIndex = zone === 'wall' ? 5 : ZONE_Z_BASE + Math.round(y + item.h);
     el.innerHTML    = item.svg;
     const s = el.querySelector('svg');
     if (s) { s.style.width = item.w + 'px'; s.style.height = item.h + 'px'; s.style.display = 'block'; }
