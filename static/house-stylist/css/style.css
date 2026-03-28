@@ -785,7 +785,8 @@ body {
 #screen-game {
   justify-content: flex-start !important;
   align-items:     stretch    !important;
-  background: #FDF6EC;
+  /* Use the sky gradient so it's visible behind the room (not an identical cream) */
+  background: linear-gradient(180deg, #5AB4E8 0%, #82C8F0 35%, #B3DFF5 65%, #D4EFD4 100%);
 }
 
 /* ── 2-player split body ── */
@@ -976,9 +977,9 @@ body {
   min-height: 0;
   position: relative;
   overflow: hidden;
-  margin: 10px;
+  margin: 16px;
   border-radius: 10px;
-  box-shadow: 0 6px 28px rgba(0,0,0,0.22), inset 0 0 0 1px rgba(0,0,0,0.06);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.28), inset 0 0 0 1px rgba(0,0,0,0.08);
   /* Warm cream back-wall colour + subtle wallpaper dot pattern */
   background-color: #FFF8EC;
   background-image: radial-gradient(circle, rgba(200,150,60,0.18) 1.5px, transparent 1.5px);
@@ -986,48 +987,60 @@ body {
   cursor: crosshair;
 }
 
-/* Ceiling strip */
+/* Ceiling strip — flat top edge of back wall, no angle */
 .room-ceiling {
   position: absolute;
   top: 0; left: 0; right: 0;
-  height: 24px;
-  background: linear-gradient(180deg, #C0900A 0%, #D4B060 30%, #EDD99A 100%);
+  height: 22px;
+  background: linear-gradient(180deg, #C0900A 0%, #D4B060 35%, #EDD99A 100%);
   border-bottom: 2px solid #A88040;
   z-index: 3;
   pointer-events: none;
 }
 
-/* Left perspective wall panel — angled top-right corner for 3-D depth */
+/*
+ * Left side-wall — cabinet oblique projection, viewed from the left.
+ *
+ * The near edge (left, toward viewer) sits slightly below the ceiling;
+ * the far edge (right, connecting to the back wall) reaches the ceiling.
+ * Top edge therefore runs UP-RIGHT at ~30°. No inward lean.
+ *
+ * clip-path points (% of panel width × % of canvas height):
+ *   near-top  (0, 8%)  → far-top  (100%, 0%)
+ *   far-bot   (100%, 100%) → near-bot (0, 100%)
+ */
 .room-left-panel {
   position: absolute;
   top: 0; left: 0; bottom: 0;
-  width: 44px;
-  background: linear-gradient(90deg, #9A7030 0%, #C8A060 55%, #DEC080 100%);
-  border-right: 2px solid #9A7030;
+  width: 56px;
+  background: linear-gradient(90deg, #7A5820 0%, #B8883A 50%, #D4A85C 80%, #E8C07A 100%);
   z-index: 3;
   pointer-events: none;
-  clip-path: polygon(0 0, 100% 8%, 100% 100%, 0 100%);
+  clip-path: polygon(0 8%, 100% 0%, 100% 100%, 0 100%);
 }
 
-/* Right perspective wall panel — angled top-left corner for 3-D depth */
+/* Right wall — not visible in this oblique viewpoint */
 .room-right-panel {
-  position: absolute;
-  top: 0; right: 0; bottom: 0;
-  width: 44px;
-  background: linear-gradient(270deg, #9A7030 0%, #C8A060 55%, #DEC080 100%);
-  border-left: 2px solid #9A7030;
-  z-index: 3;
-  pointer-events: none;
-  clip-path: polygon(0 8%, 100% 0, 100% 100%, 0 100%);
+  display: none;
 }
 
-/* Floor — wood-plank stripes with depth shadow at back */
+/*
+ * Floor — cabinet oblique, same depth direction as left wall.
+ *
+ * The back edge (top of strip) runs DOWN-RIGHT: at the left (near) it is
+ * flush with the back-wall bottom; at the right (far) it is ~12% lower
+ * inside the strip, so less floor is visible on the far side.
+ *
+ * clip-path points (% of canvas width × % of floor-strip height):
+ *   back-left (0, 0%)  → back-right (100%, 12%)
+ *   front-right (100%, 100%) → front-left (0, 100%)
+ */
 .room-floor {
   position: absolute;
   bottom: 0; left: 0; right: 0;
   height: 90px;
   background:
-    linear-gradient(180deg, rgba(0,0,0,0.20) 0%, rgba(0,0,0,0) 40%),
+    linear-gradient(180deg, rgba(0,0,0,0.18) 0%, rgba(0,0,0,0) 45%),
     repeating-linear-gradient(
       90deg,
       #C09060 0px, #C09060 74px,
@@ -1036,13 +1049,14 @@ body {
   border-top: 3px solid #8C6030;
   z-index: 3;
   pointer-events: none;
+  clip-path: polygon(0 0, 100% 12%, 100% 100%, 0 100%);
 }
 
-/* Baseboard trim above floor */
+/* Baseboard trim — sits just above the floor strip, inside the clip */
 .room-floor::before {
   content: '';
   position: absolute;
-  top: -9px; left: 0; right: 0;
+  top: 0; left: 0; right: 0;
   height: 9px;
   background: #F0E0C0;
   border-top: 1.5px solid #C8A870;
