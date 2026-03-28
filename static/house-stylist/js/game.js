@@ -360,7 +360,7 @@ const Game = (() => {
       const cc = document.createElement('div');
       cc.id        = 'coin-counter';
       cc.className = 'coin-counter';
-      cc.innerHTML = `🪙 <span id="coin-counter-val">${Storage.getCoins()}</span>`;
+      cc.innerHTML = `<span class="gc"></span> <span id="coin-counter-val">${Storage.getCoins()}</span>`;
       document.querySelector('.game-header-right')?.appendChild(cc);
       elCoinCounter = document.getElementById('coin-counter-val');
     } else {
@@ -1000,9 +1000,9 @@ const Game = (() => {
     if (!elOverlay2pNet) return;
     document.getElementById('net-emoji').textContent = isWinner ? '🏆' : '😢';
     document.getElementById('net-title').textContent = isWinner ? 'You Win!' : 'Opponent Won!';
-    document.getElementById('net-msg').textContent   = isWinner
+    document.getElementById('net-msg').innerHTML   = isWinner
       ? 'Amazing! You decorated the room first!'
-      : `Opponent scored ${peerScore} 🪙 — keep going!`;
+      : `Opponent scored ${peerScore} <span class="gc"></span> — keep going!`;
     document.getElementById('net-coins').textContent = localScore;
     elOverlay2pNet.hidden = false;
   }

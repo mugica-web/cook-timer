@@ -421,7 +421,7 @@ const Shop = (() => {
       : !canAfford
         ? '<div class="shop-overlay shop-overlay--locked">🔒</div>'
         : '';
-    const costBadge = owned ? '' : `<div class="shop-cost-badge">🪙 ${price}</div>`;
+    const costBadge = owned ? '' : `<div class="shop-cost-badge"><span class="gc"></span> ${price}</div>`;
 
     const el = document.createElement('div');
     el.className = `shop-card shop-card--${state}`;

@@ -850,7 +850,7 @@ body {
 }
 
 .ws-label { color: var(--purple); }
-.ws-coins { color: var(--green-dark); font-size: 1.15rem; }
+.ws-coins { color: #B8860B; font-size: 1.15rem; }
 
 /* ── Top header — 3-column grid: left | centre | right ── */
 .game-header {
@@ -1281,8 +1281,21 @@ body {
   padding: 10px 22px;
 }
 
+/* Gold coin icon — replaces 🪙 emoji throughout the UI */
+.gc {
+  display: inline-block;
+  width: 1.1em;
+  height: 1.1em;
+  border-radius: 50%;
+  background: radial-gradient(circle at 38% 32%, #FFF59D, #FFD700 48%, #F9A825 72%, #C8860A);
+  border: 1.5px solid #B8860B;
+  vertical-align: -0.18em;
+  flex-shrink: 0;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.28), inset 0 1px 0 rgba(255,255,255,0.55);
+}
+
 .coin-icon     { font-size: 1.5rem; }
-.coins-number  { font-family: var(--font-display); font-size: 2.2rem; color: #E65100; line-height: 1; }
+.coins-number  { font-family: var(--font-display); font-size: 2.2rem; color: #B8860B; line-height: 1; }
 .coins-label   { font-family: var(--font-ui); font-size: 0.88rem; font-weight: 700; color: #795548; }
 
 .score-total {
@@ -1663,7 +1676,7 @@ body {
   gap: 4px;
   font-family: var(--font-display);
   font-size: 1.25rem;
-  color: var(--pink-dark);
+  color: #B8860B;
   background: rgba(255,255,255,0.82);
   border-radius: 50px;
   padding: 4px 14px 4px 10px;

@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>House Stylist</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div id="app">
+
+    <!-- ========================================
+         HOME SCREEN
+    ======================================== -->
+    <div id="screen-home" class="screen active">
+
+      <!-- Sky decorations -->
+      <div class="sun"></div>
+      <div class="cloud cloud-1"></div>
+      <div class="cloud cloud-2"></div>
+      <div class="cloud cloud-3"></div>
+
+      <!-- Stars / sparkles -->
+      <div class="sparkle sp-1">✦</div>
+      <div class="sparkle sp-2">✦</div>
+      <div class="sparkle sp-3">★</div>
+      <div class="sparkle sp-4">✦</div>
+
+      <!-- Main centred content -->
+      <div class="home-content">
+
+        <h1 class="game-title">
+          <span class="t-house">House</span>
+          <span class="t-stylist">Stylist</span>
+        </h1>
+
+        <!-- ── Cartoon House SVG ── -->
+        <div class="house-wrapper">
+          <svg xmlns="http://www.w3.org/2000/svg"
+               viewBox="0 0 400 310"
+               class="house-svg"
+               aria-label="A cute cartoon house illustration">
+
+            <defs>
+              <linearGradient id="roofGrad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%"   stop-color="#FFB3D9"/>
+                <stop offset="100%" stop-color="#FF4DA6"/>
+              </linearGradient>
+              <linearGradient id="wallGrad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%"   stop-color="#FFFDE7"/>
+                <stop offset="100%" stop-color="#FFF0B3"/>
+              </linearGradient>
+              <linearGradient id="doorGrad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%"   stop-color="#FFCC80"/>
+                <stop offset="100%" stop-color="#BF7F45"/>
+              </linearGradient>
+              <linearGradient id="grassGrad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%"   stop-color="#81C784"/>
+                <stop offset="100%" stop-color="#388E3C"/>
+              </linearGradient>
+              <filter id="softShadow" x="-20%" y="-20%" width="140%" height="140%">
+                <feDropShadow dx="0" dy="3" stdDeviation="4" flood-opacity="0.15"/>
+              </filter>
+            </defs>
+
+            <!-- ══ Ground shadow ══ -->
+            <ellipse cx="200" cy="300" rx="148" ry="10" fill="rgba(0,0,0,0.12)"/>
+
+            <!-- ══ Chimney body — drawn BEFORE roof so roof overlaps base ══ -->
+            <rect x="261" y="52" width="36" height="78" rx="4" fill="#D81B7A"/>
+            <!-- Chimney cap -->
+            <rect x="253" y="50" width="52" height="13" rx="5" fill="#FF4DA6"/>
+
+            <!-- ══ Roof ══ -->
+            <polygon points="22,142 200,25 378,142" fill="url(#roofGrad)" filter="url(#softShadow)"/>
+            <polygon points="22,142 200,25 378,142" fill="none" stroke="#D81B7A" stroke-width="3" stroke-linejoin="round"/>
+            <!-- Subtle shingle arcs -->
+            <path d="M56,132 Q200,92 344,132"  fill="none" stroke="#D81B7A" stroke-width="1.5" opacity="0.28"/>
+            <path d="M88,120 Q200,82 312,120"  fill="none" stroke="#D81B7A" stroke-width="1.5" opacity="0.22"/>
+            <path d="M120,108 Q200,72 280,108" fill="none" stroke="#D81B7A" stroke-width="1.5" opacity="0.18"/>
+            <path d="M152,96  Q200,62 248,96"  fill="none" stroke="#D81B7A" stroke-width="1.5" opacity="0.14"/>
+
+            <!-- ══ House walls ══ -->
+            <rect x="50" y="138" width="300" height="158" rx="7" fill="url(#wallGrad)"/>
+            <rect x="50" y="138" width="300" height="158" rx="7" fill="none" stroke="#F9CA24" stroke-width="2.5"/>
+
+            <!-- Wall brick hint lines (horizontal) -->
+            <line x1="50" y1="185" x2="350" y2="185" stroke="#F9CA24" stroke-width="1" opacity="0.35"/>
+            <line x1="50" y1="232" x2="350" y2="232" stroke="#F9CA24" stroke-width="1" opacity="0.35"/>
+
+            <!-- ══ Door ══ -->
+            <!-- Arched door path: up the sides, semicircle at top -->
+            <path d="M158,296 L158,228 A22,22 0 0 1 202,228 L202,296 Z" fill="url(#doorGrad)"/>
+            <!-- Door arch highlight -->
+            <path d="M158,228 A22,22 0 0 1 202,228" fill="none" stroke="#FFCC80" stroke-width="4"/>
+            <!-- Door panels -->
+            <rect x="162" y="238" width="16" height="26" rx="3" fill="rgba(0,0,0,0.09)"/>
+            <rect x="182" y="238" width="16" height="26" rx="3" fill="rgba(0,0,0,0.09)"/>
+            <!-- Shiny doorknob -->
+            <circle cx="197" cy="264" r="5.5" fill="#FFD700"/>
+            <circle cx="197" cy="264" r="3.5" fill="#FF8F00"/>
+            <circle cx="195" cy="262" r="1.5" fill="rgba(255,255,255,0.7)"/>
+            <!-- Door step -->
+            <rect x="149" y="294" width="62" height="11" rx="4" fill="#D4C5A9"/>
+
+            <!-- ══ Left window ══ -->
+            <rect x="64" y="156" width="84" height="62" rx="9" fill="#B3E5FC"/>
+            <!-- Inner warm glow -->
+            <rect x="67" y="159" width="78" height="56" rx="7" fill="rgba(255,249,196,0.45)"/>
+            <!-- Frame -->
+            <rect x="64" y="156" width="84" height="62" rx="9" fill="none" stroke="white" stroke-width="3.5"/>
+            <!-- Cross dividers -->
+            <line x1="106" y1="156" x2="106" y2="218" stroke="white" stroke-width="2.5"/>
+            <line x1="64"  y1="187" x2="148" y2="187" stroke="white" stroke-width="2.5"/>
+            <!-- Pink curtains -->
+            <path d="M64,156 Q82,170 74,187 L64,187 Z"  fill="#FFB3D9" opacity="0.88"/>
+            <path d="M148,156 Q130,170 138,187 L148,187 Z" fill="#FFB3D9" opacity="0.88"/>
+            <circle cx="72"  cy="187" r="4.5" fill="#FF4DA6"/>
+            <circle cx="140" cy="187" r="4.5" fill="#FF4DA6"/>
+
+            <!-- ══ Right window ══ -->
+            <rect x="252" y="156" width="84" height="62" rx="9" fill="#B3E5FC"/>
+            <rect x="255" y="159" width="78" height="56" rx="7" fill="rgba(255,249,196,0.45)"/>
+            <rect x="252" y="156" width="84" height="62" rx="9" fill="none" stroke="white" stroke-width="3.5"/>
+            <line x1="294" y1="156" x2="294" y2="218" stroke="white" stroke-width="2.5"/>
+            <line x1="252" y1="187" x2="336" y2="187" stroke="white" stroke-width="2.5"/>
+            <!-- Purple curtains -->
+            <path d="M252,156 Q270,170 262,187 L252,187 Z"  fill="#CE93D8" opacity="0.88"/>
+            <path d="M336,156 Q318,170 326,187 L336,187 Z"  fill="#CE93D8" opacity="0.88"/>
+            <circle cx="260" cy="187" r="4.5" fill="#8E24AA"/>
+            <circle cx="328" cy="187" r="4.5" fill="#8E24AA"/>
+
+            <!-- ══ Flower boxes ══ -->
+            <!-- Left box -->
+            <rect x="60"  y="218" width="92" height="14" rx="5" fill="#6D4C41"/>
+            <line x1="76"  y1="218" x2="76"  y2="213" stroke="#43A047" stroke-width="2"/>
+            <circle cx="76"  cy="210" r="6"   fill="#FF4DA6"/>
+            <circle cx="76"  cy="208" r="4"   fill="#F50057"/>
+            <line x1="92"  y1="218" x2="92"  y2="212" stroke="#43A047" stroke-width="2"/>
+            <circle cx="92"  cy="209" r="6"   fill="#FFD700"/>
+            <circle cx="92"  cy="207" r="4"   fill="#FFA000"/>
+            <line x1="108" y1="218" x2="108" y2="213" stroke="#43A047" stroke-width="2"/>
+            <circle cx="108" cy="210" r="6"   fill="#AB47BC"/>
+            <circle cx="108" cy="208" r="4"   fill="#7B1FA2"/>
+            <line x1="124" y1="218" x2="124" y2="212" stroke="#43A047" stroke-width="2"/>
+            <circle cx="124" cy="209" r="6"   fill="#FF4DA6"/>
+            <circle cx="124" cy="207" r="4"   fill="#F50057"/>
+            <line x1="140" y1="218" x2="140" y2="213" stroke="#43A047" stroke-width="2"/>
+            <circle cx="140" cy="210" r="6"   fill="#66BB6A"/>
+            <circle cx="140" cy="208" r="4"   fill="#2E7D32"/>
+
+            <!-- Right box -->
+            <rect x="248" y="218" width="92" height="14" rx="5" fill="#6D4C41"/>
+            <line x1="264" y1="218" x2="264" y2="213" stroke="#43A047" stroke-width="2"/>
+            <circle cx="264" cy="210" r="6"   fill="#FFD700"/>
+            <circle cx="264" cy="208" r="4"   fill="#FFA000"/>
+            <line x1="280" y1="218" x2="280" y2="212" stroke="#43A047" stroke-width="2"/>
+            <circle cx="280" cy="209" r="6"   fill="#FF4DA6"/>
+            <circle cx="280" cy="207" r="4"   fill="#F50057"/>
+            <line x1="296" y1="218" x2="296" y2="213" stroke="#43A047" stroke-width="2"/>
+            <circle cx="296" cy="210" r="6"   fill="#26C6DA"/>
+            <circle cx="296" cy="208" r="4"   fill="#00897B"/>
+            <line x1="312" y1="218" x2="312" y2="212" stroke="#43A047" stroke-width="2"/>
+            <circle cx="312" cy="209" r="6"   fill="#AB47BC"/>
+            <circle cx="312" cy="207" r="4"   fill="#7B1FA2"/>
+            <line x1="328" y1="218" x2="328" y2="213" stroke="#43A047" stroke-width="2"/>
+            <circle cx="328" cy="210" r="6"   fill="#FFD700"/>
+            <circle cx="328" cy="208" r="4"   fill="#FFA000"/>
+
+            <!-- ══ Bushes flanking door ══ -->
+            <circle cx="138" cy="276" r="24" fill="#43A047"/>
+            <circle cx="124" cy="282" r="17" fill="#66BB6A"/>
+            <circle cx="152" cy="283" r="15" fill="#2E7D32"/>
+            <!-- Bush flowers -->
+            <circle cx="130" cy="260" r="5" fill="#FF4DA6"/>
+            <circle cx="148" cy="258" r="5" fill="#FFD700"/>
+            <circle cx="138" cy="254" r="4" fill="#AB47BC"/>
+
+            <circle cx="262" cy="276" r="24" fill="#43A047"/>
+            <circle cx="276" cy="282" r="17" fill="#66BB6A"/>
+            <circle cx="248" cy="283" r="15" fill="#2E7D32"/>
+            <circle cx="270" cy="260" r="5" fill="#FF4DA6"/>
+            <circle cx="252" cy="258" r="5" fill="#FFD700"/>
+            <circle cx="262" cy="254" r="4" fill="#AB47BC"/>
+
+            <!-- ══ Chimney smoke (animated via CSS) ══ -->
+            <circle class="smoke smoke-a" cx="279" cy="42" r="9"  fill="white"/>
+            <circle class="smoke smoke-b" cx="271" cy="28" r="12" fill="white"/>
+            <circle class="smoke smoke-c" cx="280" cy="14" r="15" fill="white"/>
+
+            <!-- ══ Gold star weathervane at roof peak ══ -->
+            <line x1="200" y1="25" x2="200" y2="10" stroke="#FFD700" stroke-width="2.5"/>
+            <polygon points="200,2 202.5,8 209,8 204,12 206,18 200,14 194,18 196,12 191,8 197.5,8"
+                     fill="#FFD700" stroke="#FFA000" stroke-width="0.8"/>
+
+          </svg>
+        </div><!-- /house-wrapper -->
+
+        <!-- ── Buttons ── -->
+        <div class="btn-group">
+          <button class="btn btn-play" id="btn-play">
+            <span class="btn-icon">▶</span> Play
+          </button>
+          <button class="btn btn-shop" id="btn-shop">
+            <span class="btn-icon">🛍</span> Shop
+          </button>
+        </div>
+
+      </div><!-- /home-content -->
+
+      <!-- Grass ground strip -->
+      <div class="ground"></div>
+
+    </div><!-- /screen-home -->
+
+    <!-- ========================================
+         PLAYER SELECT SCREEN
+    ======================================== -->
+    <div id="screen-player-select" class="screen">
+      <nav class="screen-nav">
+        <button class="btn-nav" id="psel-home">🏠 Home</button>
+      </nav>
+      <div class="screen-content">
+        <h2 class="screen-title">Who's Playing?</h2>
+        <p class="screen-subtitle">Pick your game mode!</p>
+        <div class="choice-cards">
+
+          <button class="choice-card card-pink" id="btn-1player">
+            <div class="card-icon">
+              <svg viewBox="0 0 56 64" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                <circle cx="28" cy="18" r="14" fill="white" opacity="0.92"/>
+                <circle cx="22" cy="15" r="2.2" fill="#FF4DA6"/>
+                <circle cx="34" cy="15" r="2.2" fill="#FF4DA6"/>
+                <path d="M22,21 Q28,27 34,21" fill="none" stroke="#FF4DA6" stroke-width="2.5" stroke-linecap="round"/>
+                <path d="M8,64 Q8,44 28,44 Q48,44 48,64 Z" fill="white" opacity="0.92"/>
+              </svg>
+            </div>
+            <span class="card-label">1 Player</span>
+          </button>
+
+          <button class="choice-card card-purple" id="btn-2players">
+            <div class="card-icon">
+              <svg viewBox="0 0 72 64" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                <circle cx="22" cy="17" r="12" fill="white" opacity="0.92"/>
+                <circle cx="17" cy="14" r="1.8" fill="#AB47BC"/>
+                <circle cx="27" cy="14" r="1.8" fill="#AB47BC"/>
+                <path d="M17,20 Q22,25 27,20" fill="none" stroke="#AB47BC" stroke-width="2" stroke-linecap="round"/>
+                <path d="M5,64 Q5,42 22,42 Q39,42 39,64 Z" fill="white" opacity="0.92"/>
+                <circle cx="50" cy="17" r="12" fill="white" opacity="0.84"/>
+                <circle cx="45" cy="14" r="1.8" fill="#AB47BC"/>
+                <circle cx="55" cy="14" r="1.8" fill="#AB47BC"/>
+                <path d="M45,20 Q50,25 55,20" fill="none" stroke="#AB47BC" stroke-width="2" stroke-linecap="round"/>
+                <path d="M33,64 Q33,42 50,42 Q67,42 67,64 Z" fill="white" opacity="0.84"/>
+              </svg>
+            </div>
+            <span class="card-label">2 Players</span>
+          </button>
+
+        </div>
+      </div>
+    </div><!-- /screen-player-select -->
+
+    <!-- ========================================
+         2-PLAYER OPTIONS SCREEN
+    ======================================== -->
+    <div id="screen-2p-options" class="screen">
+      <nav class="screen-nav">
+        <button class="btn-nav" id="2popt-home">🏠 Home</button>
+        <button class="btn-nav btn-nav-back" id="2popt-back">← Back</button>
+      </nav>
+      <div class="screen-content">
+        <h2 class="screen-title">How are you playing?</h2>
+        <p class="screen-subtitle">Choose how your devices connect</p>
+        <div class="choice-cards">
+
+          <button class="choice-card card-green" id="btn-same-device">
+            <div class="card-icon">
+              <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                <rect x="8" y="4" width="48" height="56" rx="8" fill="white" opacity="0.92"/>
+                <rect x="14" y="12" width="36" height="30" rx="4" fill="#00C853" opacity="0.55"/>
+                <circle cx="24" cy="22" r="6" fill="white"/>
+                <circle cx="40" cy="22" r="6" fill="white"/>
+                <path d="M15,40 Q15,33 24,33 Q33,33 33,40 Z" fill="white" opacity="0.85"/>
+                <path d="M31,40 Q31,33 40,33 Q49,33 49,40 Z" fill="white" opacity="0.85"/>
+                <circle cx="32" cy="53" r="4" fill="white" opacity="0.6"/>
+              </svg>
+            </div>
+            <span class="card-label">Same Device</span>
+          </button>
+
+          <button class="choice-card card-blue" id="btn-two-devices">
+            <div class="card-icon">
+              <svg viewBox="0 0 72 64" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                <rect x="4" y="8" width="28" height="50" rx="6" fill="white" opacity="0.92"/>
+                <rect x="9" y="15" width="18" height="26" rx="3" fill="#1E88E5" opacity="0.55"/>
+                <circle cx="18" cy="24" r="5" fill="white"/>
+                <path d="M11,40 Q11,34 18,34 Q25,34 25,40 Z" fill="white" opacity="0.85"/>
+                <circle cx="18" cy="50" r="3" fill="white" opacity="0.6"/>
+                <rect x="40" y="8" width="28" height="50" rx="6" fill="white" opacity="0.92"/>
+                <rect x="45" y="15" width="18" height="26" rx="3" fill="#1E88E5" opacity="0.55"/>
+                <circle cx="54" cy="24" r="5" fill="white"/>
+                <path d="M47,40 Q47,34 54,34 Q61,34 61,40 Z" fill="white" opacity="0.85"/>
+                <circle cx="54" cy="50" r="3" fill="white" opacity="0.6"/>
+                <path d="M32,26 Q36,21 40,26" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" opacity="0.85"/>
+                <path d="M30,20 Q36,13 42,20" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" opacity="0.6"/>
+              </svg>
+            </div>
+            <span class="card-label">Two Devices</span>
+          </button>
+
+        </div>
+      </div>
+    </div><!-- /screen-2p-options -->
+
+    <!-- ========================================
+         ROOM CODE SCREEN  (Two Devices)
+    ======================================== -->
+    <div id="screen-room-code" class="screen">
+      <nav class="screen-nav">
+        <button class="btn-nav" id="rc-home">🏠 Home</button>
+        <button class="btn-nav btn-nav-back" id="rc-back">← Back</button>
+      </nav>
+      <div class="screen-content">
+        <div class="room-code-card">
+          <div class="room-code-icon">🔑</div>
+          <h2 class="screen-title">Room Code</h2>
+          <p class="screen-subtitle">Type the same code as your friend!</p>
+          <div class="code-input-wrap">
+            <input
+              type="text"
+              id="room-code-input"
+              class="code-input"
+              maxlength="6"
+              placeholder="e.g. STAR"
+              autocomplete="off"
+              autocapitalize="characters"
+              spellcheck="false"
+            />
+          </div>
+          <button class="btn btn-play" id="btn-join-room">
+            <span class="btn-icon">🚀</span> Join Room
+          </button>
+          <div id="room-status" class="room-status" aria-live="polite"></div>
+        </div>
+      </div>
+    </div><!-- /screen-room-code -->
+
+    <!-- ========================================
+         GAME SCREEN
+    ======================================== -->
+    <div id="screen-game" class="screen">
+
+      <!-- Top bar: timer (left) | room name (centre) | coins (right) -->
+      <header class="game-header">
+        <div class="game-header-left">
+          <button class="btn-nav" id="game-home">🏠</button>
+          <div class="timer-box">
+            <span class="timer-icon">⏱</span>
+            <span class="timer-display" id="timer-display">2:00</span>
+          </div>
+        </div>
+        <h2 class="room-name" id="room-name">Living Room</h2>
+        <div class="game-header-right">
+          <!-- coin counter injected here by JS -->
+        </div>
+      </header>
+
+      <!-- Action strip: Restart / Finish -->
+      <div class="game-actions">
+        <button class="btn btn-restart-game" id="btn-restart">↺ Restart</button>
+        <button class="btn btn-finish-game"  id="btn-finish">✓ Finish</button>
+      </div>
+
+      <!-- Game body: single (1P / 2P-network) or split (2P same-device) -->
+      <div class="game-body" id="game-body">
+
+        <!-- Player 1 panel -->
+        <div class="game-player-panel" id="panel-p1">
+          <div class="player-label p1-label" id="p1-label" hidden>🎮 Player 1</div>
+          <div class="room-canvas" id="room-canvas">
+            <div class="room-ceiling"></div>
+            <div class="room-left-panel"></div>
+            <div class="room-right-panel"></div>
+            <div class="room-floor"></div>
+          </div>
+          <div class="tray-wrap">
+            <span class="tray-label">🛋 Furniture</span>
+            <div class="items-tray" id="items-tray"></div>
+          </div>
+        </div>
+
+        <!-- Player 2 panel (visible in 2p-same mode only) -->
+        <div class="game-player-panel" id="panel-p2" hidden>
+          <div class="player-label p2-label">🎮 Player 2</div>
+          <div class="room-canvas" id="room-canvas-p2">
+            <div class="room-ceiling"></div>
+            <div class="room-left-panel"></div>
+            <div class="room-right-panel"></div>
+            <div class="room-floor"></div>
+          </div>
+          <div class="tray-wrap">
+            <span class="tray-label">🛋 Furniture</span>
+            <div class="items-tray" id="items-tray-p2"></div>
+          </div>
+        </div>
+
+      </div><!-- /game-body -->
+
+      <!-- Overlay: Time's Up -->
+      <div class="game-overlay" id="overlay-timesup" hidden>
+        <div class="overlay-card">
+          <div class="overlay-emoji">⏰</div>
+          <h2 class="overlay-title">Time's Up!</h2>
+          <p class="overlay-msg">Don't give up — try again!</p>
+          <button class="btn btn-play" id="btn-restart-timesup">↺ Try Again</button>
+        </div>
+      </div>
+
+      <!-- Overlay: Room Complete (score breakdown) -->
+      <div class="game-overlay" id="overlay-complete" hidden>
+        <div class="overlay-card overlay-score-card">
+          <div class="overlay-emoji" id="score-emoji">🎉</div>
+          <h2 class="overlay-title">Room Complete!</h2>
+
+          <div class="score-breakdown">
+            <div class="score-row">
+              <span class="score-row-icon">🛋</span>
+              <span class="score-row-label">Items placed</span>
+              <span class="score-row-val" id="score-items-val">—</span>
+            </div>
+            <div class="score-row">
+              <span class="score-row-icon">🚶</span>
+              <span class="score-row-label">Walkable floor</span>
+              <span class="score-row-val" id="score-floor-val">—</span>
+            </div>
+            <div class="score-row">
+              <span class="score-row-icon">⚡</span>
+              <span class="score-row-label">Speed bonus</span>
+              <span class="score-row-val bonus" id="score-time-val">—</span>
+            </div>
+            <div class="score-row">
+              <span class="score-row-icon">⭐</span>
+              <span class="score-row-label">Extra items</span>
+              <span class="score-row-val bonus" id="score-extra-val">—</span>
+            </div>
+          </div>
+
+          <div class="score-coins-earned">
+            <span class="coin-icon"><span class="gc"></span></span>
+            <span class="coins-number" id="score-coins-earned">0</span>
+            <span class="coins-label">coins earned!</span>
+          </div>
+
+          <div class="score-total">
+            <span>Total:</span>
+            <span id="score-total-coins">0</span>
+            <span class="gc"></span>
+          </div>
+
+          <div class="overlay-buttons">
+            <button class="btn btn-shop-overlay"  id="btn-go-to-shop">🛍 Shop</button>
+            <button class="btn btn-next-room"      id="btn-next-room">Next Room ▶</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Overlay: House Complete (full-house bonus) -->
+      <div class="game-overlay" id="overlay-house-complete" hidden>
+        <div class="overlay-card overlay-house-card">
+          <div class="overlay-emoji">🏠</div>
+          <h2 class="overlay-title" id="house-complete-title">House Complete!</h2>
+          <p class="overlay-msg"    id="house-complete-sub">All rooms decorated!</p>
+
+          <div class="house-bonus-display">
+            <div class="house-bonus-row">
+              <span>Room coins</span>
+              <span><span id="hc-room-coins">—</span> <span class="gc"></span></span>
+            </div>
+            <div class="house-bonus-row bonus-row-big">
+              <span>House bonus</span>
+              <span>+500 🎁</span>
+            </div>
+            <div class="house-bonus-row total-row">
+              <span>New total</span>
+              <span><span id="hc-total-coins">—</span> 💰</span>
+            </div>
+          </div>
+
+          <button class="btn btn-play" id="btn-house-continue">🎉 Continue!</button>
+        </div>
+      </div>
+
+      <!-- Overlay: 2P Same-Device Winner -->
+      <div class="game-overlay" id="overlay-2p-winner" hidden>
+        <div class="overlay-card">
+          <div class="overlay-emoji" id="winner-emoji">🏆</div>
+          <h2 class="overlay-title" id="winner-title">Player 1 Wins!</h2>
+          <div class="winner-scores">
+            <div class="winner-score-row">
+              <span class="ws-label">🎮 Player 1</span>
+              <span class="ws-coins"><span id="ws-p1-coins">—</span> <span class="gc"></span></span>
+            </div>
+            <div class="winner-score-row">
+              <span class="ws-label">🎮 Player 2</span>
+              <span class="ws-coins"><span id="ws-p2-coins">—</span> <span class="gc"></span></span>
+            </div>
+          </div>
+          <div class="score-total">
+            <span>Total:</span>
+            <span id="ws-total">0</span>
+            <span class="gc"></span>
+          </div>
+          <button class="btn btn-play" id="btn-2p-next">Next Room ▶</button>
+        </div>
+      </div>
+
+      <!-- Overlay: 2P Network Result -->
+      <div class="game-overlay" id="overlay-2p-net" hidden>
+        <div class="overlay-card">
+          <div class="overlay-emoji" id="net-emoji">🏆</div>
+          <h2 class="overlay-title" id="net-title">You Win!</h2>
+          <p class="overlay-msg" id="net-msg">Room complete!</p>
+          <div class="score-coins-earned">
+            <span class="coin-icon"><span class="gc"></span></span>
+            <span class="coins-number" id="net-coins">0</span>
+            <span class="coins-label">coins earned!</span>
+          </div>
+          <button class="btn btn-play" id="btn-net-next">Next Room ▶</button>
+        </div>
+      </div>
+
+    </div><!-- /screen-game -->
+
+    <!-- ========================================
+         DOLLHOUSE PROGRESS SCREEN
+    ======================================== -->
+    <div id="screen-dollhouse" class="screen">
+      <nav class="screen-nav">
+        <button class="btn-nav" id="dh-home">🏠 Home</button>
+      </nav>
+      <div class="dh-content">
+        <h2 class="screen-title dh-title">Your House</h2>
+        <p class="dh-stat" id="dh-stat">0 of 8 rooms built</p>
+
+        <!-- Dollhouse cross-section display -->
+        <div class="dh-house">
+          <div class="dh-house-roof"></div>
+          <div class="dh-rooms-scroll">
+            <div class="dh-rooms-row" id="dh-rooms-row">
+              <!-- room cells injected by JS -->
+            </div>
+          </div>
+          <div class="dh-house-ground"></div>
+        </div>
+
+        <button class="btn btn-play" id="dh-build-next">Build Next Room ▶</button>
+      </div>
+    </div><!-- /screen-dollhouse -->
+
+    <!-- ========================================
+         ROOM DETAIL SCREEN
+    ======================================== -->
+    <div id="screen-room-detail" class="screen">
+      <nav class="screen-nav">
+        <button class="btn-nav" id="rd-home">🏠 Home</button>
+        <button class="btn-nav btn-nav-back" id="rd-back">← Back</button>
+      </nav>
+      <div class="screen-content">
+        <div class="rd-header">
+          <div class="rd-icon" id="rd-room-icon">🛋</div>
+          <h2 class="screen-title" id="rd-room-name">Room</h2>
+        </div>
+        <div class="rd-card">
+          <p class="rd-section-label">Items for this room:</p>
+          <div id="rd-items-list" class="rd-items-list"></div>
+        </div>
+        <button class="btn btn-play" id="rd-play">▶ Play Room</button>
+      </div>
+    </div><!-- /screen-room-detail -->
+
+    <!-- ========================================
+         SHOP SCREEN
+    ======================================== -->
+    <div id="screen-shop" class="screen">
+
+      <!-- Nav bar -->
+      <nav class="screen-nav shop-nav">
+        <button class="btn-nav" id="shop-home">🏠 Home</button>
+        <button class="btn-nav btn-nav-back" id="shop-back">← Back</button>
+        <div class="shop-coin-display">
+          <span class="shop-coin-icon gc"></span>
+          <span id="shop-coin-count">0</span>
+        </div>
+      </nav>
+
+      <!-- Section tabs -->
+      <div class="shop-tabs" role="tablist">
+        <button class="shop-tab-btn active" data-tab="items"  role="tab">🛋 Items</button>
+        <button class="shop-tab-btn"        data-tab="rooms"  role="tab">🏠 Rooms</button>
+        <button class="shop-tab-btn"        data-tab="paints" role="tab">🎨 Paint</button>
+      </div>
+
+      <!-- Category filter (Items tab only) -->
+      <div id="shop-filter-bar" class="shop-filter-bar">
+        <button class="shop-filter-btn active" data-filter="all">All</button>
+        <button class="shop-filter-btn" data-filter="living-room">Living Room</button>
+        <button class="shop-filter-btn" data-filter="bedroom">Bedroom</button>
+        <button class="shop-filter-btn" data-filter="kitchen">Kitchen</button>
+        <button class="shop-filter-btn" data-filter="dining-room">Dining Room</button>
+        <button class="shop-filter-btn" data-filter="bathroom">Bathroom</button>
+      </div>
+
+      <!-- Scrollable card grid -->
+      <div id="shop-grid" class="shop-grid"></div>
+
+    </div><!-- /screen-shop -->
+
+  </div><!-- /app -->
+
+  <!-- PeerJS — peer-to-peer signalling for Two Devices multiplayer -->
+  <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+  <script src="js/shop.js"></script>
+  <script src="js/game.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

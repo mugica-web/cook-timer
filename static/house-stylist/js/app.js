@@ -341,7 +341,7 @@ function _populateRoomDetail(roomId) {
     row.innerHTML = `
       <span class="rd-item-check ${owned ? 'owned' : 'missing'}">${owned ? '✓' : '✗'}</span>
       <span class="rd-item-name">${item.name}</span>
-      ${!owned ? `<span class="rd-item-price">🪙 ${item.price}</span>` : ''}
+      ${!owned ? `<span class="rd-item-price"><span class="gc"></span> ${item.price}</span>` : ''}
     `;
     listEl.appendChild(row);
   });
