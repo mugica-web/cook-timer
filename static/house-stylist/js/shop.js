@@ -346,233 +346,233 @@ const ShopStorage = (() => {
    ================================================================ */
 
 const Shop = (() => {
-  let _activeTab  = 'items';
-  let _itemFilter = 'all';
+  let _tab    = 'items'; // 'items' | 'rooms' | 'paints'
+  let _filter = 'all';   // room filter for items tab
 
-  /* ── Public: open the shop (resets to Items tab) ───────── */
-  function open() {
-    const coins = ShopStorage.getCoins();
-    console.log('[Shop] coins in localStorage:', localStorage.getItem('hs_coins'), '→ parsed:', coins);
-    _activeTab  = 'items';
-    _itemFilter = 'all';
-    _updateCoinDisplay();
-    // activate tab sets filter bar visibility and renders grid once
-    _activeTab = 'items';
-    document.querySelectorAll('.shop-tab-btn').forEach(btn => {
-      btn.classList.toggle('active', btn.dataset.tab === 'items');
-    });
-    const filterBar = document.getElementById('shop-filter-bar');
-    if (filterBar) filterBar.hidden = false;
-    // reset filter pill UI without triggering re-render
-    _itemFilter = 'all';
-    document.querySelectorAll('.shop-filter-btn').forEach(btn => {
-      btn.classList.toggle('active', btn.dataset.filter === 'all');
-    });
-    // single render
-    _renderGrid();
+  /* ── Helpers ───────────────────────────────────────────── */
+
+  function _coins() {
+    return ShopStorage.getCoins();
   }
 
-  /* ── Public: refresh current tab (e.g. on back-navigate) ─ */
-  function refresh() {
-    _updateCoinDisplay();
-    _renderGrid();
+  function _roomLabel(roomId) {
+    return ({ 'living-room': 'Living Room', bedroom: 'Bedroom',
+              bathroom: 'Bathroom', kitchen: 'Kitchen',
+              'dining-room': 'Dining Room' })[roomId] ?? roomId;
   }
 
-  /* ── Coin display ──────────────────────────────────────── */
-  function _updateCoinDisplay() {
-    const el = document.getElementById('shop-coin-count');
-    if (el) el.textContent = ShopStorage.getCoins();
-  }
+  /* ── Card builder ──────────────────────────────────────── */
+  //  Every card is always created and appended — no conditional skips.
+  //
+  //  states:  owned   → green ✓ overlay, no cost badge
+  //           buyable → clickable, cost badge shown
+  //           locked  → 🔒 overlay, cost badge shown (coins < price)
 
-  /* ── Tab switching ─────────────────────────────────────── */
-  function _activateTab(tab) {
-    _activeTab = tab;
-    document.querySelectorAll('.shop-tab-btn').forEach(btn => {
-      btn.classList.toggle('active', btn.dataset.tab === tab);
-    });
-    const filterBar = document.getElementById('shop-filter-bar');
-    if (filterBar) filterBar.hidden = (tab !== 'items');
-    _renderGrid();
-  }
+  function _card({ type, id, price, owned, mediaHtml, name, tag, extra }) {
+    const coins  = _coins();
+    const locked = !owned && (coins < Number(price));
+    const state  = owned ? 'owned' : locked ? 'locked' : 'buyable';
 
-  /* ── Filter ────────────────────────────────────────────── */
-  function _setFilter(filter) {
-    _itemFilter = filter;
-    document.querySelectorAll('.shop-filter-btn').forEach(btn => {
-      btn.classList.toggle('active', btn.dataset.filter === filter);
-    });
-    _renderGrid();
-  }
-
-  /* ── Grid rendering ────────────────────────────────────── */
-  function _renderGrid() {
-    const grid = document.getElementById('shop-grid');
-    if (!grid) return;
-    grid.innerHTML = '';
-
-    const coins = ShopStorage.getCoins(); // read once for the whole render pass
-    if (_activeTab === 'items')  _renderItems(grid, coins);
-    if (_activeTab === 'rooms')  _renderRooms(grid, coins);
-    if (_activeTab === 'paints') _renderPaints(grid, coins);
-  }
-
-  /**
-   * Build a shop card element.
-   * @param {object} opts
-   *   type        — 'item' | 'room' | 'paint'
-   *   id          — item id
-   *   price       — coin price
-   *   owned       — already purchased
-   *   coins       — current coin balance (read once per render pass)
-   *   mediaHtml   — inner HTML for the illustration area
-   *   name        — display label
-   *   tag         — optional small tag (room label for items)
-   *   extraBottom — optional HTML appended below name (e.g. Play button)
-   */
-  function _makeCard(opts) {
-    const { type, id, price, owned, coins, mediaHtml, name, tag = '', extraBottom = '' } = opts;
-    // Lock only when player cannot afford; owned items never show lock
-    const locked    = !owned && (coins < Number(price));
-    const state     = owned ? 'owned' : locked ? 'locked' : 'buyable';
-
-    const overlay   = owned
+    const overlay = owned
       ? '<div class="shop-overlay shop-overlay--owned">✓</div>'
       : locked
         ? '<div class="shop-overlay shop-overlay--locked">🔒</div>'
         : '';
-    const costBadge = owned ? '' : `<div class="shop-cost-badge"><span class="gc"></span> ${price}</div>`;
+
+    const badge = owned
+      ? ''
+      : `<div class="shop-cost-badge"><span class="gc"></span> ${price}</div>`;
 
     const el = document.createElement('div');
     el.className = `shop-card shop-card--${state}`;
-    if (!owned) {
-      el.dataset.type  = type;
-      el.dataset.id    = id;
-      el.dataset.price = price;
-    }
-    el.innerHTML = `
-      <div class="shop-card-media">${mediaHtml}${overlay}${costBadge}</div>
-      <div class="shop-card-name">${name}</div>
-      ${tag ? `<div class="shop-card-tag">${tag}</div>` : ''}
-      ${extraBottom}
-    `;
+    el.dataset.type  = type;
+    el.dataset.id    = id;
+    el.dataset.price = price;
+
+    el.innerHTML =
+      `<div class="shop-card-media">${mediaHtml}${overlay}${badge}</div>` +
+      `<div class="shop-card-name">${name}</div>` +
+      (tag   ? `<div class="shop-card-tag">${tag}</div>` : '') +
+      (extra ? extra : '');
+
     return el;
   }
 
-  function _renderItems(grid, coins) {
-    const list = _itemFilter === 'all'
+  /* ── Per-tab render functions ──────────────────────────── */
+
+  function _renderItems(grid) {
+    const list = _filter === 'all'
       ? SHOP_CATALOG.items
-      : SHOP_CATALOG.items.filter(it => it.room === _itemFilter);
+      : SHOP_CATALOG.items.filter(it => it.room === _filter);
+
+    if (list.length === 0) {
+      const p = document.createElement('p');
+      p.className   = 'shop-empty';
+      p.textContent = 'No items in this category yet!';
+      grid.appendChild(p);
+      return;
+    }
 
     list.forEach(item => {
-      grid.appendChild(_makeCard({
+      grid.appendChild(_card({
         type:      'item',
         id:        item.id,
         price:     item.price,
         owned:     ShopStorage.hasItem(item.id),
-        coins,
         mediaHtml: item.svg,
         name:      item.name,
         tag:       _roomLabel(item.room),
       }));
     });
-
-    if (list.length === 0) {
-      const msg = document.createElement('p');
-      msg.className = 'shop-empty';
-      msg.textContent = 'No items in this category yet!';
-      grid.appendChild(msg);
-    }
   }
 
-  function _renderRooms(grid, coins) {
+  function _renderRooms(grid) {
     // Living Room — always owned (starter)
-    grid.appendChild(_makeCard({
-      type:        'room',
-      id:          'living-room',
-      price:       0,
-      owned:       true,
-      coins,
-      mediaHtml:   '<span class="shop-card-emoji">🛋</span>',
-      name:        'Living Room',
-      extraBottom: `<button class="btn shop-play-room-btn" data-room-id="living-room">▶ Play</button>`,
+    grid.appendChild(_card({
+      type:      'room',
+      id:        'living-room',
+      price:     0,
+      owned:     true,
+      mediaHtml: '<span class="shop-card-emoji">🛋</span>',
+      name:      'Living Room',
+      extra:     `<button class="btn shop-play-room-btn" data-room-id="living-room">▶ Play</button>`,
     }));
 
     SHOP_CATALOG.rooms.forEach(room => {
       const owned = ShopStorage.hasRoom(room.id);
-      grid.appendChild(_makeCard({
-        type:        'room',
-        id:          room.id,
-        price:       room.price,
+      grid.appendChild(_card({
+        type:      'room',
+        id:        room.id,
+        price:     room.price,
         owned,
-        coins,
-        mediaHtml:   `<span class="shop-card-emoji">${room.emoji}</span>`,
-        name:        room.name,
-        extraBottom: owned
+        mediaHtml: `<span class="shop-card-emoji">${room.emoji}</span>`,
+        name:      room.name,
+        extra:     owned
           ? `<button class="btn shop-play-room-btn" data-room-id="${room.id}">▶ Play</button>`
           : '',
       }));
     });
   }
 
-  function _renderPaints(grid, coins) {
+  function _renderPaints(grid) {
     SHOP_CATALOG.paints.forEach(paint => {
-      grid.appendChild(_makeCard({
+      grid.appendChild(_card({
         type:      'paint',
         id:        paint.id,
         price:     paint.price,
         owned:     ShopStorage.hasPaint(paint.id),
-        coins,
         mediaHtml: `<div class="shop-swatch-circle" style="background:${paint.color}"></div>`,
         name:      paint.name,
       }));
     });
   }
 
-  function _roomLabel(roomId) {
-    return ({
-      'living-room': 'Living Room',
-      'bedroom':     'Bedroom',
-      'bathroom':    'Bathroom',
-      'kitchen':     'Kitchen',
-      'dining-room': 'Dining Room',
-    })[roomId] ?? roomId;
+  /* ── Core render ───────────────────────────────────────── */
+
+  function _render() {
+    const grid = document.getElementById('shop-grid');
+    if (!grid) {
+      console.error('[Shop] #shop-grid element not found in DOM');
+      return;
+    }
+
+    grid.innerHTML = '';
+
+    if (_tab === 'items')  _renderItems(grid);
+    if (_tab === 'rooms')  _renderRooms(grid);
+    if (_tab === 'paints') _renderPaints(grid);
+
+    // Guard: log if nothing rendered
+    if (grid.children.length === 0) {
+      console.error('[Shop] _render() completed but grid is empty — tab:', _tab, 'filter:', _filter);
+    }
+
+    // Sync coin display
+    const coinEl = document.getElementById('shop-coin-count');
+    if (coinEl) coinEl.textContent = _coins();
+  }
+
+  /* ── Tab & filter UI sync ──────────────────────────────── */
+
+  function _syncTabUI() {
+    document.querySelectorAll('.shop-tab-btn').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.tab === _tab);
+    });
+    const bar = document.getElementById('shop-filter-bar');
+    if (bar) bar.hidden = (_tab !== 'items');
+  }
+
+  function _syncFilterUI() {
+    document.querySelectorAll('.shop-filter-btn').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.filter === _filter);
+    });
+  }
+
+  /* ── Public API ────────────────────────────────────────── */
+
+  function open() {
+    const raw = localStorage.getItem('hs_coins');
+    console.log('[Shop] open — hs_coins raw:', raw, '→ parsed:', _coins());
+    _tab    = 'items';
+    _filter = 'all';
+    _syncTabUI();
+    _syncFilterUI();
+    _render();
+  }
+
+  function refresh() {
+    _syncTabUI();
+    _syncFilterUI();
+    _render();
   }
 
   /* ── Buy handler ───────────────────────────────────────── */
-  function _handleBuy(btn) {
-    const type  = btn.dataset.type;
-    const id    = btn.dataset.id;
-    const price = parseInt(btn.dataset.price, 10);
 
-    if (!ShopStorage.spendCoins(price)) return; // race-condition guard
+  function _handleBuy(card) {
+    const { type, id, price: priceStr } = card.dataset;
+    const price = parseInt(priceStr, 10);
+
+    if (isNaN(price) || price < 0) return;
+    if (!ShopStorage.spendCoins(price)) return; // not enough coins
 
     if (type === 'item')  ShopStorage.addItem(id);
     if (type === 'room')  ShopStorage.addRoom(id);
     if (type === 'paint') ShopStorage.addPaint(id);
 
-    _updateCoinDisplay();
-    // Also sync game coin counter if the game screen is open
+    // Sync game coin counter if visible
     const gameCoin = document.getElementById('game-coin-count');
-    if (gameCoin) gameCoin.textContent = ShopStorage.getCoins();
+    if (gameCoin) gameCoin.textContent = _coins();
 
-    _renderGrid(); // re-render so bought cards show "Owned"
+    _render();
   }
 
-  /* ── Wire DOM events (called once on DOMContentLoaded) ─── */
+  /* ── Event wiring (once, on DOMContentLoaded) ──────────── */
+
   function wireEvents() {
     // Tab buttons
     document.querySelectorAll('.shop-tab-btn').forEach(btn => {
-      btn.addEventListener('click', () => _activateTab(btn.dataset.tab));
+      btn.addEventListener('click', () => {
+        _tab = btn.dataset.tab;
+        _syncTabUI();
+        _render();
+      });
     });
 
     // Filter pills
     document.querySelectorAll('.shop-filter-btn').forEach(btn => {
-      btn.addEventListener('click', () => _setFilter(btn.dataset.filter));
+      btn.addEventListener('click', () => {
+        _filter = btn.dataset.filter;
+        _syncFilterUI();
+        _render();
+      });
     });
 
-    // Grid clicks — delegated so it works after re-renders
-    document.getElementById('shop-grid')?.addEventListener('click', e => {
-      // Play Room button → open room detail
+    // Delegated grid clicks (survives innerHTML resets)
+    const grid = document.getElementById('shop-grid');
+    if (!grid) { console.error('[Shop] wireEvents: #shop-grid not found'); return; }
+
+    grid.addEventListener('click', e => {
+      // Play Room button
       const playBtn = e.target.closest('.shop-play-room-btn');
       if (playBtn) {
         if (typeof openRoomDetail === 'function') openRoomDetail(playBtn.dataset.roomId);

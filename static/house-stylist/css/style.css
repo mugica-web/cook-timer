@@ -1895,9 +1895,10 @@ body {
 }
 
 /* Screen layout override for shop (flex column, fill height) */
-#screen-shop {
+#screen-shop.active {
   display: flex;
   flex-direction: column;
+  align-items: stretch;
 }
 
 #screen-shop .screen-nav { flex-shrink: 0; }
