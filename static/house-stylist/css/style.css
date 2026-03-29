@@ -1183,7 +1183,7 @@ body {
   padding: 4px 12px;
   font-family: var(--font-display);
   font-size: 1rem;
-  color: #E65100;
+  color: #B8860B;
   z-index: 11;
   box-shadow: 0 2px 8px rgba(0,0,0,0.12);
 }
@@ -1295,17 +1295,17 @@ body {
   padding: 10px 22px;
 }
 
-/* Gold coin icon — replaces 🪙 emoji throughout the UI */
+/* Gold coin icon — CSS-rendered circle, used throughout the UI */
 .gc {
   display: inline-block;
   width: 1.1em;
   height: 1.1em;
   border-radius: 50%;
-  background: radial-gradient(circle at 38% 32%, #FFF59D, #FFD700 48%, #F9A825 72%, #C8860A);
-  border: 1.5px solid #B8860B;
+  background: radial-gradient(circle at 36% 30%, #FFE566, #FFD700 42%, #F9A825 68%, #B8860B);
+  border: 1.5px solid #9A6700;
   vertical-align: -0.18em;
   flex-shrink: 0;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.28), inset 0 1px 0 rgba(255,255,255,0.55);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.32), inset 0 1px 0 rgba(255,255,255,0.45);
 }
 
 .coin-icon     { font-size: 1.5rem; }
@@ -1324,7 +1324,7 @@ body {
 .score-total span:nth-child(2) {
   font-family: var(--font-display);
   font-size: 1.3rem;
-  color: var(--green-dark);
+  color: #B8860B;
 }
 
 .overlay-buttons {
@@ -1403,7 +1403,7 @@ body {
 .total-row {
   font-family: var(--font-display);
   font-size: 1.15rem;
-  color: var(--green-dark);
+  color: #B8860B;
   border-top: 2px solid #F9A825;
   padding-top: 10px;
 }
