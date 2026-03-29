@@ -287,11 +287,13 @@ const ShopStorage = (() => {
     try { localStorage.setItem(key, JSON.stringify(val)); } catch (_) {} // eslint-disable-line no-empty
   }
 
-  // Coins — shared key with game.js
+  // Coins — shared key with game.js ('hs_coins')
   function getCoins() {
-    const raw = load(K_COINS, 0);
-    const n   = parseInt(raw, 10);
-    return isNaN(n) ? 0 : Math.max(0, n);
+    try {
+      const raw = localStorage.getItem(K_COINS);
+      const n   = Number(JSON.parse(raw));
+      return (Number.isFinite(n) && n >= 0) ? Math.floor(n) : 0;
+    } catch (_) { return 0; }
   }
   function spendCoins(n) {
     const cur = getCoins();
@@ -349,11 +351,25 @@ const Shop = (() => {
 
   /* ── Public: open the shop (resets to Items tab) ───────── */
   function open() {
+    const coins = ShopStorage.getCoins();
+    console.log('[Shop] coins in localStorage:', localStorage.getItem('hs_coins'), '→ parsed:', coins);
     _activeTab  = 'items';
     _itemFilter = 'all';
     _updateCoinDisplay();
-    _activateTab('items');
-    _setFilter('all');
+    // activate tab sets filter bar visibility and renders grid once
+    _activeTab = 'items';
+    document.querySelectorAll('.shop-tab-btn').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.tab === 'items');
+    });
+    const filterBar = document.getElementById('shop-filter-bar');
+    if (filterBar) filterBar.hidden = false;
+    // reset filter pill UI without triggering re-render
+    _itemFilter = 'all';
+    document.querySelectorAll('.shop-filter-btn').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.filter === 'all');
+    });
+    // single render
+    _renderGrid();
   }
 
   /* ── Public: refresh current tab (e.g. on back-navigate) ─ */
@@ -394,9 +410,10 @@ const Shop = (() => {
     if (!grid) return;
     grid.innerHTML = '';
 
-    if (_activeTab === 'items')  _renderItems(grid);
-    if (_activeTab === 'rooms')  _renderRooms(grid);
-    if (_activeTab === 'paints') _renderPaints(grid);
+    const coins = ShopStorage.getCoins(); // read once for the whole render pass
+    if (_activeTab === 'items')  _renderItems(grid, coins);
+    if (_activeTab === 'rooms')  _renderRooms(grid, coins);
+    if (_activeTab === 'paints') _renderPaints(grid, coins);
   }
 
   /**
@@ -406,19 +423,21 @@ const Shop = (() => {
    *   id          — item id
    *   price       — coin price
    *   owned       — already purchased
+   *   coins       — current coin balance (read once per render pass)
    *   mediaHtml   — inner HTML for the illustration area
    *   name        — display label
    *   tag         — optional small tag (room label for items)
    *   extraBottom — optional HTML appended below name (e.g. Play button)
    */
   function _makeCard(opts) {
-    const { type, id, price, owned, mediaHtml, name, tag = '', extraBottom = '' } = opts;
-    const canAfford = owned ? false : ShopStorage.getCoins() >= Number(price);
-    const state     = owned ? 'owned' : canAfford ? 'buyable' : 'locked';
+    const { type, id, price, owned, coins, mediaHtml, name, tag = '', extraBottom = '' } = opts;
+    // Lock only when player cannot afford; owned items never show lock
+    const locked    = !owned && (coins < Number(price));
+    const state     = owned ? 'owned' : locked ? 'locked' : 'buyable';
 
     const overlay   = owned
       ? '<div class="shop-overlay shop-overlay--owned">✓</div>'
-      : !canAfford
+      : locked
         ? '<div class="shop-overlay shop-overlay--locked">🔒</div>'
         : '';
     const costBadge = owned ? '' : `<div class="shop-cost-badge"><span class="gc"></span> ${price}</div>`;
@@ -439,7 +458,7 @@ const Shop = (() => {
     return el;
   }
 
-  function _renderItems(grid) {
+  function _renderItems(grid, coins) {
     const list = _itemFilter === 'all'
       ? SHOP_CATALOG.items
       : SHOP_CATALOG.items.filter(it => it.room === _itemFilter);
@@ -450,6 +469,7 @@ const Shop = (() => {
         id:        item.id,
         price:     item.price,
         owned:     ShopStorage.hasItem(item.id),
+        coins,
         mediaHtml: item.svg,
         name:      item.name,
         tag:       _roomLabel(item.room),
@@ -464,13 +484,14 @@ const Shop = (() => {
     }
   }
 
-  function _renderRooms(grid) {
+  function _renderRooms(grid, coins) {
     // Living Room — always owned (starter)
     grid.appendChild(_makeCard({
       type:        'room',
       id:          'living-room',
       price:       0,
       owned:       true,
+      coins,
       mediaHtml:   '<span class="shop-card-emoji">🛋</span>',
       name:        'Living Room',
       extraBottom: `<button class="btn shop-play-room-btn" data-room-id="living-room">▶ Play</button>`,
@@ -483,6 +504,7 @@ const Shop = (() => {
         id:          room.id,
         price:       room.price,
         owned,
+        coins,
         mediaHtml:   `<span class="shop-card-emoji">${room.emoji}</span>`,
         name:        room.name,
         extraBottom: owned
@@ -492,13 +514,14 @@ const Shop = (() => {
     });
   }
 
-  function _renderPaints(grid) {
+  function _renderPaints(grid, coins) {
     SHOP_CATALOG.paints.forEach(paint => {
       grid.appendChild(_makeCard({
         type:      'paint',
         id:        paint.id,
         price:     paint.price,
         owned:     ShopStorage.hasPaint(paint.id),
+        coins,
         mediaHtml: `<div class="shop-swatch-circle" style="background:${paint.color}"></div>`,
         name:      paint.name,
       }));
