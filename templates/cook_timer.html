@@ -683,7 +683,7 @@
             if (remaining <= 0 && !step.fired) {
                 // STEP FIRED! — Time to alert the user
                 step.fired = true;
-                step.firedAt = new Date();  // record when it fired for delay calculation
+                step.firedAt = new Date();
                 countdownEl.textContent = "NOW!";
 
                 if (cardEl) cardEl.className = "timer-card fired";
@@ -694,8 +694,6 @@
                 }
                 sendNotification(dish.name, step.action);
 
-                // Show a Done button — the next step's countdown starts from when
-                // the user actually taps it, accounting for time spent on this action.
                 if (cardEl) {
                     const doneBtn = document.createElement("button");
                     doneBtn.className = "btn btn-done-step";
@@ -704,7 +702,20 @@
                     cardEl.appendChild(doneBtn);
                 }
 
-            } else if (!step.fired) {
+            } else if (step.fired) {
+                // Step is waiting for acknowledgment. Re-add the Done button if it
+                // was lost (e.g. the card was re-rendered after a page reload).
+                if (cardEl && !cardEl.querySelector(".btn-done-step")) {
+                    countdownEl.textContent = "NOW!";
+                    cardEl.className = "timer-card fired" + (dish.paused ? " paused" : "");
+                    const doneBtn = document.createElement("button");
+                    doneBtn.className = "btn btn-done-step";
+                    doneBtn.textContent = "Done";
+                    doneBtn.onclick = function() { manualAdvanceDish(dishIndex); };
+                    cardEl.appendChild(doneBtn);
+                }
+
+            } else {
                 // Timer is still counting down
                 const mins = Math.floor(remaining / 60);
                 const secs = remaining % 60;
@@ -770,8 +781,10 @@
 
 
     // manualAdvanceDish(dishIndex) — Called when the user taps "Done".
-    // Shifts all remaining unfired steps of this dish forward by however long
-    // the user spent on the current action, then advances to the next step.
+    // Resets all remaining unfired steps to start from NOW, preserving their
+    // scheduled durations relative to each other. This guarantees the next step
+    // always gets its full countdown from the moment Done is tapped, regardless
+    // of how long the user waited to acknowledge.
     function manualAdvanceDish(dishIndex) {
         // Tapping "Done" is a user gesture — use it to unlock audio if not yet done
         if (!audioCtx) {
@@ -784,17 +797,15 @@
         const step = dish.steps[dish.currentStep];
         const now = new Date();
 
-        // How long did the action take beyond the scheduled fire time?
-        const delay = step.firedAt ? (now.getTime() - step.firedAt.getTime()) : 0;
-
-        // Push all unfired future steps of this dish forward by that delay
-        if (delay > 0) {
-            dish.steps.forEach(function(s) {
-                if (!s.fired) {
-                    s.fireTime = new Date(s.fireTime.getTime() + delay);
-                }
-            });
-        }
+        // Anchor future steps to now using their offsets from the current step's
+        // fire time. Using step.fireTime (not step.firedAt) means this works even
+        // when firedAt is null (e.g. state loaded from an older save).
+        const anchorTime = step.fireTime.getTime();
+        dish.steps.forEach(function(s) {
+            if (!s.fired) {
+                s.fireTime = new Date(now.getTime() + (s.fireTime.getTime() - anchorTime));
+            }
+        });
 
         advanceDish(dishIndex);
     }
