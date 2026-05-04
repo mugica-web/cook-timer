@@ -55,6 +55,11 @@ def house_stylist():
     return render_template("house_stylist.html")
 
 
+@app.route("/lineup-creator")
+def lineup_creator():
+    return render_template("lineup_creator.html")
+
+
 # This block runs only when you execute "python app.py" directly.
 # It starts the development server on port 5000.
 # debug=True means the server auto-restarts when you change code.

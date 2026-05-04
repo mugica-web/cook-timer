@@ -1,0 +1,1398 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lineup Creator</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <link rel="stylesheet" href="/static/lineup.css">
+    <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+</head>
+<body>
+
+<div id="app" style="display:none">
+
+    <!-- Top Nav -->
+    <nav class="top-nav">
+        <div class="nav-brand">⚾ Lineup Creator</div>
+        <div class="nav-tabs">
+            <button class="nav-tab active" onclick="showView('roster')">Roster</button>
+            <button class="nav-tab" onclick="showView('setup')">New Game</button>
+            <button class="nav-tab" onclick="showView('lineup')">Lineup</button>
+            <button class="nav-tab" onclick="showView('history')">History</button>
+        </div>
+        <div class="nav-user">
+            <span id="nav-email" class="nav-email"></span>
+            <button class="btn-signout" onclick="signOut()">Sign Out</button>
+        </div>
+    </nav>
+
+    <div class="main-content">
+
+        <!-- ===== ROSTER VIEW ===== -->
+        <div id="view-roster">
+            <div class="view-header">
+                <h2>Roster</h2>
+                <div class="header-actions">
+                    <button class="btn btn-secondary btn-sm" onclick="openCsvModal()">Import CSV</button>
+                    <button class="btn btn-primary btn-sm" onclick="focusAddPlayer()">+ Add Player</button>
+                </div>
+            </div>
+            <div class="card">
+                <div id="roster-content"></div>
+                <div class="add-player-row">
+                    <input type="text" id="new-player-input" class="add-player-input" placeholder="Player name" maxlength="40"
+                        onkeydown="if(event.key==='Enter') addPlayer()">
+                    <button class="btn btn-primary btn-sm" onclick="addPlayer()">Add</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===== SETUP VIEW ===== -->
+        <div id="view-setup" style="display:none">
+            <div class="view-header">
+                <h2>New Game</h2>
+            </div>
+            <div class="card">
+                <div class="setup-section">
+                    <div class="setup-label">Game Date</div>
+                    <input type="date" id="setup-date" class="date-input">
+                </div>
+
+                <div class="setup-section">
+                    <div class="setup-label">Who's playing today?</div>
+                    <div id="attendance-grid" class="attendance-grid"></div>
+                    <div id="attendance-count" class="attendance-count"></div>
+                </div>
+
+                <div class="setup-section">
+                    <div class="setup-label">Total innings</div>
+                    <input type="number" id="setup-innings" class="number-input" value="6" min="1" max="9">
+                </div>
+
+                <div class="setup-section">
+                    <div class="setup-label">Position rotation</div>
+                    <div class="rotation-toggle">
+                        <button class="rotation-btn active" id="rot-1" onclick="setRotFreq(1)">Every inning</button>
+                        <button class="rotation-btn" id="rot-2" onclick="setRotFreq(2)">Every 2 innings</button>
+                    </div>
+                </div>
+
+                <div class="setup-generate">
+                    <button class="btn btn-generate" id="generate-btn" onclick="generateLineup()">Generate Lineup</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===== LINEUP VIEW ===== -->
+        <div id="view-lineup" style="display:none">
+            <div class="lineup-toolbar">
+                <div class="toolbar-left">
+                    <span id="lineup-date-label" class="lineup-date-label"></span>
+                </div>
+                <div class="toolbar-right">
+                    <button class="btn btn-secondary btn-sm" onclick="rerollAll()">Re-roll All</button>
+                    <button class="btn btn-secondary btn-sm" onclick="rerollUnlocked()">Re-roll Unlocked</button>
+                    <button class="btn btn-primary btn-sm" onclick="saveGame()">Save Game</button>
+                    <button class="btn btn-secondary btn-sm" onclick="exportCurrentCSV()">Export CSV</button>
+                </div>
+            </div>
+            <div id="lineup-warnings"></div>
+            <div class="lineup-body">
+                <div class="batting-panel">
+                    <h3>Batting Order</h3>
+                    <div id="batting-list" class="batting-list"></div>
+                </div>
+                <div class="rotation-panel">
+                    <h3>Defensive Rotation</h3>
+                    <div id="rotation-grid"></div>
+                    <div id="premium-stats" class="premium-stats"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===== HISTORY VIEW ===== -->
+        <div id="view-history" style="display:none">
+            <div class="view-header">
+                <h2>Game History</h2>
+                <div class="header-actions">
+                    <button class="btn btn-secondary btn-sm" onclick="exportAllCSV()">Export All CSV</button>
+                </div>
+            </div>
+            <div id="history-content"></div>
+        </div>
+
+    </div>
+</div>
+
+<!-- CSV Import Modal -->
+<div id="csv-modal" class="modal-overlay">
+    <div class="modal">
+        <h3>Import Game CSV</h3>
+        <p>Upload a CSV with columns: <strong>Player</strong>, <strong>1st</strong>, <strong>2nd</strong>,
+            <strong>3rd</strong>, <strong>4th</strong>, <strong>5th</strong>, <strong>6th</strong>, <strong>Lineup</strong>.
+            The Lineup column should contain the batting order as comma-separated player names.
+            Players will be created if they don't already exist.</p>
+        <div class="import-date-row">
+            <label>Game date:</label>
+            <input type="date" id="csv-import-date" class="date-input">
+        </div>
+        <div class="csv-drop-zone" id="csv-drop-zone"
+            onclick="document.getElementById('csv-file-input').click()"
+            ondragover="csvDragOver(event)" ondragleave="csvDragLeave(event)" ondrop="csvDrop(event)">
+            <div class="drop-icon">📄</div>
+            <p>Click to select a CSV file, or drag and drop here</p>
+        </div>
+        <input type="file" id="csv-file-input" accept=".csv" style="display:none" onchange="csvFileSelected(event)">
+        <div id="csv-preview" class="csv-preview" style="display:none"></div>
+        <div id="csv-error" style="display:none; color: #e84a38; font-size:0.85em; margin-top:8px;"></div>
+        <div class="modal-actions">
+            <button class="btn btn-secondary" onclick="closeCsvModal()">Cancel</button>
+            <button class="btn btn-primary" id="csv-import-btn" onclick="runCsvImport()" disabled>Import</button>
+        </div>
+    </div>
+</div>
+
+<!-- Toast -->
+<div id="toast"></div>
+
+<script>
+// ===== CONSTANTS =====
+const POSITIONS_10 = ['P','C','1B','2B','3B','SS','LF','LCF','RCF','RF'];
+const POSITIONS_9  = ['P','C','1B','2B','3B','SS','LF','CF','RF'];
+const PREMIUM      = new Set(['P','C','1B','2B','3B','SS']);
+
+// ===== FIREBASE =====
+firebase.initializeApp({
+    apiKey: "AIzaSyBDri9nhtGpCjQFLT6i30Unn-GsZCi_IB4",
+    authDomain: "cook-timer-69256.firebaseapp.com",
+    projectId: "cook-timer-69256",
+    storageBucket: "cook-timer-69256.firebasestorage.app",
+    messagingSenderId: "207322185688",
+    appId: "1:207322185688:web:92edf8b87f61abee85bcad"
+});
+const auth = firebase.auth();
+const db   = firebase.firestore();
+
+// ===== STATE =====
+const S = {
+    user: null,
+    players: [],   // [{id, name, canPitch, canCatch, active}]
+    games:   [],   // [{id, date, attendees, rotFreq, battingOrder, inningAssignments, savedAt}]
+    view: 'roster',
+    rotFreq: 1,
+    game: null     // active working game (not yet saved)
+    // game: { date, attendees:[pid], rotFreq, totalInnings,
+    //         battingOrder:[{playerId,slot,locked}],
+    //         rotation:[{group,inningLabel,positions:{POS:pid},bench:[pid]}],
+    //         lockedBatting:{pid:slot}, lockedPositions:{'G_POS':true} }
+};
+
+// ===== FIRESTORE REFS =====
+function playersRef() { return db.collection('users').doc(S.user.uid).collection('lineup_players'); }
+function gamesRef()   { return db.collection('users').doc(S.user.uid).collection('lineup_games');   }
+
+// ===== UTILITIES =====
+function todayISO() {
+    return new Date().toISOString().split('T')[0];
+}
+
+function formatDate(iso) {
+    if (!iso) return '—';
+    const [y, m, d] = iso.split('-');
+    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    return `${months[+m - 1]} ${+d}, ${y}`;
+}
+
+function playerName(pid) {
+    const p = S.players.find(pl => pl.id === pid);
+    return p ? p.name : '—';
+}
+
+function playerFirstName(pid) {
+    const name = playerName(pid);
+    return name.split(' ')[0];
+}
+
+function showToast(msg, type = '') {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.className = type ? `show ${type}` : 'show';
+    clearTimeout(t._timer);
+    t._timer = setTimeout(() => { t.className = ''; }, 2800);
+}
+
+function shuffle(arr) {
+    for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
+}
+
+// Pick from front of sorted array with bias toward lower indices
+function weightedPick(arr, frontBias = 0.65) {
+    if (!arr.length) return null;
+    if (arr.length === 1) return arr[0];
+    return Math.random() < frontBias
+        ? arr[0]
+        : arr[Math.floor(1 + Math.random() * (arr.length - 1))];
+}
+
+// ===== DATA LOADING =====
+async function loadData() {
+    const [pSnap, gSnap] = await Promise.all([
+        playersRef().orderBy('name').get(),
+        gamesRef().orderBy('date', 'desc').get()
+    ]);
+    S.players = pSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+    S.games   = gSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+    renderCurrentView();
+}
+
+// ===== NAVIGATION =====
+function showView(name) {
+    S.view = name;
+    document.querySelectorAll('.nav-tab').forEach((btn, i) => {
+        btn.classList.toggle('active', ['roster','setup','lineup','history'][i] === name);
+    });
+    document.getElementById('view-roster').style.display  = name === 'roster'  ? '' : 'none';
+    document.getElementById('view-setup').style.display   = name === 'setup'   ? '' : 'none';
+    document.getElementById('view-lineup').style.display  = name === 'lineup'  ? '' : 'none';
+    document.getElementById('view-history').style.display = name === 'history' ? '' : 'none';
+
+    if (name === 'roster')  renderRoster();
+    if (name === 'setup')   renderSetup();
+    if (name === 'lineup')  renderLineup();
+    if (name === 'history') renderHistory();
+}
+
+function renderCurrentView() { showView(S.view); }
+
+// ===== ROSTER VIEW =====
+function renderRoster() {
+    const el = document.getElementById('roster-content');
+    const active = S.players.filter(p => p.active !== false);
+    const inactive = S.players.filter(p => p.active === false);
+    const all = [...active, ...inactive];
+
+    if (!all.length) {
+        el.innerHTML = `<div class="empty-state">
+            <div class="empty-icon">👩‍⚾</div>
+            <div>No players yet. Add players below or import a CSV.</div>
+        </div>`;
+        return;
+    }
+
+    el.innerHTML = `<table class="player-table">
+        <thead>
+            <tr>
+                <th>Player</th>
+                <th class="center">Pitcher</th>
+                <th class="center">Catcher</th>
+                <th class="center">Active</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            ${all.map(p => `
+            <tr class="player-row" data-pid="${p.id}">
+                <td>
+                    <input type="text" class="player-name-input" value="${escHtml(p.name)}"
+                        onchange="updatePlayerName('${p.id}', this.value)"
+                        onblur="updatePlayerName('${p.id}', this.value)">
+                </td>
+                <td class="td-center">
+                    <div class="toggle-wrap">
+                        <label class="toggle">
+                            <input type="checkbox" ${p.canPitch ? 'checked' : ''}
+                                onchange="updatePlayerField('${p.id}', 'canPitch', this.checked)">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                </td>
+                <td class="td-center">
+                    <div class="toggle-wrap">
+                        <label class="toggle">
+                            <input type="checkbox" ${p.canCatch ? 'checked' : ''}
+                                onchange="updatePlayerField('${p.id}', 'canCatch', this.checked)">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                </td>
+                <td class="td-center">
+                    <div class="toggle-wrap">
+                        <label class="toggle">
+                            <input type="checkbox" ${p.active !== false ? 'checked' : ''}
+                                onchange="updatePlayerField('${p.id}', 'active', this.checked)">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                </td>
+                <td>
+                    <button class="btn btn-danger" onclick="deletePlayer('${p.id}')">✕</button>
+                </td>
+            </tr>`).join('')}
+        </tbody>
+    </table>`;
+}
+
+function escHtml(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function focusAddPlayer() {
+    document.getElementById('new-player-input').focus();
+}
+
+async function addPlayer() {
+    const input = document.getElementById('new-player-input');
+    const name = input.value.trim();
+    if (!name) return;
+    try {
+        const ref = await playersRef().add({ name, canPitch: false, canCatch: false, active: true });
+        S.players.push({ id: ref.id, name, canPitch: false, canCatch: false, active: true });
+        S.players.sort((a, b) => a.name.localeCompare(b.name));
+        input.value = '';
+        renderRoster();
+        showToast(`Added ${name}`);
+    } catch (e) {
+        showToast('Error adding player', 'error');
+    }
+}
+
+async function updatePlayerName(id, name) {
+    name = name.trim();
+    if (!name) return;
+    const p = S.players.find(pl => pl.id === id);
+    if (!p || p.name === name) return;
+    p.name = name;
+    await playersRef().doc(id).update({ name });
+}
+
+async function updatePlayerField(id, field, value) {
+    const p = S.players.find(pl => pl.id === id);
+    if (!p) return;
+    p[field] = value;
+    await playersRef().doc(id).update({ [field]: value });
+}
+
+async function deletePlayer(id) {
+    const p = S.players.find(pl => pl.id === id);
+    if (!p) return;
+    if (!confirm(`Remove ${p.name} from the roster?`)) return;
+    await playersRef().doc(id).delete();
+    S.players = S.players.filter(pl => pl.id !== id);
+    renderRoster();
+    showToast(`Removed ${p.name}`);
+}
+
+// ===== CSV IMPORT =====
+let csvParsed = null;
+
+function openCsvModal() {
+    csvParsed = null;
+    document.getElementById('csv-preview').style.display = 'none';
+    document.getElementById('csv-error').style.display = 'none';
+    document.getElementById('csv-import-btn').disabled = true;
+    document.getElementById('csv-import-date').value = todayISO();
+    document.getElementById('csv-file-input').value = '';
+    document.getElementById('csv-modal').classList.add('open');
+}
+
+function closeCsvModal() {
+    document.getElementById('csv-modal').classList.remove('open');
+}
+
+function csvDragOver(e) {
+    e.preventDefault();
+    document.getElementById('csv-drop-zone').classList.add('drag-over');
+}
+
+function csvDragLeave() {
+    document.getElementById('csv-drop-zone').classList.remove('drag-over');
+}
+
+function csvDrop(e) {
+    e.preventDefault();
+    csvDragLeave();
+    const file = e.dataTransfer.files[0];
+    if (file) readCsvFile(file);
+}
+
+function csvFileSelected(e) {
+    const file = e.target.files[0];
+    if (file) readCsvFile(file);
+}
+
+function readCsvFile(file) {
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        const text = e.target.result;
+        try {
+            csvParsed = parseCsv(text);
+            const preview = document.getElementById('csv-preview');
+            preview.style.display = 'block';
+            preview.textContent = `Found ${csvParsed.players.length} players, ${csvParsed.innings} innings played.`;
+            document.getElementById('csv-error').style.display = 'none';
+            document.getElementById('csv-import-btn').disabled = false;
+        } catch (err) {
+            const errEl = document.getElementById('csv-error');
+            errEl.textContent = 'Could not parse CSV: ' + err.message;
+            errEl.style.display = 'block';
+            document.getElementById('csv-preview').style.display = 'none';
+            document.getElementById('csv-import-btn').disabled = true;
+            csvParsed = null;
+        }
+    };
+    reader.readAsText(file);
+}
+
+function parseCsv(text) {
+    const lines = text.trim().split(/\r?\n/);
+    if (lines.length < 2) throw new Error('File is empty or has only headers.');
+
+    // Parse header
+    const header = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g, '').toLowerCase());
+    const playerIdx = header.findIndex(h => h === 'player');
+    if (playerIdx < 0) throw new Error('Missing "Player" column.');
+
+    const lineupIdx = header.findIndex(h => h === 'lineup');
+    const inningCols = ['1st','2nd','3rd','4th','5th','6th'].map(n => ({
+        name: n, idx: header.findIndex(h => h === n)
+    })).filter(c => c.idx >= 0);
+
+    if (!inningCols.length) throw new Error('No inning columns found (1st, 2nd, etc.).');
+
+    const rows = [];
+    let lineupStr = '';
+
+    for (let i = 1; i < lines.length; i++) {
+        const raw = lines[i];
+        if (!raw.trim()) continue;
+        // Simple CSV split: handle quoted fields with commas
+        const cols = splitCsvRow(raw);
+        const name = cols[playerIdx]?.trim().replace(/^"|"$/g, '');
+        if (!name) continue;
+
+        const innings = {};
+        for (const col of inningCols) {
+            const val = cols[col.idx]?.trim().replace(/^"|"$/g, '').toUpperCase();
+            if (val) innings[col.name] = val;
+        }
+
+        if (lineupIdx >= 0 && !lineupStr) {
+            const lv = cols[lineupIdx]?.trim().replace(/^"|"$/g, '');
+            if (lv && lv.includes(',')) lineupStr = lv;
+        }
+
+        rows.push({ name, innings });
+    }
+
+    if (!rows.length) throw new Error('No player rows found.');
+
+    // Build batting order from lineup string
+    const battingOrder = {};
+    if (lineupStr) {
+        const names = lineupStr.split(',').map(n => n.trim()).filter(Boolean);
+        names.forEach((n, i) => { battingOrder[n.toLowerCase()] = i + 1; });
+    } else {
+        // Fallback: use row order as batting order
+        rows.forEach((r, i) => { battingOrder[r.name.toLowerCase()] = i + 1; });
+    }
+
+    return {
+        players: rows.map(r => r.name),
+        rows,
+        battingOrder,
+        innings: inningCols.length
+    };
+}
+
+function splitCsvRow(row) {
+    const result = [];
+    let cur = '', inQ = false;
+    for (let i = 0; i < row.length; i++) {
+        const ch = row[i];
+        if (ch === '"') { inQ = !inQ; }
+        else if (ch === ',' && !inQ) { result.push(cur); cur = ''; }
+        else { cur += ch; }
+    }
+    result.push(cur);
+    return result;
+}
+
+async function runCsvImport() {
+    if (!csvParsed) return;
+    const date = document.getElementById('csv-import-date').value || todayISO();
+    document.getElementById('csv-import-btn').disabled = true;
+    document.getElementById('csv-import-btn').textContent = 'Importing...';
+
+    try {
+        // Upsert players
+        const playerIdMap = {}; // name.lower → id
+        for (const p of S.players) {
+            playerIdMap[p.name.toLowerCase()] = p.id;
+        }
+
+        for (const name of csvParsed.players) {
+            const key = name.toLowerCase();
+            if (!playerIdMap[key]) {
+                const ref = await playersRef().add({ name, canPitch: false, canCatch: false, active: true });
+                S.players.push({ id: ref.id, name, canPitch: false, canCatch: false, active: true });
+                playerIdMap[key] = ref.id;
+            }
+        }
+        S.players.sort((a, b) => a.name.localeCompare(b.name));
+
+        // Build batting order array
+        const battingOrder = csvParsed.players.map(name => {
+            const pid = playerIdMap[name.toLowerCase()];
+            const slot = csvParsed.battingOrder[name.toLowerCase()] ?? 99;
+            return { playerId: pid, slot };
+        }).filter(b => b.playerId).sort((a, b) => a.slot - b.slot)
+          .map((b, i) => ({ playerId: b.playerId, slot: i + 1 }));
+
+        const attendees = battingOrder.map(b => b.playerId);
+
+        // Build inning assignments
+        // The inning columns in csvParsed.rows represent each player's position per inning
+        // We need to invert: for each inning, which player played which position
+        const inningCols = ['1st','2nd','3rd','4th','5th','6th'];
+        const inningAssignments = [];
+
+        for (let i = 0; i < csvParsed.innings; i++) {
+            const col = inningCols[i];
+            const positions = {};
+            for (const row of csvParsed.rows) {
+                const pos = row.innings[col];
+                const pid = playerIdMap[row.name.toLowerCase()];
+                if (pos && pid) positions[pos] = pid;
+            }
+            inningAssignments.push({ inning: i + 1, positions });
+        }
+
+        // Save game to Firestore
+        const gameData = {
+            date,
+            attendees,
+            rotFreq: 1,
+            battingOrder,
+            inningAssignments,
+            savedAt: firebase.firestore.FieldValue.serverTimestamp()
+        };
+
+        const ref = await gamesRef().add(gameData);
+        S.games.unshift({ id: ref.id, ...gameData });
+
+        closeCsvModal();
+        renderRoster();
+        showToast(`Imported game from ${formatDate(date)} with ${csvParsed.players.length} players`, 'success');
+    } catch (e) {
+        console.error(e);
+        document.getElementById('csv-error').textContent = 'Import failed: ' + e.message;
+        document.getElementById('csv-error').style.display = 'block';
+        document.getElementById('csv-import-btn').disabled = false;
+        document.getElementById('csv-import-btn').textContent = 'Import';
+    }
+}
+
+// ===== SETUP VIEW =====
+function renderSetup() {
+    const activePlayers = S.players.filter(p => p.active !== false);
+    document.getElementById('setup-date').value = todayISO();
+
+    const grid = document.getElementById('attendance-grid');
+    if (!activePlayers.length) {
+        grid.innerHTML = '<div class="text-muted text-sm">No active players. Add players in the Roster tab first.</div>';
+        updateAttendanceCount();
+        return;
+    }
+
+    // Pre-check all active players by default
+    grid.innerHTML = activePlayers.map(p => `
+        <label class="attendance-item checked" id="att-${p.id}">
+            <input type="checkbox" checked onchange="toggleAttendee('${p.id}', this.checked)">
+            <span class="attendance-name">${escHtml(p.name)}</span>
+        </label>
+    `).join('');
+
+    // Store current attendees in a set
+    window._attendees = new Set(activePlayers.map(p => p.id));
+    updateAttendanceCount();
+}
+
+function toggleAttendee(pid, checked) {
+    if (!window._attendees) window._attendees = new Set();
+    if (checked) window._attendees.add(pid);
+    else window._attendees.delete(pid);
+
+    const label = document.getElementById('att-' + pid);
+    if (label) label.classList.toggle('checked', checked);
+    updateAttendanceCount();
+}
+
+function updateAttendanceCount() {
+    const n = window._attendees ? window._attendees.size : 0;
+    const total = S.players.filter(p => p.active !== false).length;
+    const el = document.getElementById('attendance-count');
+    if (!el) return;
+    el.innerHTML = `<span class="count-num">${n}</span> of ${total} players attending`;
+
+    const genBtn = document.getElementById('generate-btn');
+    if (genBtn) genBtn.disabled = n < 2;
+}
+
+function setRotFreq(v) {
+    S.rotFreq = v;
+    document.getElementById('rot-1').classList.toggle('active', v === 1);
+    document.getElementById('rot-2').classList.toggle('active', v === 2);
+}
+
+// ===== ALGORITHM: BATTING ORDER =====
+function generateBattingOrder(attendeeIds) {
+    const n = attendeeIds.length;
+
+    const scored = attendeeIds.map(pid => {
+        const slots = S.games
+            .map(g => g.battingOrder?.find(b => b.playerId === pid)?.slot)
+            .filter(s => s != null);
+        // Players with no history get a neutral 50th-percentile score
+        const avg = slots.length ? slots.reduce((a, b) => a + b, 0) / slots.length : (n + 1) / 2;
+        return { pid, avg };
+    });
+
+    // Sort descending: high historical avg (batted near bottom) → gets top slot now
+    scored.sort((a, b) => b.avg - a.avg);
+
+    // Add noise: do ~n/2 random neighboring swaps
+    const swaps = Math.ceil(n * 0.5);
+    for (let i = 0; i < swaps; i++) {
+        const idx = Math.floor(Math.random() * (n - 1));
+        [scored[idx], scored[idx + 1]] = [scored[idx + 1], scored[idx]];
+    }
+
+    return scored.map((s, i) => ({ playerId: s.pid, slot: i + 1, locked: false }));
+}
+
+// ===== ALGORITHM: BENCH PLANNING =====
+function planBench(attendeeIds, numGroups, benchPerGroup) {
+    if (benchPerGroup === 0) return attendeeIds.map ? Array(numGroups).fill([]) : Array(numGroups).fill([]);
+    const plan = Array.from({ length: numGroups }, () => []);
+    const benchCount = {};
+    attendeeIds.forEach(pid => { benchCount[pid] = 0; });
+
+    for (let g = 0; g < numGroups; g++) {
+        const prevBenched = g > 0 ? plan[g - 1] : [];
+        // Eligible = not benched in previous group
+        const eligible = attendeeIds.filter(pid => !prevBenched.includes(pid));
+        // Sort by least total bench time, then shuffle ties
+        eligible.sort((a, b) => benchCount[a] - benchCount[b]);
+
+        const selected = [];
+        for (let i = 0; i < benchPerGroup && i < eligible.length; i++) {
+            selected.push(eligible[i]);
+        }
+        plan[g] = selected;
+        selected.forEach(pid => { benchCount[pid]++; });
+    }
+    return plan;
+}
+
+// ===== ALGORITHM: DEFENSIVE ROTATION =====
+function generateDefensiveRotation(attendeeIds, rotFreq, totalInnings, lockedPositions) {
+    const n = attendeeIds.length;
+    const posCount = n >= 10 ? 10 : 9;
+    const allPositions = posCount === 10 ? POSITIONS_10 : POSITIONS_9;
+    const numGroups = Math.ceil(totalInnings / rotFreq);
+    const benchPerGroup = Math.max(0, n - posCount);
+
+    // Historical premium rate per player (% of attended innings in premium positions)
+    const histRate = {};
+    for (const pid of attendeeIds) {
+        let total = 0, prem = 0;
+        for (const game of S.games) {
+            if (!game.attendees?.includes(pid)) continue;
+            for (const inning of game.inningAssignments || []) {
+                const entry = Object.entries(inning.positions || {}).find(([, id]) => id === pid);
+                if (entry) {
+                    total++;
+                    if (PREMIUM.has(entry[0])) prem++;
+                }
+            }
+        }
+        histRate[pid] = total > 0 ? prem / total : 0.5;
+    }
+
+    const benchPlan = planBench(attendeeIds, numGroups, benchPerGroup);
+    const rotation = [];
+    // Track premium innings earned in this game to spread evenly
+    const inGamePrem = {};
+    attendeeIds.forEach(pid => { inGamePrem[pid] = 0; });
+
+    for (let g = 0; g < numGroups; g++) {
+        const groupNum = g + 1;
+        const benched = benchPlan[g];
+        const available = attendeeIds.filter(pid => !benched.includes(pid));
+        const positionsAssigned = {};
+        const used = new Set();
+
+        // Apply locked positions for this group first
+        for (const pos of allPositions) {
+            const key = `${groupNum}_${pos}`;
+            if (lockedPositions[key]) {
+                const lockedPid = lockedPositions[key];
+                if (available.includes(lockedPid) && !used.has(lockedPid)) {
+                    positionsAssigned[pos] = lockedPid;
+                    used.add(lockedPid);
+                    if (PREMIUM.has(pos)) inGamePrem[lockedPid]++;
+                }
+            }
+        }
+
+        // Composite score: lower = more deserving of premium this group
+        // Combines historical rate + within-game balance
+        const score = pid => histRate[pid] + (inGamePrem[pid] / (numGroups + 1));
+
+        // Sort available-and-unused by score ascending (lowest = needs premium most)
+        const sortedFree = available.filter(pid => !used.has(pid)).sort((a, b) => score(a) - score(b));
+
+        const take = () => {
+            // Re-sort since inGamePrem changes after each pick
+            sortedFree.sort((a, b) => score(a) - score(b));
+            const pool = sortedFree.filter(pid => !used.has(pid));
+            const pick = weightedPick(pool, 0.65);
+            if (pick) used.add(pick);
+            return pick;
+        };
+
+        // Pitcher
+        if (!positionsAssigned['P']) {
+            const candidates = sortedFree.filter(pid => !used.has(pid) && S.players.find(pl => pl.id === pid)?.canPitch);
+            const pick = candidates.length ? weightedPick(candidates.sort((a,b) => score(a)-score(b)), 0.65) : take();
+            if (pick) {
+                positionsAssigned['P'] = pick;
+                used.add(pick);
+                inGamePrem[pick]++;
+            }
+        }
+
+        // Catcher
+        if (!positionsAssigned['C']) {
+            const candidates = sortedFree.filter(pid => !used.has(pid) && S.players.find(pl => pl.id === pid)?.canCatch);
+            const pick = candidates.length ? weightedPick(candidates.sort((a,b) => score(a)-score(b)), 0.65) : take();
+            if (pick) {
+                positionsAssigned['C'] = pick;
+                used.add(pick);
+                inGamePrem[pick]++;
+            }
+        }
+
+        // Remaining infield
+        for (const pos of ['1B','2B','3B','SS']) {
+            if (!positionsAssigned[pos]) {
+                const pick = take();
+                if (pick) {
+                    positionsAssigned[pos] = pick;
+                    inGamePrem[pick]++;
+                }
+            }
+        }
+
+        // Outfield (prefer players with higher hist rate — they've had more premium already)
+        const outfieldPositions = allPositions.filter(p => !PREMIUM.has(p));
+        for (const pos of outfieldPositions) {
+            if (!positionsAssigned[pos]) {
+                const remaining = available.filter(pid => !used.has(pid));
+                // Reverse priority: high hist rate → outfield
+                remaining.sort((a, b) => histRate[b] - histRate[a]);
+                const pick = remaining.length ? remaining[Math.floor(Math.random() * Math.min(2, remaining.length))] : null;
+                if (pick) {
+                    positionsAssigned[pos] = pick;
+                    used.add(pick);
+                }
+            }
+        }
+
+        const startInning = g * rotFreq + 1;
+        const endInning   = Math.min(startInning + rotFreq - 1, totalInnings);
+        const inningLabel = startInning === endInning
+            ? `Inn. ${startInning}`
+            : `Inn. ${startInning}–${endInning}`;
+
+        rotation.push({ group: groupNum, inningLabel, positions: positionsAssigned, bench: benched });
+    }
+
+    return rotation;
+}
+
+// ===== GENERATE LINEUP =====
+function generateLineup() {
+    if (!window._attendees || window._attendees.size < 2) {
+        showToast('Select at least 2 players', 'error');
+        return;
+    }
+
+    const date        = document.getElementById('setup-date').value || todayISO();
+    const totalInnings = parseInt(document.getElementById('setup-innings').value) || 6;
+    const attendees   = [...window._attendees];
+
+    const battingOrder   = generateBattingOrder(attendees);
+    const rotation       = generateDefensiveRotation(attendees, S.rotFreq, totalInnings, {});
+
+    S.game = {
+        id: null,
+        date,
+        attendees,
+        rotFreq: S.rotFreq,
+        totalInnings,
+        battingOrder,
+        rotation,
+        lockedBatting: {},
+        lockedPositions: {}
+    };
+
+    showView('lineup');
+}
+
+// ===== RE-ROLL =====
+function rerollAll() {
+    if (!S.game) return;
+    S.game.lockedBatting   = {};
+    S.game.lockedPositions = {};
+    S.game.battingOrder = generateBattingOrder(S.game.attendees);
+    S.game.rotation     = generateDefensiveRotation(S.game.attendees, S.game.rotFreq, S.game.totalInnings, {});
+    renderLineup();
+}
+
+function rerollUnlocked() {
+    if (!S.game) return;
+
+    // Batting: keep locked slots, regenerate the rest
+    const lockedSlots = S.game.battingOrder.filter(b => S.game.lockedBatting[b.playerId]);
+    const lockedSlotNums = new Set(lockedSlots.map(b => b.slot));
+    const unlockedIds = S.game.battingOrder.filter(b => !S.game.lockedBatting[b.playerId]).map(b => b.playerId);
+
+    if (unlockedIds.length > 1) {
+        const newOrder = generateBattingOrder(unlockedIds);
+        // Available slot numbers = all slots not locked
+        const availableSlots = S.game.battingOrder
+            .map(b => b.slot)
+            .filter(s => !lockedSlotNums.has(s))
+            .sort((a, b) => a - b);
+
+        // Build new batting order preserving locked entries
+        const newBatting = [...lockedSlots];
+        newOrder.forEach((entry, i) => {
+            newBatting.push({ playerId: entry.playerId, slot: availableSlots[i] ?? i + 1, locked: false });
+        });
+        newBatting.sort((a, b) => a.slot - b.slot);
+        S.game.battingOrder = newBatting;
+    }
+
+    // Rotation: keep locked position cells, regenerate rest
+    const newRotation = generateDefensiveRotation(S.game.attendees, S.game.rotFreq, S.game.totalInnings, S.game.lockedPositions);
+
+    // Merge: for each group/pos that is locked, use the locked value; otherwise use new
+    for (let g = 0; g < S.game.rotation.length; g++) {
+        if (!newRotation[g]) continue;
+        const groupNum = S.game.rotation[g].group;
+        for (const pos of Object.keys(newRotation[g].positions)) {
+            const key = `${groupNum}_${pos}`;
+            if (!S.game.lockedPositions[key]) {
+                S.game.rotation[g].positions[pos] = newRotation[g].positions[pos];
+            }
+        }
+        // Bench is not lockable; always take from new rotation
+        S.game.rotation[g].bench = newRotation[g].bench;
+    }
+
+    renderLineup();
+}
+
+// ===== LINEUP VIEW =====
+function renderLineup() {
+    if (!S.game) {
+        document.getElementById('view-lineup').innerHTML =
+            '<div class="empty-state"><div class="empty-icon">📋</div>No lineup generated yet. Go to New Game to generate one.</div>';
+        return;
+    }
+
+    document.getElementById('lineup-date-label').textContent = formatDate(S.game.date);
+    renderWarnings();
+    renderBattingList();
+    renderRotationGrid();
+    renderPremiumStats();
+}
+
+function renderWarnings() {
+    const el = document.getElementById('lineup-warnings');
+    const warnings = [];
+    const hasNoPitchers = S.game.attendees.every(pid => !S.players.find(p => p.id === pid)?.canPitch);
+    const hasNoCatchers = S.game.attendees.every(pid => !S.players.find(p => p.id === pid)?.canCatch);
+    if (hasNoPitchers) warnings.push('No players are designated as pitchers. The P position will be filled by any player.');
+    if (hasNoCatchers) warnings.push('No players are designated as catchers. The C position will be filled by any player.');
+    el.innerHTML = warnings.map(w => `<div class="warning-banner">${w}</div>`).join('');
+}
+
+function renderBattingList() {
+    const list = document.getElementById('batting-list');
+    list.innerHTML = S.game.battingOrder.map(b => {
+        const locked = !!S.game.lockedBatting[b.playerId];
+        return `<div class="batting-row ${locked ? 'locked' : ''}" id="br-${b.playerId}"
+            draggable="true"
+            data-type="batting" data-pid="${b.playerId}" data-slot="${b.slot}"
+            ondragstart="battleDragStart(event)"
+            ondragover="battingDragOver(event)"
+            ondragleave="battingDragLeave(event)"
+            ondrop="battingDrop(event)">
+            <span class="batting-slot">${b.slot}.</span>
+            <span class="batting-name">${escHtml(playerName(b.playerId))}</span>
+            <button class="btn-icon ${locked ? 'locked' : ''}" title="${locked ? 'Unlock' : 'Lock'} batting slot"
+                onclick="toggleLockBatting('${b.playerId}')">
+                ${locked ? '🔒' : '🔓'}
+            </button>
+        </div>`;
+    }).join('');
+}
+
+function renderRotationGrid() {
+    const el = document.getElementById('rotation-grid');
+    if (!S.game.rotation.length) { el.innerHTML = ''; return; }
+
+    const sample = S.game.rotation[0];
+    const positions = Object.keys(sample.positions);
+
+    const headerCols = positions.map(p => `<th class="${PREMIUM.has(p) ? 'premium-header' : ''}">${p}</th>`).join('');
+    const hasBench = S.game.rotation.some(r => r.bench?.length > 0);
+
+    const rows = S.game.rotation.map(r => {
+        const cells = positions.map(pos => {
+            const pid = r.positions[pos];
+            const key = `${r.group}_${pos}`;
+            const locked = !!S.game.lockedPositions[key];
+            const isPrem = PREMIUM.has(pos);
+            return `<td>
+                <div class="pos-cell ${isPrem ? 'premium' : ''} ${locked ? 'locked' : ''}" id="pc-${key}"
+                    draggable="true"
+                    data-type="grid" data-group="${r.group}" data-pos="${pos}" data-pid="${pid || ''}"
+                    ondragstart="gridDragStart(event)"
+                    ondragover="gridDragOver(event)"
+                    ondragleave="gridDragLeave(event)"
+                    ondrop="gridDrop(event)">
+                    <span class="pos-name">${pid ? escHtml(playerFirstName(pid)) : '—'}</span>
+                    <button class="btn-icon ${locked ? 'locked' : ''}" title="${locked ? 'Unlock' : 'Lock'} position"
+                        onclick="toggleLockPosition('${r.group}','${pos}')">
+                        ${locked ? '🔒' : '🔓'}
+                    </button>
+                </div>
+            </td>`;
+        }).join('');
+
+        const benchHtml = r.bench?.length
+            ? r.bench.map(pid => `<span class="bench-chip">${escHtml(playerFirstName(pid))}</span>`).join('')
+            : '';
+
+        return `<tr>
+            <td class="inning-label">${r.inningLabel}</td>
+            ${cells}
+            ${hasBench ? `<td><div class="bench-cell">${benchHtml}</div></td>` : ''}
+        </tr>`;
+    }).join('');
+
+    el.innerHTML = `<table class="rotation-table">
+        <thead>
+            <tr>
+                <th class="inning-header"></th>
+                ${headerCols}
+                ${hasBench ? '<th>Bench</th>' : ''}
+            </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+    </table>`;
+}
+
+function renderPremiumStats() {
+    const el = document.getElementById('premium-stats');
+    if (!S.game || !S.game.rotation.length) { el.innerHTML = ''; return; }
+
+    const stats = {};
+    S.game.attendees.forEach(pid => { stats[pid] = { prem: 0, total: 0, bench: 0 }; });
+
+    for (const r of S.game.rotation) {
+        for (const [pos, pid] of Object.entries(r.positions)) {
+            if (!stats[pid]) continue;
+            stats[pid].total++;
+            if (PREMIUM.has(pos)) stats[pid].prem++;
+        }
+        for (const pid of (r.bench || [])) {
+            if (stats[pid]) stats[pid].bench++;
+        }
+    }
+
+    const rows = S.game.attendees
+        .map(pid => ({ pid, ...stats[pid] }))
+        .sort((a, b) => playerName(a.pid).localeCompare(playerName(b.pid)))
+        .map(s => {
+            const pct = s.total > 0 ? Math.round((s.prem / s.total) * 100) : 0;
+            return `<tr>
+                <td class="stat-name">${escHtml(playerName(s.pid))}</td>
+                <td class="stat-highlight">${s.prem}</td>
+                <td>${s.total - s.prem}</td>
+                <td>${s.bench > 0 ? s.bench : '—'}</td>
+                <td>${pct}%</td>
+            </tr>`;
+        }).join('');
+
+    el.innerHTML = `<h3 style="margin-top:24px">This Game — Position Summary</h3>
+    <table class="stats-table">
+        <thead><tr>
+            <th>Player</th>
+            <th>Infield / P / C</th>
+            <th>Outfield</th>
+            <th>Bench</th>
+            <th>% Premium</th>
+        </tr></thead>
+        <tbody>${rows}</tbody>
+    </table>`;
+}
+
+// ===== LOCK TOGGLES =====
+function toggleLockBatting(pid) {
+    if (!S.game) return;
+    if (S.game.lockedBatting[pid]) delete S.game.lockedBatting[pid];
+    else {
+        const entry = S.game.battingOrder.find(b => b.playerId === pid);
+        if (entry) S.game.lockedBatting[pid] = entry.slot;
+    }
+    renderBattingList();
+}
+
+function toggleLockPosition(group, pos) {
+    if (!S.game) return;
+    const key = `${group}_${pos}`;
+    if (S.game.lockedPositions[key]) {
+        delete S.game.lockedPositions[key];
+    } else {
+        const r = S.game.rotation.find(r => r.group === +group);
+        if (r && r.positions[pos]) S.game.lockedPositions[key] = r.positions[pos]; // store pid
+    }
+    renderRotationGrid();
+}
+
+// ===== DRAG AND DROP — BATTING =====
+let dragBatting = null;
+
+function battleDragStart(e) {
+    dragBatting = { pid: e.currentTarget.dataset.pid, slot: +e.currentTarget.dataset.slot };
+    e.currentTarget.classList.add('dragging');
+    e.dataTransfer.effectAllowed = 'move';
+}
+
+function battingDragOver(e) {
+    e.preventDefault();
+    e.currentTarget.classList.add('drag-over');
+}
+
+function battingDragLeave(e) {
+    e.currentTarget.classList.remove('drag-over');
+}
+
+function battingDrop(e) {
+    e.preventDefault();
+    e.currentTarget.classList.remove('drag-over');
+    if (!dragBatting || !S.game) return;
+    const targetPid  = e.currentTarget.dataset.pid;
+    const targetSlot = +e.currentTarget.dataset.slot;
+    if (targetPid === dragBatting.pid) return;
+
+    // Swap slots
+    const aEntry = S.game.battingOrder.find(b => b.playerId === dragBatting.pid);
+    const bEntry = S.game.battingOrder.find(b => b.playerId === targetPid);
+    if (!aEntry || !bEntry) return;
+
+    [aEntry.slot, bEntry.slot] = [bEntry.slot, aEntry.slot];
+    S.game.battingOrder.sort((a, b) => a.slot - b.slot);
+
+    // Lock both
+    S.game.lockedBatting[aEntry.playerId] = aEntry.slot;
+    S.game.lockedBatting[bEntry.playerId] = bEntry.slot;
+
+    dragBatting = null;
+    renderBattingList();
+}
+
+document.addEventListener('dragend', () => {
+    dragBatting = null;
+    document.querySelectorAll('.batting-row.dragging').forEach(el => el.classList.remove('dragging'));
+    document.querySelectorAll('.batting-row.drag-over').forEach(el => el.classList.remove('drag-over'));
+    document.querySelectorAll('.pos-cell.drag-over').forEach(el => el.classList.remove('drag-over'));
+});
+
+// ===== DRAG AND DROP — GRID =====
+let dragGrid = null;
+
+function gridDragStart(e) {
+    const el = e.currentTarget;
+    dragGrid = { group: +el.dataset.group, pos: el.dataset.pos, pid: el.dataset.pid };
+    el.classList.add('dragging');
+    e.dataTransfer.effectAllowed = 'move';
+}
+
+function gridDragOver(e) {
+    e.preventDefault();
+    e.currentTarget.classList.add('drag-over');
+}
+
+function gridDragLeave(e) {
+    e.currentTarget.classList.remove('drag-over');
+}
+
+function gridDrop(e) {
+    e.preventDefault();
+    e.currentTarget.classList.remove('drag-over');
+    if (!dragGrid || !S.game) return;
+
+    const el       = e.currentTarget;
+    const tGroup   = +el.dataset.group;
+    const tPos     = el.dataset.pos;
+    const tPid     = el.dataset.pid;
+
+    if (dragGrid.group === tGroup && dragGrid.pos === tPos) { dragGrid = null; return; }
+    if (dragGrid.group !== tGroup) { dragGrid = null; return; } // no cross-group swap
+
+    const r = S.game.rotation.find(r => r.group === tGroup);
+    if (!r) { dragGrid = null; return; }
+
+    // Swap
+    const srcPid = r.positions[dragGrid.pos];
+    const dstPid = r.positions[tPos];
+    r.positions[dragGrid.pos] = dstPid;
+    r.positions[tPos]         = srcPid;
+
+    // Lock both cells (store pid so the algorithm can respect them)
+    S.game.lockedPositions[`${tGroup}_${dragGrid.pos}`] = r.positions[dragGrid.pos] || '';
+    S.game.lockedPositions[`${tGroup}_${tPos}`]         = r.positions[tPos] || '';
+
+    dragGrid = null;
+    renderRotationGrid();
+    renderPremiumStats();
+}
+
+// ===== SAVE GAME =====
+async function saveGame() {
+    if (!S.game) return;
+    const btn = document.querySelector('.toolbar-right .btn-primary');
+    if (btn) { btn.disabled = true; btn.textContent = 'Saving…'; }
+
+    try {
+        // Flatten rotation to inningAssignments
+        const inningAssignments = [];
+        for (const r of S.game.rotation) {
+            const startInning = (r.group - 1) * S.game.rotFreq + 1;
+            const endInning   = Math.min(startInning + S.game.rotFreq - 1, S.game.totalInnings);
+            for (let inn = startInning; inn <= endInning; inn++) {
+                inningAssignments.push({ inning: inn, positions: { ...r.positions } });
+            }
+        }
+
+        const gameData = {
+            date: S.game.date,
+            attendees: S.game.attendees,
+            rotFreq: S.game.rotFreq,
+            battingOrder: S.game.battingOrder.map(b => ({ playerId: b.playerId, slot: b.slot })),
+            inningAssignments,
+            savedAt: firebase.firestore.FieldValue.serverTimestamp()
+        };
+
+        if (S.game.id) {
+            await gamesRef().doc(S.game.id).set(gameData);
+            const idx = S.games.findIndex(g => g.id === S.game.id);
+            if (idx >= 0) S.games[idx] = { id: S.game.id, ...gameData };
+        } else {
+            const ref = await gamesRef().add(gameData);
+            S.game.id = ref.id;
+            S.games.unshift({ id: ref.id, ...gameData });
+        }
+
+        showToast('Game saved!', 'success');
+    } catch (e) {
+        console.error(e);
+        showToast('Save failed: ' + e.message, 'error');
+    } finally {
+        if (btn) { btn.disabled = false; btn.textContent = 'Save Game'; }
+    }
+}
+
+// ===== CSV EXPORT =====
+function buildGameCsvRows(game) {
+    const rows = [];
+    const attendees = game.attendees || [];
+    const maxInning = Math.max(...(game.inningAssignments || []).map(i => i.inning), 0);
+
+    for (const pid of attendees) {
+        const battingEntry = game.battingOrder?.find(b => b.playerId === pid);
+        const slot = battingEntry?.slot ?? '—';
+        const innPositions = Array.from({ length: maxInning }, (_, i) => {
+            const inning = game.inningAssignments?.find(a => a.inning === i + 1);
+            if (!inning) return '—';
+            const posEntry = Object.entries(inning.positions || {}).find(([, id]) => id === pid);
+            return posEntry ? posEntry[0] : 'BENCH';
+        });
+        rows.push([game.date, playerName(pid), slot, ...innPositions]);
+    }
+    return rows;
+}
+
+function downloadCsv(filename, rows, headers) {
+    const csv = [headers, ...rows].map(r => r.join(',')).join('\n');
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(a.href);
+}
+
+function exportCurrentCSV() {
+    if (!S.game) { showToast('No lineup to export', 'error'); return; }
+    // Build a temporary game-like object from current state
+    const inningAssignments = [];
+    for (const r of S.game.rotation) {
+        const start = (r.group - 1) * S.game.rotFreq + 1;
+        const end   = Math.min(start + S.game.rotFreq - 1, S.game.totalInnings);
+        for (let inn = start; inn <= end; inn++) {
+            inningAssignments.push({ inning: inn, positions: { ...r.positions } });
+        }
+    }
+    const maxInning = S.game.totalInnings;
+    const headers = ['Date', 'Player', 'Batting Slot', ...Array.from({ length: maxInning }, (_, i) => `Inn. ${i + 1}`)];
+    const rows = buildGameCsvRows({ ...S.game, inningAssignments });
+    downloadCsv(`lineup-${S.game.date}.csv`, rows, headers);
+}
+
+function exportAllCSV() {
+    if (!S.games.length) { showToast('No saved games', 'error'); return; }
+    const maxInning = Math.max(...S.games.flatMap(g => (g.inningAssignments || []).map(i => i.inning)), 6);
+    const headers = ['Date', 'Player', 'Batting Slot', ...Array.from({ length: maxInning }, (_, i) => `Inn. ${i + 1}`)];
+    const rows = S.games.flatMap(g => buildGameCsvRows(g));
+    downloadCsv('lineup-history.csv', rows, headers);
+}
+
+// ===== HISTORY VIEW =====
+function renderHistory() {
+    const el = document.getElementById('history-content');
+    if (!S.games.length) {
+        el.innerHTML = `<div class="empty-state">
+            <div class="empty-icon">📅</div>
+            <div>No saved games yet. Generate and save a lineup to see history here.</div>
+        </div>`;
+        return;
+    }
+
+    el.innerHTML = S.games.map((game, i) => {
+        const n = game.attendees?.length ?? 0;
+        const maxInning = Math.max(...(game.inningAssignments || []).map(a => a.inning), 0);
+        return `<div class="game-card" id="gc-${i}">
+            <div class="game-card-header" id="gch-${i}" onclick="toggleGameCard(${i})">
+                <div class="game-meta">
+                    <div class="game-date">${formatDate(game.date)}</div>
+                    <div class="game-summary">${n} players · ${maxInning} innings</div>
+                </div>
+                <span class="game-chevron">▼</span>
+            </div>
+            <div class="game-detail" id="gd-${i}">
+                <div class="game-detail-toolbar">
+                    <button class="btn btn-secondary btn-sm" onclick="exportGameCSV(${i})">Export CSV</button>
+                </div>
+                ${renderHistoryDetail(game)}
+            </div>
+        </div>`;
+    }).join('');
+}
+
+function toggleGameCard(i) {
+    const header = document.getElementById('gch-' + i);
+    const detail = document.getElementById('gd-' + i);
+    const open   = detail.classList.contains('open');
+    detail.classList.toggle('open', !open);
+    header.classList.toggle('expanded', !open);
+}
+
+function exportGameCSV(i) {
+    const game = S.games[i];
+    if (!game) return;
+    const maxInning = Math.max(...(game.inningAssignments || []).map(a => a.inning), 0);
+    const headers = ['Date', 'Player', 'Batting Slot', ...Array.from({ length: maxInning }, (_, i) => `Inn. ${i + 1}`)];
+    const rows = buildGameCsvRows(game);
+    downloadCsv(`lineup-${game.date}.csv`, rows, headers);
+}
+
+function renderHistoryDetail(game) {
+    // Batting order
+    const battingHtml = (game.battingOrder || [])
+        .slice().sort((a, b) => a.slot - b.slot)
+        .map(b => `<div class="history-batting-item">
+            <span class="slot">${b.slot}.</span>
+            <span>${escHtml(playerName(b.playerId))}</span>
+        </div>`).join('');
+
+    // Position grid
+    const innings = game.inningAssignments || [];
+    if (!innings.length) {
+        return `<div class="history-batting">
+            <h3>Batting Order</h3>
+            <div class="history-batting-list">${battingHtml || '—'}</div>
+        </div>`;
+    }
+
+    const allPositions = innings.reduce((acc, inn) => {
+        Object.keys(inn.positions || {}).forEach(p => acc.add(p));
+        return acc;
+    }, new Set());
+    const sortedPositions = [...POSITIONS_10, ...POSITIONS_9].filter(p => allPositions.has(p));
+
+    const headerCols = sortedPositions.map(p => `<th class="${PREMIUM.has(p) ? 'premium-header' : ''}">${p}</th>`).join('');
+    const gridRows = innings.map(inn => {
+        const cells = sortedPositions.map(pos => {
+            const pid = inn.positions[pos];
+            return `<td style="padding:4px 6px; font-size:0.78em; text-align:center">
+                ${pid ? escHtml(playerFirstName(pid)) : '—'}
+            </td>`;
+        }).join('');
+        return `<tr>
+            <td class="inning-label" style="white-space:nowrap">Inn. ${inn.inning}</td>
+            ${cells}
+        </tr>`;
+    }).join('');
+
+    return `<div class="history-batting">
+        <h3>Batting Order</h3>
+        <div class="history-batting-list">${battingHtml || '—'}</div>
+    </div>
+    <div class="history-grid">
+        <h3>Defensive Assignments</h3>
+        <table class="rotation-table" style="font-size:0.82em">
+            <thead><tr><th class="inning-header"></th>${headerCols}</tr></thead>
+            <tbody>${gridRows}</tbody>
+        </table>
+    </div>`;
+}
+
+// ===== AUTH =====
+function signOut() {
+    auth.signOut().then(() => { window.location.href = '/'; });
+}
+
+// ===== INIT =====
+auth.onAuthStateChanged(function(user) {
+    if (!user) { window.location.href = '/'; return; }
+    S.user = user;
+    document.getElementById('nav-email').textContent = user.email;
+    document.getElementById('app').style.display = 'block';
+    loadData();
+});
+</script>
+</body>
+</html>
