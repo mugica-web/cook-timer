@@ -965,84 +965,18 @@ h3 {
 .baseball-diamond {
     position: relative;
     width: min(100%, 820px);
-    aspect-ratio: 1 / 0.72;
+    aspect-ratio: 949 / 735;
     min-height: 360px;
     margin: 0 auto;
     overflow: hidden;
     border: 1px solid #253225;
     border-radius: 8px;
-    background:
-        radial-gradient(ellipse at 50% 83%, rgba(180, 112, 48, 0.9) 0 8%, transparent 8.5%),
-        radial-gradient(ellipse at 50% 72%, #a96533 0 18%, transparent 18.5%),
-        radial-gradient(ellipse at 50% 100%, #b8743c 0 24%, transparent 24.5%),
-        linear-gradient(180deg, #1d5a38 0%, #16462e 55%, #123322 100%);
-    box-shadow: inset 0 0 60px rgba(0,0,0,0.35);
-}
-
-.outfield-arc {
-    position: absolute;
-    left: 6%;
-    right: 6%;
-    top: 6%;
-    height: 44%;
-    border-top: 2px solid rgba(232, 232, 232, 0.16);
-    border-radius: 50% 50% 0 0;
-}
-
-.infield-dirt {
-    position: absolute;
-    left: 50%;
-    top: 63%;
-    width: 34%;
-    aspect-ratio: 1;
-    background: #a96533;
-    border: 2px solid rgba(255,255,255,0.12);
-    border-radius: 10px;
-    transform: translate(-50%, -50%) rotate(45deg);
-    box-shadow: 0 4px 20px rgba(0,0,0,0.2);
-}
-
-.base {
-    position: absolute;
-    width: 12px;
-    height: 12px;
-    background: #eee7d5;
-    border: 1px solid rgba(0,0,0,0.18);
-    transform: translate(-50%, -50%) rotate(45deg);
-    z-index: 2;
-}
-
-.home-base {
-    left: 50%;
-    top: 82%;
-}
-
-.first-base {
-    left: 63%;
-    top: 63%;
-}
-
-.second-base {
-    left: 50%;
-    top: 44%;
-}
-
-.third-base {
-    left: 37%;
-    top: 63%;
-}
-
-.pitcher-circle {
-    position: absolute;
-    left: 50%;
-    top: 57%;
-    width: 56px;
-    height: 56px;
-    border: 2px solid rgba(255,255,255,0.14);
-    border-radius: 50%;
-    background: rgba(169, 101, 51, 0.85);
-    transform: translate(-50%, -50%);
-    z-index: 2;
+    background-color: #133522;
+    background-image: url('/static/baseball-diamond.svg');
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: 100% 100%;
+    box-shadow: 0 14px 36px rgba(0,0,0,0.28);
 }
 
 .diamond-player {
@@ -1266,8 +1200,8 @@ h3 {
     .toolbar-right { gap: 6px; }
 
     .baseball-diamond {
-        aspect-ratio: 1 / 0.92;
-        min-height: 430px;
+        aspect-ratio: 949 / 735;
+        min-height: 330px;
     }
 
     .diamond-player {

@@ -762,10 +762,17 @@ function generateDefensiveRotation(attendeeIds, rotFreq, totalInnings, lockedPos
     const benchPlan = planBench(attendeeIds, numGroups, benchPerGroup);
     const rotation = [];
     const inGamePrem = {};
-    attendeeIds.forEach(pid => { inGamePrem[pid] = 0; });
+    const inGameCatcher = {};
+    attendeeIds.forEach(pid => {
+        inGamePrem[pid] = 0;
+        inGameCatcher[pid] = 0;
+    });
 
     for (let g = 0; g < numGroups; g++) {
         const groupNum = g + 1;
+        const startInning = g * rotFreq + 1;
+        const endInning   = Math.min(startInning + rotFreq - 1, totalInnings);
+        const inningCount = endInning - startInning + 1;
         const benched = benchPlan[g];
         const available = attendeeIds.filter(pid => !benched.includes(pid));
         const positionsAssigned = {};
@@ -782,44 +789,52 @@ function generateDefensiveRotation(attendeeIds, rotFreq, totalInnings, lockedPos
                 if (available.includes(lockedPid) && !used.has(lockedPid)) {
                     positionsAssigned[pos] = lockedPid;
                     used.add(lockedPid);
-                    if (PREMIUM.has(pos)) inGamePrem[lockedPid]++;
+                    if (PREMIUM.has(pos)) inGamePrem[lockedPid] += inningCount;
+                    if (pos === 'C') inGameCatcher[lockedPid] += inningCount;
                 }
             }
         }
 
-        // Score: in-game premium count (integer tiers, primary) + smoothed history (tiebreaker).
-        // Using integer tiers means a player who already got 1 premium inning always ranks
-        // behind everyone with 0 premium this game, regardless of historical rate.
+        // Score: in-game premium innings (integer tiers, primary) + smoothed history (tiebreaker).
+        // Using integer tiers means a player who already has premium innings always ranks
+        // behind everyone with fewer premium innings this game, regardless of historical rate.
         // This ensures within-game fairness dominates; history only breaks ties.
         const score = pid => inGamePrem[pid] + histRate[pid] * 0.5;
+        const catcherScore = pid => inGameCatcher[pid] * 10 + score(pid);
 
         // Score for P/C with consecutive-position penalty (discourages back-to-back)
         const scorePos = (pid, pos) => score(pid) + (prevPositions[pos] === pid ? 0.8 : 0);
+        const scoreCatcher = pid => catcherScore(pid) + (prevPositions['C'] === pid ? 4 : 0);
 
-        const pickFrom = (pool, sortFn = score) => {
+        const pickFrom = (pool, sortFn = score, frontBias = 1) => {
             const sorted = pool.filter(pid => !used.has(pid)).sort((a, b) => sortFn(a) - sortFn(b));
-            return sorted.length ? weightedPick(sorted, 0.65) : null;
+            return sorted.length ? weightedPick(sorted, frontBias) : null;
         };
 
         // Pitcher
         if (!positionsAssigned['P']) {
             const eligible = available.filter(pid => !used.has(pid) && S.players.find(pl => pl.id === pid)?.canPitch);
             const pick = pickFrom(eligible.length ? eligible : available, pid => scorePos(pid, 'P'));
-            if (pick) { positionsAssigned['P'] = pick; used.add(pick); inGamePrem[pick]++; }
+            if (pick) { positionsAssigned['P'] = pick; used.add(pick); inGamePrem[pick] += inningCount; }
         }
 
         // Catcher
         if (!positionsAssigned['C']) {
             const eligible = available.filter(pid => !used.has(pid) && S.players.find(pl => pl.id === pid)?.canCatch);
-            const pick = pickFrom(eligible.length ? eligible : available, pid => scorePos(pid, 'C'));
-            if (pick) { positionsAssigned['C'] = pick; used.add(pick); inGamePrem[pick]++; }
+            const pick = pickFrom(eligible.length ? eligible : available, scoreCatcher);
+            if (pick) {
+                positionsAssigned['C'] = pick;
+                used.add(pick);
+                inGamePrem[pick] += inningCount;
+                inGameCatcher[pick] += inningCount;
+            }
         }
 
         // Remaining infield
         for (const pos of ['1B','2B','3B','SS']) {
             if (!positionsAssigned[pos]) {
                 const pick = pickFrom(available, score);
-                if (pick) { positionsAssigned[pos] = pick; used.add(pick); inGamePrem[pick]++; }
+                if (pick) { positionsAssigned[pos] = pick; used.add(pick); inGamePrem[pick] += inningCount; }
             }
         }
 
@@ -830,7 +845,7 @@ function generateDefensiveRotation(attendeeIds, rotFreq, totalInnings, lockedPos
                 const remaining = available.filter(pid => !used.has(pid));
                 // Reverse priority: highest score (most premium this game + history) → outfield
                 remaining.sort((a, b) => score(b) - score(a));
-                const pick = remaining.length ? remaining[Math.floor(Math.random() * Math.min(2, remaining.length))] : null;
+                const pick = remaining.length ? remaining[0] : null;
                 if (pick) {
                     positionsAssigned[pos] = pick;
                     used.add(pick);
@@ -838,8 +853,6 @@ function generateDefensiveRotation(attendeeIds, rotFreq, totalInnings, lockedPos
             }
         }
 
-        const startInning = g * rotFreq + 1;
-        const endInning   = Math.min(startInning + rotFreq - 1, totalInnings);
         const inningLabel = startInning === endInning
             ? `Inn. ${startInning}`
             : `Inn. ${startInning}–${endInning}`;
@@ -995,16 +1008,16 @@ function renderDiamondView() {
 
     const markerPositions = {
         P:   { x: 50, y: 57 },
-        C:   { x: 50, y: 83 },
-        '1B': { x: 67, y: 55 },
-        '2B': { x: 58, y: 42 },
-        SS:  { x: 42, y: 42 },
-        '3B': { x: 33, y: 55 },
-        LF:  { x: 22, y: 26 },
-        LCF: { x: 39, y: 20 },
-        CF:  { x: 50, y: 18 },
-        RCF: { x: 61, y: 20 },
-        RF:  { x: 78, y: 26 }
+        C:   { x: 50, y: 90 },
+        '1B': { x: 72, y: 50 },
+        '2B': { x: 58, y: 34 },
+        SS:  { x: 42, y: 34 },
+        '3B': { x: 28, y: 50 },
+        LF:  { x: 20, y: 24 },
+        LCF: { x: 38, y: 16 },
+        CF:  { x: 50, y: 13 },
+        RCF: { x: 62, y: 16 },
+        RF:  { x: 80, y: 24 }
     };
 
     const positions = Object.keys(rotation.positions || {});
@@ -1029,13 +1042,6 @@ function renderDiamondView() {
         <div class="diamond-tabs">${tabs}</div>
         <div class="diamond-shell">
             <div class="baseball-diamond" aria-label="Defensive positions for inning ${S.diamondInning}">
-                <div class="outfield-arc"></div>
-                <div class="infield-dirt"></div>
-                <div class="base home-base"></div>
-                <div class="base first-base"></div>
-                <div class="base second-base"></div>
-                <div class="base third-base"></div>
-                <div class="pitcher-circle"></div>
                 ${markers}
             </div>
             ${benchHtml}
@@ -1134,16 +1140,23 @@ function renderPremiumStats() {
     if (!S.game || !S.game.rotation.length) { el.innerHTML = ''; return; }
 
     const stats = {};
-    S.game.attendees.forEach(pid => { stats[pid] = { prem: 0, total: 0, bench: 0 }; });
+    S.game.attendees.forEach(pid => { stats[pid] = { prem: 0, outfield: 0, bench: 0, total: 0 }; });
 
     for (const r of S.game.rotation) {
+        const startInning = (r.group - 1) * S.game.rotFreq + 1;
+        const endInning = Math.min(startInning + S.game.rotFreq - 1, S.game.totalInnings);
+        const inningCount = endInning - startInning + 1;
         for (const [pos, pid] of Object.entries(r.positions)) {
             if (!stats[pid]) continue;
-            stats[pid].total++;
-            if (PREMIUM.has(pos)) stats[pid].prem++;
+            stats[pid].total += inningCount;
+            if (PREMIUM.has(pos)) stats[pid].prem += inningCount;
+            else stats[pid].outfield += inningCount;
         }
         for (const pid of (r.bench || [])) {
-            if (stats[pid]) { stats[pid].bench++; stats[pid].total++; }
+            if (stats[pid]) {
+                stats[pid].bench += inningCount;
+                stats[pid].total += inningCount;
+            }
         }
     }
 
@@ -1155,7 +1168,7 @@ function renderPremiumStats() {
             return `<tr>
                 <td class="stat-name">${escHtml(playerName(s.pid))}</td>
                 <td class="stat-highlight">${s.prem}</td>
-                <td>${s.total - s.prem}</td>
+                <td>${s.outfield}</td>
                 <td>${s.bench > 0 ? s.bench : '—'}</td>
                 <td>${pct}%</td>
             </tr>`;
