@@ -720,7 +720,8 @@ function planBench(attendeeIds, numGroups, benchPerGroup) {
         const prevBenched = g > 0 ? plan[g - 1] : [];
         // Eligible = not benched in previous group
         const eligible = attendeeIds.filter(pid => !prevBenched.includes(pid));
-        // Sort by least total bench time, then shuffle ties
+        // Shuffle first so equal bench counts produce new plans on re-roll.
+        shuffle(eligible);
         eligible.sort((a, b) => benchCount[a] - benchCount[b]);
 
         const selected = [];
@@ -795,11 +796,14 @@ function generateDefensiveRotation(attendeeIds, rotFreq, totalInnings, lockedPos
             }
         }
 
-        // Score: in-game premium innings (integer tiers, primary) + smoothed history (tiebreaker).
+        const rerollJitter = {};
+        attendeeIds.forEach(pid => { rerollJitter[pid] = Math.random() * 0.35; });
+
+        // Score: in-game premium innings (integer tiers, primary) + smoothed history/randomness.
         // Using integer tiers means a player who already has premium innings always ranks
         // behind everyone with fewer premium innings this game, regardless of historical rate.
-        // This ensures within-game fairness dominates; history only breaks ties.
-        const score = pid => inGamePrem[pid] + histRate[pid] * 0.5;
+        // This ensures within-game fairness dominates while re-rolls still produce fresh rotations.
+        const score = pid => inGamePrem[pid] + histRate[pid] * 0.15 + rerollJitter[pid];
         const catcherScore = pid => inGameCatcher[pid] * 10 + score(pid);
 
         // Score for P/C with consecutive-position penalty (discourages back-to-back)
