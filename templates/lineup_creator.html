@@ -119,6 +119,7 @@
                 <h2>Game History</h2>
                 <div class="header-actions">
                     <button class="btn btn-secondary btn-sm" onclick="exportAllCSV()">Export All CSV</button>
+                    <button class="btn btn-danger btn-sm" onclick="clearAllHistory()">Clear History</button>
                 </div>
             </div>
             <div id="history-content"></div>
@@ -1283,6 +1284,19 @@ function exportAllCSV() {
     const headers = ['Date', 'Player', 'Batting Slot', ...Array.from({ length: maxInning }, (_, i) => `Inn. ${i + 1}`)];
     const rows = S.games.flatMap(g => buildGameCsvRows(g));
     downloadCsv('lineup-history.csv', rows, headers);
+}
+
+async function clearAllHistory() {
+    if (!S.games.length) { showToast('No history to clear', 'error'); return; }
+    if (!confirm(`Delete all ${S.games.length} saved game(s)? This cannot be undone.`)) return;
+    try {
+        await Promise.all(S.games.map(g => gamesRef().doc(g.id).delete()));
+        S.games = [];
+        renderHistory();
+        showToast('History cleared', 'success');
+    } catch (e) {
+        showToast('Error clearing history: ' + e.message, 'error');
+    }
 }
 
 // ===== HISTORY VIEW =====
