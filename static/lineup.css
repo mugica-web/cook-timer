@@ -972,11 +972,19 @@ h3 {
     border: 1px solid #253225;
     border-radius: 8px;
     background-color: #133522;
+    box-shadow: 0 14px 36px rgba(0,0,0,0.28);
+}
+
+.baseball-diamond::before {
+    content: "";
+    position: absolute;
+    inset: 0;
     background-image: url('/static/baseball-diamond.svg');
     background-position: center;
     background-repeat: no-repeat;
     background-size: 100% 100%;
-    box-shadow: 0 14px 36px rgba(0,0,0,0.28);
+    transform: rotate(-90deg) scale(0.78);
+    z-index: 1;
 }
 
 .diamond-player {
