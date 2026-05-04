@@ -57,7 +57,7 @@ def house_stylist():
 
 @app.route("/lineup-creator")
 def lineup_creator():
-    return render_template("lineup_creator.html")
+    return render_template("lineup_creator.html", firebase_api_key=api_key())
 
 
 # This block runs only when you execute "python app.py" directly.

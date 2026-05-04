@@ -166,7 +166,7 @@ const PREMIUM      = new Set(['P','C','1B','2B','3B','SS']);
 
 // ===== FIREBASE =====
 firebase.initializeApp({
-    apiKey: "AIzaSyBDri9nhtGpCjQFLT6i30Unn-GsZCi_IB4",
+    apiKey: "{{ firebase_api_key }}",
     authDomain: "cook-timer-69256.firebaseapp.com",
     projectId: "cook-timer-69256",
     storageBucket: "cook-timer-69256.firebasestorage.app",
@@ -451,7 +451,9 @@ function readCsvFile(file) {
 }
 
 function parseCsv(text) {
-    const lines = text.trim().split(/\r?\n/);
+    // Strip UTF-8 BOM if present
+    const clean = text.replace(/^﻿/, '');
+    const lines = clean.trim().split(/\r?\n/);
     if (lines.length < 2) throw new Error('File is empty or has only headers.');
 
     // Parse header
@@ -467,12 +469,13 @@ function parseCsv(text) {
     if (!inningCols.length) throw new Error('No inning columns found (1st, 2nd, etc.).');
 
     const rows = [];
-    let lineupStr = '';
+    // Each row's Lineup cell = the name of the player batting at that row's position.
+    // Row 1 Lineup = bats 1st, row 2 Lineup = bats 2nd, etc.
+    const lineupNames = [];
 
     for (let i = 1; i < lines.length; i++) {
         const raw = lines[i];
         if (!raw.trim()) continue;
-        // Simple CSV split: handle quoted fields with commas
         const cols = splitCsvRow(raw);
         const name = cols[playerIdx]?.trim().replace(/^"|"$/g, '');
         if (!name) continue;
@@ -483,9 +486,9 @@ function parseCsv(text) {
             if (val) innings[col.name] = val;
         }
 
-        if (lineupIdx >= 0 && !lineupStr) {
+        if (lineupIdx >= 0) {
             const lv = cols[lineupIdx]?.trim().replace(/^"|"$/g, '');
-            if (lv && lv.includes(',')) lineupStr = lv;
+            if (lv) lineupNames.push(lv);
         }
 
         rows.push({ name, innings });
@@ -493,15 +496,22 @@ function parseCsv(text) {
 
     if (!rows.length) throw new Error('No player rows found.');
 
-    // Build batting order from lineup string
+    // Map lineupNames → batting slots using fuzzy matching to handle abbreviations
+    // (e.g. "Isla Sch" → "Isla Schwartz")
+    const allNames = rows.map(r => r.name);
     const battingOrder = {};
-    if (lineupStr) {
-        const names = lineupStr.split(',').map(n => n.trim()).filter(Boolean);
-        names.forEach((n, i) => { battingOrder[n.toLowerCase()] = i + 1; });
-    } else {
-        // Fallback: use row order as batting order
-        rows.forEach((r, i) => { battingOrder[r.name.toLowerCase()] = i + 1; });
-    }
+
+    lineupNames.forEach((lv, idx) => {
+        const slot = idx + 1;
+        const lvLow = lv.toLowerCase();
+        // 1. Exact match
+        let match = allNames.find(n => n.toLowerCase() === lvLow);
+        // 2. Prefix match (handles abbreviations like "Isla Sch")
+        if (!match) match = allNames.find(n => n.toLowerCase().startsWith(lvLow));
+        // 3. Reverse prefix match
+        if (!match) match = allNames.find(n => lvLow.startsWith(n.toLowerCase()));
+        if (match) battingOrder[match.toLowerCase()] = slot;
+    });
 
     return {
         players: rows.map(r => r.name),
@@ -654,20 +664,25 @@ function setRotFreq(v) {
 // ===== ALGORITHM: BATTING ORDER =====
 function generateBattingOrder(attendeeIds) {
     const n = attendeeIds.length;
+    const neutral = (n + 1) / 2;
+    // Bayesian smoothing: blend toward neutral with weight = 2 pseudo-games.
+    // Prevents 1 game of history from fully dictating the new order.
+    const SMOOTH = 2;
 
     const scored = attendeeIds.map(pid => {
         const slots = S.games
             .map(g => g.battingOrder?.find(b => b.playerId === pid)?.slot)
             .filter(s => s != null);
-        // Players with no history get a neutral 50th-percentile score
-        const avg = slots.length ? slots.reduce((a, b) => a + b, 0) / slots.length : (n + 1) / 2;
-        return { pid, avg };
+        const blended = slots.length
+            ? (slots.reduce((a, b) => a + b, 0) + SMOOTH * neutral) / (slots.length + SMOOTH)
+            : neutral;
+        return { pid, avg: blended };
     });
 
-    // Sort descending: high historical avg (batted near bottom) → gets top slot now
+    // Sort descending: high blended avg (batted near bottom) → gets top slot now
     scored.sort((a, b) => b.avg - a.avg);
 
-    // Add noise: do ~n/2 random neighboring swaps
+    // Add noise: ~n/2 random neighboring swaps
     const swaps = Math.ceil(n * 0.5);
     for (let i = 0; i < swaps; i++) {
         const idx = Math.floor(Math.random() * (n - 1));
@@ -709,26 +724,26 @@ function generateDefensiveRotation(attendeeIds, rotFreq, totalInnings, lockedPos
     const numGroups = Math.ceil(totalInnings / rotFreq);
     const benchPerGroup = Math.max(0, n - posCount);
 
-    // Historical premium rate per player (% of attended innings in premium positions)
+    // Bayesian-smoothed historical premium rate.
+    // Blending toward 0.5 with 4 pseudo-innings prevents small samples (e.g. 2/2 innings)
+    // from producing extreme rates that dominate the algorithm for the whole season.
+    const SMOOTH = 4;
     const histRate = {};
     for (const pid of attendeeIds) {
         let total = 0, prem = 0;
         for (const game of S.games) {
             if (!game.attendees?.includes(pid)) continue;
             for (const inning of game.inningAssignments || []) {
+                total++;  // every inning while attending = field or bench
                 const entry = Object.entries(inning.positions || {}).find(([, id]) => id === pid);
-                if (entry) {
-                    total++;
-                    if (PREMIUM.has(entry[0])) prem++;
-                }
+                if (entry && PREMIUM.has(entry[0])) prem++;
             }
         }
-        histRate[pid] = total > 0 ? prem / total : 0.5;
+        histRate[pid] = (prem + SMOOTH * 0.5) / (total + SMOOTH);
     }
 
     const benchPlan = planBench(attendeeIds, numGroups, benchPerGroup);
     const rotation = [];
-    // Track premium innings earned in this game to spread evenly
     const inGamePrem = {};
     attendeeIds.forEach(pid => { inGamePrem[pid] = 0; });
 
@@ -738,6 +753,9 @@ function generateDefensiveRotation(attendeeIds, rotFreq, totalInnings, lockedPos
         const available = attendeeIds.filter(pid => !benched.includes(pid));
         const positionsAssigned = {};
         const used = new Set();
+
+        // Previous group for consecutive-position penalty
+        const prevPositions = g > 0 ? rotation[g - 1].positions : {};
 
         // Apply locked positions for this group first
         for (const pos of allPositions) {
@@ -752,52 +770,39 @@ function generateDefensiveRotation(attendeeIds, rotFreq, totalInnings, lockedPos
             }
         }
 
-        // Composite score: lower = more deserving of premium this group
-        // Combines historical rate + within-game balance
-        const score = pid => histRate[pid] + (inGamePrem[pid] / (numGroups + 1));
+        // Score: in-game premium count (integer tiers, primary) + smoothed history (tiebreaker).
+        // Using integer tiers means a player who already got 1 premium inning always ranks
+        // behind everyone with 0 premium this game, regardless of historical rate.
+        // This ensures within-game fairness dominates; history only breaks ties.
+        const score = pid => inGamePrem[pid] + histRate[pid] * 0.5;
 
-        // Sort available-and-unused by score ascending (lowest = needs premium most)
-        const sortedFree = available.filter(pid => !used.has(pid)).sort((a, b) => score(a) - score(b));
+        // Score for P/C with consecutive-position penalty (discourages back-to-back)
+        const scorePos = (pid, pos) => score(pid) + (prevPositions[pos] === pid ? 0.8 : 0);
 
-        const take = () => {
-            // Re-sort since inGamePrem changes after each pick
-            sortedFree.sort((a, b) => score(a) - score(b));
-            const pool = sortedFree.filter(pid => !used.has(pid));
-            const pick = weightedPick(pool, 0.65);
-            if (pick) used.add(pick);
-            return pick;
+        const pickFrom = (pool, sortFn = score) => {
+            const sorted = pool.filter(pid => !used.has(pid)).sort((a, b) => sortFn(a) - sortFn(b));
+            return sorted.length ? weightedPick(sorted, 0.65) : null;
         };
 
         // Pitcher
         if (!positionsAssigned['P']) {
-            const candidates = sortedFree.filter(pid => !used.has(pid) && S.players.find(pl => pl.id === pid)?.canPitch);
-            const pick = candidates.length ? weightedPick(candidates.sort((a,b) => score(a)-score(b)), 0.65) : take();
-            if (pick) {
-                positionsAssigned['P'] = pick;
-                used.add(pick);
-                inGamePrem[pick]++;
-            }
+            const eligible = available.filter(pid => !used.has(pid) && S.players.find(pl => pl.id === pid)?.canPitch);
+            const pick = pickFrom(eligible.length ? eligible : available, pid => scorePos(pid, 'P'));
+            if (pick) { positionsAssigned['P'] = pick; used.add(pick); inGamePrem[pick]++; }
         }
 
         // Catcher
         if (!positionsAssigned['C']) {
-            const candidates = sortedFree.filter(pid => !used.has(pid) && S.players.find(pl => pl.id === pid)?.canCatch);
-            const pick = candidates.length ? weightedPick(candidates.sort((a,b) => score(a)-score(b)), 0.65) : take();
-            if (pick) {
-                positionsAssigned['C'] = pick;
-                used.add(pick);
-                inGamePrem[pick]++;
-            }
+            const eligible = available.filter(pid => !used.has(pid) && S.players.find(pl => pl.id === pid)?.canCatch);
+            const pick = pickFrom(eligible.length ? eligible : available, pid => scorePos(pid, 'C'));
+            if (pick) { positionsAssigned['C'] = pick; used.add(pick); inGamePrem[pick]++; }
         }
 
         // Remaining infield
         for (const pos of ['1B','2B','3B','SS']) {
             if (!positionsAssigned[pos]) {
-                const pick = take();
-                if (pick) {
-                    positionsAssigned[pos] = pick;
-                    inGamePrem[pick]++;
-                }
+                const pick = pickFrom(available, score);
+                if (pick) { positionsAssigned[pos] = pick; used.add(pick); inGamePrem[pick]++; }
             }
         }
 
@@ -806,8 +811,8 @@ function generateDefensiveRotation(attendeeIds, rotFreq, totalInnings, lockedPos
         for (const pos of outfieldPositions) {
             if (!positionsAssigned[pos]) {
                 const remaining = available.filter(pid => !used.has(pid));
-                // Reverse priority: high hist rate → outfield
-                remaining.sort((a, b) => histRate[b] - histRate[a]);
+                // Reverse priority: highest score (most premium this game + history) → outfield
+                remaining.sort((a, b) => score(b) - score(a));
                 const pick = remaining.length ? remaining[Math.floor(Math.random() * Math.min(2, remaining.length))] : null;
                 if (pick) {
                     positionsAssigned[pos] = pick;
@@ -1028,7 +1033,7 @@ function renderPremiumStats() {
             if (PREMIUM.has(pos)) stats[pid].prem++;
         }
         for (const pid of (r.bench || [])) {
-            if (stats[pid]) stats[pid].bench++;
+            if (stats[pid]) { stats[pid].bench++; stats[pid].total++; }
         }
     }
 
