@@ -21,6 +21,7 @@
             <button class="nav-tab active" onclick="showView('roster')">Roster</button>
             <button class="nav-tab" onclick="showView('setup')">New Game</button>
             <button class="nav-tab" onclick="showView('lineup')">Lineup</button>
+            <button class="nav-tab" onclick="showView('diamond')">Diamond View</button>
             <button class="nav-tab" onclick="showView('history')">History</button>
         </div>
         <div class="nav-user">
@@ -113,6 +114,15 @@
             </div>
         </div>
 
+        <!-- ===== DIAMOND VIEW ===== -->
+        <div id="view-diamond" style="display:none">
+            <div class="view-header">
+                <h2>Diamond View</h2>
+                <span id="diamond-date-label" class="lineup-date-label"></span>
+            </div>
+            <div id="diamond-content"></div>
+        </div>
+
         <!-- ===== HISTORY VIEW ===== -->
         <div id="view-history" style="display:none">
             <div class="view-header">
@@ -184,6 +194,7 @@ const S = {
     games:   [],   // [{id, date, attendees, rotFreq, battingOrder, inningAssignments, savedAt}]
     view: 'roster',
     rotFreq: 1,
+    diamondInning: 1,
     game: null     // active working game (not yet saved)
     // game: { date, attendees:[pid], rotFreq, totalInnings,
     //         battingOrder:[{playerId,slot,locked}],
@@ -258,17 +269,20 @@ async function loadData() {
 // ===== NAVIGATION =====
 function showView(name) {
     S.view = name;
+    const views = ['roster','setup','lineup','diamond','history'];
     document.querySelectorAll('.nav-tab').forEach((btn, i) => {
-        btn.classList.toggle('active', ['roster','setup','lineup','history'][i] === name);
+        btn.classList.toggle('active', views[i] === name);
     });
     document.getElementById('view-roster').style.display  = name === 'roster'  ? '' : 'none';
     document.getElementById('view-setup').style.display   = name === 'setup'   ? '' : 'none';
     document.getElementById('view-lineup').style.display  = name === 'lineup'  ? '' : 'none';
+    document.getElementById('view-diamond').style.display = name === 'diamond' ? '' : 'none';
     document.getElementById('view-history').style.display = name === 'history' ? '' : 'none';
 
     if (name === 'roster')  renderRoster();
     if (name === 'setup')   renderSetup();
     if (name === 'lineup')  renderLineup();
+    if (name === 'diamond') renderDiamondView();
     if (name === 'history') renderHistory();
 }
 
@@ -935,6 +949,99 @@ function renderLineup() {
     renderPremiumStats();
 }
 
+// ===== DIAMOND VIEW =====
+function inningNumbersForGame() {
+    if (!S.game) return [];
+    return Array.from({ length: S.game.totalInnings }, (_, i) => i + 1);
+}
+
+function rotationForInning(inning) {
+    if (!S.game) return null;
+    return S.game.rotation.find(r => {
+        const start = (r.group - 1) * S.game.rotFreq + 1;
+        const end = Math.min(start + S.game.rotFreq - 1, S.game.totalInnings);
+        return inning >= start && inning <= end;
+    }) || null;
+}
+
+function setDiamondInning(inning) {
+    S.diamondInning = inning;
+    renderDiamondView();
+}
+
+function renderDiamondView() {
+    const content = document.getElementById('diamond-content');
+    if (!S.game) {
+        document.getElementById('diamond-date-label').textContent = '';
+        content.innerHTML = '<div class="empty-state"><div class="empty-icon">◆</div>No lineup generated yet. Go to New Game to generate one.</div>';
+        return;
+    }
+
+    const innings = inningNumbersForGame();
+    if (!innings.includes(S.diamondInning)) S.diamondInning = innings[0] || 1;
+    const rotation = rotationForInning(S.diamondInning);
+    document.getElementById('diamond-date-label').textContent = formatDate(S.game.date);
+
+    if (!rotation) {
+        content.innerHTML = '<div class="empty-state"><div class="empty-icon">◆</div>No defensive assignments for this inning.</div>';
+        return;
+    }
+
+    const tabs = innings.map(inn => `
+        <button class="diamond-tab ${inn === S.diamondInning ? 'active' : ''}" onclick="setDiamondInning(${inn})">
+            Inn. ${inn}
+        </button>
+    `).join('');
+
+    const markerPositions = {
+        P:   { x: 50, y: 57 },
+        C:   { x: 50, y: 83 },
+        '1B': { x: 67, y: 55 },
+        '2B': { x: 58, y: 42 },
+        SS:  { x: 42, y: 42 },
+        '3B': { x: 33, y: 55 },
+        LF:  { x: 22, y: 26 },
+        LCF: { x: 39, y: 20 },
+        CF:  { x: 50, y: 18 },
+        RCF: { x: 61, y: 20 },
+        RF:  { x: 78, y: 26 }
+    };
+
+    const positions = Object.keys(rotation.positions || {});
+    const markers = positions.map(pos => {
+        const spot = markerPositions[pos] || { x: 50, y: 50 };
+        const pid = rotation.positions[pos];
+        return `<div class="diamond-player ${PREMIUM.has(pos) ? 'premium' : ''}"
+            style="left:${spot.x}%; top:${spot.y}%">
+            <span class="diamond-pos">${pos}</span>
+            <span class="diamond-name">${pid ? escHtml(playerDisplayName(pid)) : '—'}</span>
+        </div>`;
+    }).join('');
+
+    const benchHtml = rotation.bench?.length
+        ? `<div class="diamond-bench">
+            <span class="diamond-bench-label">Bench</span>
+            ${rotation.bench.map(pid => `<span class="bench-chip">${escHtml(playerDisplayName(pid))}</span>`).join('')}
+        </div>`
+        : '';
+
+    content.innerHTML = `
+        <div class="diamond-tabs">${tabs}</div>
+        <div class="diamond-shell">
+            <div class="baseball-diamond" aria-label="Defensive positions for inning ${S.diamondInning}">
+                <div class="outfield-arc"></div>
+                <div class="infield-dirt"></div>
+                <div class="base home-base"></div>
+                <div class="base first-base"></div>
+                <div class="base second-base"></div>
+                <div class="base third-base"></div>
+                <div class="pitcher-circle"></div>
+                ${markers}
+            </div>
+            ${benchHtml}
+        </div>`;
+}
+
 function renderWarnings() {
     const el = document.getElementById('lineup-warnings');
     const warnings = [];
@@ -1187,6 +1294,7 @@ function gridDrop(e) {
     dragGrid = null;
     renderRotationGrid();
     renderPremiumStats();
+    if (S.view === 'diamond') renderDiamondView();
 }
 
 // ===== SAVE GAME =====
