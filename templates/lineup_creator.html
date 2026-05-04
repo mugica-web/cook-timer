@@ -212,9 +212,11 @@ function playerName(pid) {
     return p ? p.name : '—';
 }
 
-function playerFirstName(pid) {
+function playerDisplayName(pid) {
     const name = playerName(pid);
-    return name.split(' ')[0];
+    const first = name.split(' ')[0];
+    const collision = S.players.some(p => p.id !== pid && p.name.split(' ')[0] === first);
+    return collision ? name : first;
 }
 
 function showToast(msg, type = '') {
@@ -988,7 +990,7 @@ function renderRotationGrid() {
                     ondragover="gridDragOver(event)"
                     ondragleave="gridDragLeave(event)"
                     ondrop="gridDrop(event)">
-                    <span class="pos-name">${pid ? escHtml(playerFirstName(pid)) : '—'}</span>
+                    <span class="pos-name">${pid ? escHtml(playerDisplayName(pid)) : '—'}</span>
                     <button class="btn-icon ${locked ? 'locked' : ''}" title="${locked ? 'Unlock' : 'Lock'} position"
                         onclick="toggleLockPosition('${r.group}','${pos}')">
                         ${locked ? '🔒' : '🔓'}
@@ -998,7 +1000,7 @@ function renderRotationGrid() {
         }).join('');
 
         const benchHtml = r.bench?.length
-            ? r.bench.map(pid => `<span class="bench-chip">${escHtml(playerFirstName(pid))}</span>`).join('')
+            ? r.bench.map(pid => `<span class="bench-chip">${escHtml(playerDisplayName(pid))}</span>`).join('')
             : '';
 
         return `<tr>
@@ -1377,7 +1379,7 @@ function renderHistoryDetail(game) {
         const cells = sortedPositions.map(pos => {
             const pid = inn.positions[pos];
             return `<td style="padding:4px 6px; font-size:0.78em; text-align:center">
-                ${pid ? escHtml(playerFirstName(pid)) : '—'}
+                ${pid ? escHtml(playerDisplayName(pid)) : '—'}
             </td>`;
         }).join('');
         return `<tr>
