@@ -94,8 +94,9 @@
                     <span id="lineup-date-label" class="lineup-date-label"></span>
                 </div>
                 <div class="toolbar-right">
-                    <button class="btn btn-secondary btn-sm" onclick="rerollAll()">Re-roll All</button>
-                    <button class="btn btn-secondary btn-sm" onclick="rerollUnlocked()">Re-roll Unlocked</button>
+                    <button class="btn btn-secondary btn-sm" onclick="regenerateAll()">Regenerate All</button>
+                    <button class="btn btn-secondary btn-sm" onclick="regenerateUnlocked()">Regenerate Unlocked</button>
+                    <button class="btn btn-secondary btn-sm" id="undo-lineup-btn" onclick="undoLineup()" disabled>Undo</button>
                     <button class="btn btn-primary btn-sm" onclick="saveGame()">Save Game</button>
                     <button class="btn btn-secondary btn-sm" onclick="exportCurrentCSV()">Export CSV</button>
                 </div>
@@ -174,6 +175,7 @@
 const POSITIONS_10 = ['P','C','1B','2B','3B','SS','LF','LCF','RCF','RF'];
 const POSITIONS_9  = ['P','C','1B','2B','3B','SS','LF','CF','RF'];
 const PREMIUM      = new Set(['P','C','1B','2B','3B','SS']);
+const PITCHER_REPEAT_PENALTY = 25;
 
 // ===== FIREBASE =====
 firebase.initializeApp({
@@ -195,7 +197,10 @@ const S = {
     view: 'roster',
     rotFreq: 1,
     diamondInning: 1,
-    game: null     // active working game (not yet saved)
+    game: null,    // active working game (not yet saved)
+    undoGame: null,
+    dataLoaded: false,
+    dataLoadPromise: null
     // game: { date, attendees:[pid], rotFreq, totalInnings,
     //         battingOrder:[{playerId,slot,locked}],
     //         rotation:[{group,inningLabel,positions:{POS:pid},bench:[pid]}],
@@ -255,15 +260,104 @@ function weightedPick(arr, frontBias = 0.65) {
         : arr[Math.floor(1 + Math.random() * (arr.length - 1))];
 }
 
+function cloneGame(game) {
+    return game ? JSON.parse(JSON.stringify(game)) : null;
+}
+
+function rememberLineupForUndo() {
+    S.undoGame = cloneGame(S.game);
+}
+
+function updateUndoButton() {
+    const btn = document.getElementById('undo-lineup-btn');
+    if (btn) btn.disabled = !S.undoGame;
+}
+
+function lineupShellHtml() {
+    return `
+    <div class="lineup-toolbar">
+        <div class="toolbar-left">
+            <span id="lineup-date-label" class="lineup-date-label"></span>
+        </div>
+        <div class="toolbar-right">
+            <button class="btn btn-secondary btn-sm" onclick="regenerateAll()">Regenerate All</button>
+            <button class="btn btn-secondary btn-sm" onclick="regenerateUnlocked()">Regenerate Unlocked</button>
+            <button class="btn btn-secondary btn-sm" id="undo-lineup-btn" onclick="undoLineup()" disabled>Undo</button>
+            <button class="btn btn-primary btn-sm" onclick="saveGame()">Save Game</button>
+            <button class="btn btn-secondary btn-sm" onclick="exportCurrentCSV()">Export CSV</button>
+        </div>
+    </div>
+    <div id="lineup-warnings"></div>
+    <div class="lineup-body">
+        <div class="batting-panel">
+            <h3>Batting Order</h3>
+            <div id="batting-list" class="batting-list"></div>
+        </div>
+        <div class="rotation-panel">
+            <h3>Defensive Rotation</h3>
+            <div id="rotation-grid"></div>
+            <div id="premium-stats" class="premium-stats"></div>
+        </div>
+    </div>`;
+}
+
+function ensureLineupShell(force = false) {
+    const view = document.getElementById('view-lineup');
+    if (!view) return;
+    const hasShell = view.querySelector('#lineup-date-label')
+        && view.querySelector('#lineup-warnings')
+        && view.querySelector('#batting-list')
+        && view.querySelector('#rotation-grid')
+        && view.querySelector('#premium-stats');
+    if (force || !hasShell) view.innerHTML = lineupShellHtml();
+}
+
+function normalizeWorkingGame() {
+    if (!S.game) return;
+    S.game.attendees = S.game.attendees || [];
+    S.game.battingOrder = S.game.battingOrder || [];
+    S.game.rotation = S.game.rotation || [];
+    S.game.lockedBatting = S.game.lockedBatting || {};
+    S.game.lockedPositions = S.game.lockedPositions || {};
+    S.game.activeInnings = activeInningsForGame();
+}
+
+function allInningNumbers(totalInnings) {
+    return Array.from({ length: totalInnings }, (_, i) => i + 1);
+}
+
+function activeInningsForGame(game = S.game) {
+    if (!game) return [];
+    return (game.activeInnings?.length ? game.activeInnings : allInningNumbers(game.totalInnings))
+        .filter(inn => inn >= 1 && inn <= game.totalInnings);
+}
+
+function activeInningsForRotation(r, game = S.game) {
+    if (!game || !r) return [];
+    const start = (r.group - 1) * game.rotFreq + 1;
+    const end = Math.min(start + game.rotFreq - 1, game.totalInnings);
+    return activeInningsForGame(game).filter(inn => inn >= start && inn <= end);
+}
+
 // ===== DATA LOADING =====
 async function loadData() {
+    S.dataLoaded = false;
     const [pSnap, gSnap] = await Promise.all([
         playersRef().orderBy('name').get(),
         gamesRef().orderBy('date', 'desc').get()
     ]);
     S.players = pSnap.docs.map(d => ({ id: d.id, ...d.data() }));
     S.games   = gSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+    S.dataLoaded = true;
     renderCurrentView();
+}
+
+function ensureDataLoaded() {
+    if (S.dataLoaded) return Promise.resolve();
+    if (!S.dataLoadPromise) {
+        S.dataLoadPromise = loadData().finally(() => { S.dataLoadPromise = null; });
+    }
+    return S.dataLoadPromise;
 }
 
 // ===== NAVIGATION =====
@@ -628,8 +722,17 @@ async function runCsvImport() {
 
 // ===== SETUP VIEW =====
 function renderSetup() {
+    if (!S.dataLoaded) {
+        document.getElementById('attendance-grid').innerHTML =
+            '<div class="text-muted text-sm">Loading roster...</div>';
+        window._attendees = new Set();
+        updateAttendanceCount();
+        return;
+    }
+
     const activePlayers = S.players.filter(p => p.active !== false);
     document.getElementById('setup-date').value = todayISO();
+    window._attendees = new Set(activePlayers.map(p => p.id));
 
     const grid = document.getElementById('attendance-grid');
     if (!activePlayers.length) {
@@ -646,8 +749,6 @@ function renderSetup() {
         </label>
     `).join('');
 
-    // Store current attendees in a set
-    window._attendees = new Set(activePlayers.map(p => p.id));
     updateAttendanceCount();
 }
 
@@ -676,6 +777,19 @@ function setRotFreq(v) {
     S.rotFreq = v;
     document.getElementById('rot-1').classList.toggle('active', v === 1);
     document.getElementById('rot-2').classList.toggle('active', v === 2);
+}
+
+function selectedAttendeesFromSetup() {
+    const boxes = [...document.querySelectorAll('#attendance-grid input[type="checkbox"]')];
+    const checked = boxes.filter(input => input.checked)
+        .map(input => input.closest('.attendance-item')?.id?.replace(/^att-/, ''))
+        .filter(Boolean);
+    if (boxes.length) {
+        window._attendees = new Set(checked);
+    } else if (!window._attendees?.size && S.dataLoaded) {
+        window._attendees = new Set(S.players.filter(p => p.active !== false).map(p => p.id));
+    }
+    return [...(window._attendees || new Set())];
 }
 
 // ===== ALGORITHM: BATTING ORDER =====
@@ -747,26 +861,31 @@ function generateDefensiveRotation(attendeeIds, rotFreq, totalInnings, lockedPos
     // from producing extreme rates that dominate the algorithm for the whole season.
     const SMOOTH = 4;
     const histRate = {};
+    const histPitchRate = {};
     for (const pid of attendeeIds) {
-        let total = 0, prem = 0;
+        let total = 0, prem = 0, pitched = 0;
         for (const game of S.games) {
             if (!game.attendees?.includes(pid)) continue;
             for (const inning of game.inningAssignments || []) {
                 total++;  // every inning while attending = field or bench
                 const entry = Object.entries(inning.positions || {}).find(([, id]) => id === pid);
                 if (entry && PREMIUM.has(entry[0])) prem++;
+                if (entry && entry[0] === 'P') pitched++;
             }
         }
         histRate[pid] = (prem + SMOOTH * 0.5) / (total + SMOOTH);
+        histPitchRate[pid] = (pitched + SMOOTH * 0.15) / (total + SMOOTH);
     }
 
     const benchPlan = planBench(attendeeIds, numGroups, benchPerGroup);
     const rotation = [];
     const inGamePrem = {};
     const inGameCatcher = {};
+    const inGamePitcher = {};
     attendeeIds.forEach(pid => {
         inGamePrem[pid] = 0;
         inGameCatcher[pid] = 0;
+        inGamePitcher[pid] = 0;
     });
 
     for (let g = 0; g < numGroups; g++) {
@@ -792,6 +911,7 @@ function generateDefensiveRotation(attendeeIds, rotFreq, totalInnings, lockedPos
                     used.add(lockedPid);
                     if (PREMIUM.has(pos)) inGamePrem[lockedPid] += inningCount;
                     if (pos === 'C') inGameCatcher[lockedPid] += inningCount;
+                    if (pos === 'P') inGamePitcher[lockedPid] += inningCount;
                 }
             }
         }
@@ -805,9 +925,14 @@ function generateDefensiveRotation(attendeeIds, rotFreq, totalInnings, lockedPos
         // This ensures within-game fairness dominates while re-rolls still produce fresh rotations.
         const score = pid => inGamePrem[pid] + histRate[pid] * 0.15 + rerollJitter[pid];
         const catcherScore = pid => inGameCatcher[pid] * 10 + score(pid);
+        const pitcherScore = pid => (
+            inGamePitcher[pid] * PITCHER_REPEAT_PENALTY
+            + histPitchRate[pid] * 0.35
+            + score(pid) * 0.1
+            + (prevPositions['P'] === pid ? PITCHER_REPEAT_PENALTY : 0)
+        );
 
-        // Score for P/C with consecutive-position penalty (discourages back-to-back)
-        const scorePos = (pid, pos) => score(pid) + (prevPositions[pos] === pid ? 0.8 : 0);
+        // Catcher consecutive-position penalty discourages back-to-back innings.
         const scoreCatcher = pid => catcherScore(pid) + (prevPositions['C'] === pid ? 4 : 0);
 
         const pickFrom = (pool, sortFn = score, frontBias = 1) => {
@@ -818,8 +943,13 @@ function generateDefensiveRotation(attendeeIds, rotFreq, totalInnings, lockedPos
         // Pitcher
         if (!positionsAssigned['P']) {
             const eligible = available.filter(pid => !used.has(pid) && S.players.find(pl => pl.id === pid)?.canPitch);
-            const pick = pickFrom(eligible.length ? eligible : available, pid => scorePos(pid, 'P'));
-            if (pick) { positionsAssigned['P'] = pick; used.add(pick); inGamePrem[pick] += inningCount; }
+            const pick = pickFrom(eligible.length ? eligible : available, pitcherScore);
+            if (pick) {
+                positionsAssigned['P'] = pick;
+                used.add(pick);
+                inGamePrem[pick] += inningCount;
+                inGamePitcher[pick] += inningCount;
+            }
         }
 
         // Catcher
@@ -868,37 +998,56 @@ function generateDefensiveRotation(attendeeIds, rotFreq, totalInnings, lockedPos
 }
 
 // ===== GENERATE LINEUP =====
-function generateLineup() {
-    if (!window._attendees || window._attendees.size < 2) {
-        showToast('Select at least 2 players', 'error');
-        return;
+async function generateLineup() {
+    const btn = document.getElementById('generate-btn');
+    if (btn) { btn.disabled = true; btn.textContent = 'Generating...'; }
+    try {
+        const hadData = S.dataLoaded;
+        await ensureDataLoaded();
+        if (!hadData && S.view === 'setup') renderSetup();
+
+        const attendees = selectedAttendeesFromSetup();
+        if (attendees.length < 2) {
+            showToast('Select at least 2 players', 'error');
+            return;
+        }
+
+        const date = document.getElementById('setup-date').value || todayISO();
+        const totalInnings = parseInt(document.getElementById('setup-innings').value) || 6;
+
+        const battingOrder = generateBattingOrder(attendees);
+        const rotation = generateDefensiveRotation(attendees, S.rotFreq, totalInnings, {});
+
+        S.game = {
+            id: null,
+            date,
+            attendees,
+            rotFreq: S.rotFreq,
+            totalInnings,
+            activeInnings: allInningNumbers(totalInnings),
+            battingOrder,
+            rotation,
+            lockedBatting: {},
+            lockedPositions: {}
+        };
+        S.undoGame = null;
+
+        showView('lineup');
+    } catch (e) {
+        console.error(e);
+        showToast('Generate failed: ' + e.message, 'error');
+    } finally {
+        if (btn) {
+            btn.textContent = 'Generate Lineup';
+            btn.disabled = (window._attendees ? window._attendees.size : 0) < 2;
+        }
     }
-
-    const date        = document.getElementById('setup-date').value || todayISO();
-    const totalInnings = parseInt(document.getElementById('setup-innings').value) || 6;
-    const attendees   = [...window._attendees];
-
-    const battingOrder   = generateBattingOrder(attendees);
-    const rotation       = generateDefensiveRotation(attendees, S.rotFreq, totalInnings, {});
-
-    S.game = {
-        id: null,
-        date,
-        attendees,
-        rotFreq: S.rotFreq,
-        totalInnings,
-        battingOrder,
-        rotation,
-        lockedBatting: {},
-        lockedPositions: {}
-    };
-
-    showView('lineup');
 }
 
-// ===== RE-ROLL =====
-function rerollAll() {
+// ===== REGENERATE / UNDO =====
+function regenerateAll() {
     if (!S.game) return;
+    rememberLineupForUndo();
     S.game.lockedBatting   = {};
     S.game.lockedPositions = {};
     S.game.battingOrder = generateBattingOrder(S.game.attendees);
@@ -906,8 +1055,9 @@ function rerollAll() {
     renderLineup();
 }
 
-function rerollUnlocked() {
+function regenerateUnlocked() {
     if (!S.game) return;
+    rememberLineupForUndo();
 
     // Batting: keep locked slots, regenerate the rest
     const lockedSlots = S.game.battingOrder.filter(b => S.game.lockedBatting[b.playerId]);
@@ -951,25 +1101,59 @@ function rerollUnlocked() {
     renderLineup();
 }
 
+function undoLineup() {
+    if (!S.undoGame) return;
+    const current = cloneGame(S.game);
+    S.game = cloneGame(S.undoGame);
+    S.undoGame = current;
+    if (!activeInningsForGame().includes(S.diamondInning)) {
+        S.diamondInning = activeInningsForGame()[0] || 1;
+    }
+    renderLineup();
+    if (S.view === 'diamond') renderDiamondView();
+}
+
+function rerollAll() { regenerateAll(); }
+function rerollUnlocked() { regenerateUnlocked(); }
+
 // ===== LINEUP VIEW =====
 function renderLineup() {
+    ensureLineupShell();
     if (!S.game) {
-        document.getElementById('view-lineup').innerHTML =
+        document.getElementById('lineup-date-label').textContent = '';
+        document.getElementById('lineup-warnings').innerHTML = '';
+        document.getElementById('batting-list').innerHTML = '';
+        document.getElementById('rotation-grid').innerHTML =
             '<div class="empty-state"><div class="empty-icon">📋</div>No lineup generated yet. Go to New Game to generate one.</div>';
+        document.getElementById('premium-stats').innerHTML = '';
+        updateUndoButton();
         return;
     }
 
-    document.getElementById('lineup-date-label').textContent = formatDate(S.game.date);
-    renderWarnings();
-    renderBattingList();
-    renderRotationGrid();
-    renderPremiumStats();
+    try {
+        normalizeWorkingGame();
+        ensureLineupShell();
+        document.getElementById('lineup-date-label').textContent = formatDate(S.game.date);
+        renderWarnings();
+        renderBattingList();
+        renderRotationGrid();
+        renderPremiumStats();
+        updateUndoButton();
+    } catch (e) {
+        console.error(e);
+        ensureLineupShell(true);
+        document.getElementById('lineup-date-label').textContent = formatDate(S.game.date);
+        document.getElementById('lineup-warnings').innerHTML =
+            `<div class="warning-banner">Lineup render failed: ${escHtml(e.message)}</div>`;
+        document.getElementById('rotation-grid').innerHTML =
+            '<div class="empty-state"><div class="empty-icon">📋</div>Lineup data exists, but the table could not render. Try Regenerate All.</div>';
+        updateUndoButton();
+    }
 }
 
 // ===== DIAMOND VIEW =====
 function inningNumbersForGame() {
-    if (!S.game) return [];
-    return Array.from({ length: S.game.totalInnings }, (_, i) => i + 1);
+    return activeInningsForGame();
 }
 
 function rotationForInning(inning) {
@@ -984,6 +1168,32 @@ function rotationForInning(inning) {
 function setDiamondInning(inning) {
     S.diamondInning = inning;
     renderDiamondView();
+}
+
+function deleteInning(inning) {
+    if (!S.game) return;
+    const active = activeInningsForGame();
+    if (!active.includes(inning)) return;
+    if (active.length === 1) {
+        showToast('Keep at least one inning', 'error');
+        return;
+    }
+
+    S.game.activeInnings = active.filter(inn => inn !== inning);
+
+    for (const r of S.game.rotation) {
+        if (activeInningsForRotation(r).length) continue;
+        for (const pos of Object.keys(r.positions || {})) {
+            delete S.game.lockedPositions[`${r.group}_${pos}`];
+        }
+    }
+
+    if (!S.game.activeInnings.includes(S.diamondInning)) {
+        S.diamondInning = S.game.activeInnings[0] || 1;
+    }
+
+    renderLineup();
+    if (S.view === 'diamond') renderDiamondView();
 }
 
 function renderDiamondView() {
@@ -1094,6 +1304,8 @@ function renderRotationGrid() {
     const hasBench = S.game.rotation.some(r => r.bench?.length > 0);
 
     const rows = S.game.rotation.map(r => {
+        const activeInnings = activeInningsForRotation(r);
+        if (!activeInnings.length) return '';
         const cells = positions.map(pos => {
             const pid = r.positions[pos];
             const key = `${r.group}_${pos}`;
@@ -1120,8 +1332,15 @@ function renderRotationGrid() {
             ? r.bench.map(pid => `<span class="bench-chip">${escHtml(playerDisplayName(pid))}</span>`).join('')
             : '';
 
+        const inningControls = activeInnings.map(inn => `
+            <span class="inning-chip">
+                <span>Inn. ${inn}</span>
+                <button class="btn-icon inning-delete" title="Remove inning ${inn}" onclick="deleteInning(${inn})">x</button>
+            </span>
+        `).join('');
+
         return `<tr>
-            <td class="inning-label">${r.inningLabel}</td>
+            <td class="inning-label">${inningControls}</td>
             ${cells}
             ${hasBench ? `<td><div class="bench-cell">${benchHtml}</div></td>` : ''}
         </tr>`;
@@ -1147,9 +1366,8 @@ function renderPremiumStats() {
     S.game.attendees.forEach(pid => { stats[pid] = { prem: 0, outfield: 0, bench: 0, total: 0 }; });
 
     for (const r of S.game.rotation) {
-        const startInning = (r.group - 1) * S.game.rotFreq + 1;
-        const endInning = Math.min(startInning + S.game.rotFreq - 1, S.game.totalInnings);
-        const inningCount = endInning - startInning + 1;
+        const inningCount = activeInningsForRotation(r).length;
+        if (!inningCount) continue;
         for (const [pos, pid] of Object.entries(r.positions)) {
             if (!stats[pid]) continue;
             stats[pid].total += inningCount;
@@ -1324,9 +1542,7 @@ async function saveGame() {
         // Flatten rotation to inningAssignments
         const inningAssignments = [];
         for (const r of S.game.rotation) {
-            const startInning = (r.group - 1) * S.game.rotFreq + 1;
-            const endInning   = Math.min(startInning + S.game.rotFreq - 1, S.game.totalInnings);
-            for (let inn = startInning; inn <= endInning; inn++) {
+            for (const inn of activeInningsForRotation(r)) {
                 inningAssignments.push({ inning: inn, positions: { ...r.positions } });
             }
         }
@@ -1335,6 +1551,7 @@ async function saveGame() {
             date: S.game.date,
             attendees: S.game.attendees,
             rotFreq: S.game.rotFreq,
+            activeInnings: activeInningsForGame(),
             battingOrder: S.game.battingOrder.map(b => ({ playerId: b.playerId, slot: b.slot })),
             inningAssignments,
             savedAt: firebase.firestore.FieldValue.serverTimestamp()
@@ -1393,13 +1610,11 @@ function exportCurrentCSV() {
     // Build a temporary game-like object from current state
     const inningAssignments = [];
     for (const r of S.game.rotation) {
-        const start = (r.group - 1) * S.game.rotFreq + 1;
-        const end   = Math.min(start + S.game.rotFreq - 1, S.game.totalInnings);
-        for (let inn = start; inn <= end; inn++) {
+        for (const inn of activeInningsForRotation(r)) {
             inningAssignments.push({ inning: inn, positions: { ...r.positions } });
         }
     }
-    const maxInning = S.game.totalInnings;
+    const maxInning = Math.max(...activeInningsForGame(), 0);
     const headers = ['Date', 'Player', 'Batting Slot', ...Array.from({ length: maxInning }, (_, i) => `Inn. ${i + 1}`)];
     const rows = buildGameCsvRows({ ...S.game, inningAssignments });
     downloadCsv(`lineup-${S.game.date}.csv`, rows, headers);
@@ -1532,12 +1747,19 @@ function signOut() {
 }
 
 // ===== INIT =====
-auth.onAuthStateChanged(function(user) {
+auth.onAuthStateChanged(async function(user) {
     if (!user) { window.location.href = '/'; return; }
     S.user = user;
     document.getElementById('nav-email').textContent = user.email;
-    document.getElementById('app').style.display = 'block';
-    loadData();
+    try {
+        S.dataLoadPromise = loadData().finally(() => { S.dataLoadPromise = null; });
+        await S.dataLoadPromise;
+        document.getElementById('app').style.display = 'block';
+    } catch (e) {
+        console.error(e);
+        document.getElementById('app').style.display = 'block';
+        showToast('Roster failed to load: ' + e.message, 'error');
+    }
 });
 </script>
 </body>

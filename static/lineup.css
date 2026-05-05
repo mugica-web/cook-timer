@@ -831,6 +831,29 @@ h3 {
     white-space: nowrap;
 }
 
+.inning-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    margin: 2px 0;
+}
+
+.inning-chip + .inning-chip {
+    margin-left: 6px;
+}
+
+.inning-delete {
+    font-size: 0.86em;
+    width: 18px;
+    height: 18px;
+    line-height: 18px;
+    color: #777;
+}
+
+.inning-delete:hover {
+    color: #e84a38;
+}
+
 .pos-cell {
     display: flex;
     align-items: center;
