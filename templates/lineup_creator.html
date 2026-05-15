@@ -200,7 +200,11 @@ const S = {
     game: null,    // active working game (not yet saved)
     undoGame: null,
     dataLoaded: false,
-    dataLoadPromise: null
+    dataLoadPromise: null,
+    workingSaveTimer: null,
+    workingSavePromise: null,
+    workingSaveQueued: false,
+    workingSaveErrorShown: false
     // game: { date, attendees:[pid], rotFreq, totalInnings,
     //         battingOrder:[{playerId,slot,locked}],
     //         rotation:[{group,inningLabel,positions:{POS:pid},bench:[pid]}],
@@ -210,6 +214,7 @@ const S = {
 // ===== FIRESTORE REFS =====
 function playersRef() { return db.collection('users').doc(S.user.uid).collection('lineup_players'); }
 function gamesRef()   { return db.collection('users').doc(S.user.uid).collection('lineup_games');   }
+function workingLineupRef() { return db.collection('users').doc(S.user.uid).collection('lineup_state').doc('current'); }
 
 // ===== UTILITIES =====
 function todayISO() {
@@ -339,15 +344,101 @@ function activeInningsForRotation(r, game = S.game) {
     return activeInningsForGame(game).filter(inn => inn >= start && inn <= end);
 }
 
+function serializeWorkingGame(game = S.game) {
+    if (!game) return null;
+    const totalInnings = game.totalInnings || activeInningsForGame(game).length || 6;
+    return {
+        id: game.id || null,
+        date: game.date || todayISO(),
+        attendees: [...(game.attendees || [])],
+        rotFreq: game.rotFreq || 1,
+        totalInnings,
+        activeInnings: activeInningsForGame(game),
+        battingOrder: (game.battingOrder || []).map(b => ({
+            playerId: b.playerId || '',
+            slot: b.slot || 0,
+            locked: !!b.locked
+        })),
+        rotation: (game.rotation || []).map(r => ({
+            group: r.group || 0,
+            inningLabel: r.inningLabel || '',
+            positions: { ...(r.positions || {}) },
+            bench: [...(r.bench || [])]
+        })),
+        lockedBatting: { ...(game.lockedBatting || {}) },
+        lockedPositions: { ...(game.lockedPositions || {}) }
+    };
+}
+
+function restoreWorkingGame(data) {
+    const game = data?.game || data;
+    if (!game || !game.date || !Array.isArray(game.attendees)) return null;
+    return {
+        id: game.id || null,
+        date: game.date,
+        attendees: game.attendees || [],
+        rotFreq: game.rotFreq || 1,
+        totalInnings: game.totalInnings || Math.max(...(game.activeInnings || [6]), 6),
+        activeInnings: game.activeInnings || [],
+        battingOrder: game.battingOrder || [],
+        rotation: game.rotation || [],
+        lockedBatting: game.lockedBatting || {},
+        lockedPositions: game.lockedPositions || {}
+    };
+}
+
+async function flushWorkingLineupSave() {
+    if (!S.user || S.workingSavePromise) {
+        S.workingSaveQueued = true;
+        return S.workingSavePromise;
+    }
+
+    const game = serializeWorkingGame();
+    const payload = {
+        game,
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    };
+
+    S.workingSaveQueued = false;
+    S.workingSavePromise = workingLineupRef().set(payload)
+        .catch(e => {
+            console.error(e);
+            if (!S.workingSaveErrorShown) {
+                showToast('Current lineup autosave failed: ' + e.message, 'error');
+                S.workingSaveErrorShown = true;
+            }
+        })
+        .finally(() => {
+            S.workingSavePromise = null;
+            if (S.workingSaveQueued) queueWorkingLineupSave(0);
+        });
+    return S.workingSavePromise;
+}
+
+function queueWorkingLineupSave(delay = 150) {
+    if (!S.user) return;
+    clearTimeout(S.workingSaveTimer);
+    S.workingSaveTimer = setTimeout(() => { flushWorkingLineupSave(); }, delay);
+}
+
+function saveWorkingLineupBeforeExit() {
+    if (!S.user || !S.game) return;
+    clearTimeout(S.workingSaveTimer);
+    flushWorkingLineupSave();
+}
+
 // ===== DATA LOADING =====
 async function loadData() {
     S.dataLoaded = false;
-    const [pSnap, gSnap] = await Promise.all([
+    const [pSnap, gSnap, workingSnap] = await Promise.all([
         playersRef().orderBy('name').get(),
-        gamesRef().orderBy('date', 'desc').get()
+        gamesRef().orderBy('date', 'desc').get(),
+        workingLineupRef().get()
     ]);
     S.players = pSnap.docs.map(d => ({ id: d.id, ...d.data() }));
     S.games   = gSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+    S.game = workingSnap.exists ? restoreWorkingGame(workingSnap.data()) : null;
+    normalizeWorkingGame();
     S.dataLoaded = true;
     renderCurrentView();
 }
@@ -1031,6 +1122,7 @@ async function generateLineup() {
             lockedPositions: {}
         };
         S.undoGame = null;
+        queueWorkingLineupSave(0);
 
         showView('lineup');
     } catch (e) {
@@ -1052,6 +1144,7 @@ function regenerateAll() {
     S.game.lockedPositions = {};
     S.game.battingOrder = generateBattingOrder(S.game.attendees);
     S.game.rotation     = generateDefensiveRotation(S.game.attendees, S.game.rotFreq, S.game.totalInnings, {});
+    queueWorkingLineupSave();
     renderLineup();
 }
 
@@ -1098,6 +1191,7 @@ function regenerateUnlocked() {
         S.game.rotation[g].bench = newRotation[g].bench;
     }
 
+    queueWorkingLineupSave();
     renderLineup();
 }
 
@@ -1109,6 +1203,7 @@ function undoLineup() {
     if (!activeInningsForGame().includes(S.diamondInning)) {
         S.diamondInning = activeInningsForGame()[0] || 1;
     }
+    queueWorkingLineupSave();
     renderLineup();
     if (S.view === 'diamond') renderDiamondView();
 }
@@ -1192,6 +1287,7 @@ function deleteInning(inning) {
         S.diamondInning = S.game.activeInnings[0] || 1;
     }
 
+    queueWorkingLineupSave();
     renderLineup();
     if (S.view === 'diamond') renderDiamondView();
 }
@@ -1417,6 +1513,7 @@ function toggleLockBatting(pid) {
         const entry = S.game.battingOrder.find(b => b.playerId === pid);
         if (entry) S.game.lockedBatting[pid] = entry.slot;
     }
+    queueWorkingLineupSave();
     renderBattingList();
 }
 
@@ -1429,6 +1526,7 @@ function toggleLockPosition(group, pos) {
         const r = S.game.rotation.find(r => r.group === +group);
         if (r && r.positions[pos]) S.game.lockedPositions[key] = r.positions[pos]; // store pid
     }
+    queueWorkingLineupSave();
     renderRotationGrid();
 }
 
@@ -1471,13 +1569,16 @@ function battingDrop(e) {
     S.game.lockedBatting[bEntry.playerId] = bEntry.slot;
 
     dragBatting = null;
+    queueWorkingLineupSave();
     renderBattingList();
 }
 
 document.addEventListener('dragend', () => {
     dragBatting = null;
+    dragGrid = null;
     document.querySelectorAll('.batting-row.dragging').forEach(el => el.classList.remove('dragging'));
     document.querySelectorAll('.batting-row.drag-over').forEach(el => el.classList.remove('drag-over'));
+    document.querySelectorAll('.pos-cell.dragging').forEach(el => el.classList.remove('dragging'));
     document.querySelectorAll('.pos-cell.drag-over').forEach(el => el.classList.remove('drag-over'));
 });
 
@@ -1489,6 +1590,7 @@ function gridDragStart(e) {
     dragGrid = { group: +el.dataset.group, pos: el.dataset.pos, pid: el.dataset.pid };
     el.classList.add('dragging');
     e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', JSON.stringify(dragGrid));
 }
 
 function gridDragOver(e) {
@@ -1508,25 +1610,25 @@ function gridDrop(e) {
     const el       = e.currentTarget;
     const tGroup   = +el.dataset.group;
     const tPos     = el.dataset.pos;
-    const tPid     = el.dataset.pid;
 
     if (dragGrid.group === tGroup && dragGrid.pos === tPos) { dragGrid = null; return; }
-    if (dragGrid.group !== tGroup) { dragGrid = null; return; } // no cross-group swap
 
-    const r = S.game.rotation.find(r => r.group === tGroup);
-    if (!r) { dragGrid = null; return; }
+    const sourceRotation = S.game.rotation.find(r => r.group === dragGrid.group);
+    const targetRotation = S.game.rotation.find(r => r.group === tGroup);
+    if (!sourceRotation || !targetRotation) { dragGrid = null; return; }
 
     // Swap
-    const srcPid = r.positions[dragGrid.pos];
-    const dstPid = r.positions[tPos];
-    r.positions[dragGrid.pos] = dstPid;
-    r.positions[tPos]         = srcPid;
+    const srcPid = sourceRotation.positions[dragGrid.pos];
+    const dstPid = targetRotation.positions[tPos];
+    sourceRotation.positions[dragGrid.pos] = dstPid;
+    targetRotation.positions[tPos]         = srcPid;
 
     // Lock both cells (store pid so the algorithm can respect them)
-    S.game.lockedPositions[`${tGroup}_${dragGrid.pos}`] = r.positions[dragGrid.pos] || '';
-    S.game.lockedPositions[`${tGroup}_${tPos}`]         = r.positions[tPos] || '';
+    S.game.lockedPositions[`${dragGrid.group}_${dragGrid.pos}`] = sourceRotation.positions[dragGrid.pos] || '';
+    S.game.lockedPositions[`${tGroup}_${tPos}`]                 = targetRotation.positions[tPos] || '';
 
     dragGrid = null;
+    queueWorkingLineupSave();
     renderRotationGrid();
     renderPremiumStats();
     if (S.view === 'diamond') renderDiamondView();
@@ -1567,6 +1669,7 @@ async function saveGame() {
             S.games.unshift({ id: ref.id, ...gameData });
         }
 
+        queueWorkingLineupSave(0);
         showToast('Game saved!', 'success');
     } catch (e) {
         console.error(e);
@@ -1747,6 +1850,11 @@ function signOut() {
 }
 
 // ===== INIT =====
+document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') saveWorkingLineupBeforeExit();
+});
+window.addEventListener('pagehide', saveWorkingLineupBeforeExit);
+
 auth.onAuthStateChanged(async function(user) {
     if (!user) { window.location.href = '/'; return; }
     S.user = user;
