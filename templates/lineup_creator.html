@@ -325,6 +325,7 @@ function normalizeWorkingGame() {
     S.game.lockedBatting = S.game.lockedBatting || {};
     S.game.lockedPositions = S.game.lockedPositions || {};
     S.game.activeInnings = activeInningsForGame();
+    normalizeRotationBenches(S.game);
 }
 
 function allInningNumbers(totalInnings) {
@@ -342,6 +343,18 @@ function activeInningsForRotation(r, game = S.game) {
     const start = (r.group - 1) * game.rotFreq + 1;
     const end = Math.min(start + game.rotFreq - 1, game.totalInnings);
     return activeInningsForGame(game).filter(inn => inn >= start && inn <= end);
+}
+
+function benchFromPositions(attendeeIds, positions) {
+    const fielded = new Set(Object.values(positions || {}).filter(Boolean));
+    return (attendeeIds || []).filter(pid => !fielded.has(pid));
+}
+
+function normalizeRotationBenches(game = S.game) {
+    if (!game?.rotation) return;
+    for (const r of game.rotation) {
+        r.bench = benchFromPositions(game.attendees, r.positions);
+    }
 }
 
 function orderedPositionsForRotation(r) {
@@ -374,7 +387,7 @@ function serializeWorkingGame(game = S.game) {
             group: r.group || 0,
             inningLabel: r.inningLabel || '',
             positions: { ...(r.positions || {}) },
-            bench: [...(r.bench || [])]
+            bench: benchFromPositions(game.attendees, r.positions)
         })),
         lockedBatting: { ...(game.lockedBatting || {}) },
         lockedPositions: { ...(game.lockedPositions || {}) }
@@ -997,7 +1010,10 @@ function generateDefensiveRotation(attendeeIds, rotFreq, totalInnings, lockedPos
         const startInning = g * rotFreq + 1;
         const endInning   = Math.min(startInning + rotFreq - 1, totalInnings);
         const inningCount = endInning - startInning + 1;
-        const benched = benchPlan[g];
+        const lockedOnField = new Set(allPositions
+            .map(pos => lockedPositions[`${groupNum}_${pos}`])
+            .filter(pid => attendeeIds.includes(pid)));
+        const benched = benchPlan[g].filter(pid => !lockedOnField.has(pid));
         const available = attendeeIds.filter(pid => !benched.includes(pid));
         const positionsAssigned = {};
         const used = new Set();
@@ -1106,7 +1122,12 @@ function generateDefensiveRotation(attendeeIds, rotFreq, totalInnings, lockedPos
             ? `Inn. ${startInning}`
             : `Inn. ${startInning}–${endInning}`;
 
-        rotation.push({ group: groupNum, inningLabel, positions: positionsAssigned, bench: benched });
+        rotation.push({
+            group: groupNum,
+            inningLabel,
+            positions: positionsAssigned,
+            bench: benchFromPositions(attendeeIds, positionsAssigned)
+        });
     }
 
     return rotation;
@@ -1416,6 +1437,7 @@ function renderBattingList() {
 function renderRotationGrid() {
     const el = document.getElementById('rotation-grid');
     if (!S.game.rotation.length) { el.innerHTML = ''; return; }
+    normalizeRotationBenches();
 
     const sample = S.game.rotation[0];
     const positions = orderedPositionsForRotation(sample);
@@ -1481,6 +1503,7 @@ function renderRotationGrid() {
 function renderPremiumStats() {
     const el = document.getElementById('premium-stats');
     if (!S.game || !S.game.rotation.length) { el.innerHTML = ''; return; }
+    normalizeRotationBenches();
 
     const stats = {};
     S.game.attendees.forEach(pid => { stats[pid] = { prem: 0, outfield: 0, bench: 0, total: 0 }; });
@@ -1488,14 +1511,20 @@ function renderPremiumStats() {
     for (const r of S.game.rotation) {
         const inningCount = activeInningsForRotation(r).length;
         if (!inningCount) continue;
+        const fieldedByPlayer = {};
         for (const [pos, pid] of Object.entries(r.positions)) {
             if (!stats[pid]) continue;
+            fieldedByPlayer[pid] = fieldedByPlayer[pid] || { prem: false, outfield: false };
+            if (PREMIUM.has(pos)) fieldedByPlayer[pid].prem = true;
+            else fieldedByPlayer[pid].outfield = true;
+        }
+        for (const [pid, played] of Object.entries(fieldedByPlayer)) {
             stats[pid].total += inningCount;
-            if (PREMIUM.has(pos)) stats[pid].prem += inningCount;
-            else stats[pid].outfield += inningCount;
+            if (played.prem) stats[pid].prem += inningCount;
+            else if (played.outfield) stats[pid].outfield += inningCount;
         }
         for (const pid of (r.bench || [])) {
-            if (stats[pid]) {
+            if (stats[pid] && !fieldedByPlayer[pid]) {
                 stats[pid].bench += inningCount;
                 stats[pid].total += inningCount;
             }
@@ -1665,6 +1694,7 @@ async function saveGame() {
     if (btn) { btn.disabled = true; btn.textContent = 'Saving…'; }
 
     try {
+        normalizeRotationBenches();
         // Flatten rotation to inningAssignments
         const inningAssignments = [];
         for (const r of S.game.rotation) {
