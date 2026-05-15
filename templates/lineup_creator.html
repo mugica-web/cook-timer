@@ -939,16 +939,65 @@ function generateBattingOrder(attendeeIds) {
 }
 
 // ===== ALGORITHM: BENCH PLANNING =====
-function planBench(attendeeIds, numGroups, benchPerGroup) {
+function lockedPlayersForGroup(groupNum, lockedPositions, allPositions, attendeeIds) {
+    return new Set(allPositions
+        .map(pos => lockedPositions?.[`${groupNum}_${pos}`])
+        .filter(pid => attendeeIds.includes(pid)));
+}
+
+function rebalanceBenchPlan(plan, attendeeIds, lockedByGroup) {
+    const benchCount = {};
+    attendeeIds.forEach(pid => { benchCount[pid] = 0; });
+    plan.forEach(group => group.forEach(pid => { benchCount[pid]++; }));
+
+    let changed = true;
+    while (changed) {
+        changed = false;
+        const over = attendeeIds.filter(pid => benchCount[pid] > Math.min(...Object.values(benchCount)) + 1)
+            .sort((a, b) => benchCount[b] - benchCount[a]);
+        const under = attendeeIds.filter(pid => benchCount[pid] === Math.min(...Object.values(benchCount)))
+            .sort((a, b) => benchCount[a] - benchCount[b]);
+
+        for (const outPid of over) {
+            for (const inPid of under) {
+                for (let g = 0; g < plan.length; g++) {
+                    if (!plan[g].includes(outPid) || plan[g].includes(inPid)) continue;
+                    if (lockedByGroup[g]?.has(inPid)) continue;
+                    if (g > 0 && plan[g - 1].includes(inPid)) continue;
+                    if (g < plan.length - 1 && plan[g + 1].includes(inPid)) continue;
+
+                    plan[g] = plan[g].map(pid => pid === outPid ? inPid : pid);
+                    benchCount[outPid]--;
+                    benchCount[inPid]++;
+                    changed = true;
+                    break;
+                }
+                if (changed) break;
+            }
+            if (changed) break;
+        }
+    }
+    return plan;
+}
+
+function planBench(attendeeIds, numGroups, benchPerGroup, lockedPositions = {}, allPositions = []) {
     if (benchPerGroup === 0) return attendeeIds.map ? Array(numGroups).fill([]) : Array(numGroups).fill([]);
     const plan = Array.from({ length: numGroups }, () => []);
+    const lockedByGroup = Array.from({ length: numGroups }, (_, g) =>
+        lockedPlayersForGroup(g + 1, lockedPositions, allPositions, attendeeIds)
+    );
     const benchCount = {};
     attendeeIds.forEach(pid => { benchCount[pid] = 0; });
 
     for (let g = 0; g < numGroups; g++) {
+        const lockedOnField = lockedByGroup[g];
         const prevBenched = g > 0 ? plan[g - 1] : [];
-        // Eligible = not benched in previous group
-        const eligible = attendeeIds.filter(pid => !prevBenched.includes(pid));
+        // Eligible = not locked into the field and not benched in the previous group.
+        let eligible = attendeeIds.filter(pid => !lockedOnField.has(pid) && !prevBenched.includes(pid));
+        if (eligible.length < benchPerGroup) {
+            // If locks make no-consecutive bench impossible, keep lock correctness first.
+            eligible = attendeeIds.filter(pid => !lockedOnField.has(pid));
+        }
         // Shuffle first so equal bench counts produce new plans on re-roll.
         shuffle(eligible);
         eligible.sort((a, b) => benchCount[a] - benchCount[b]);
@@ -960,7 +1009,7 @@ function planBench(attendeeIds, numGroups, benchPerGroup) {
         plan[g] = selected;
         selected.forEach(pid => { benchCount[pid]++; });
     }
-    return plan;
+    return rebalanceBenchPlan(plan, attendeeIds, lockedByGroup);
 }
 
 // ===== ALGORITHM: DEFENSIVE ROTATION =====
@@ -992,7 +1041,7 @@ function generateDefensiveRotation(attendeeIds, rotFreq, totalInnings, lockedPos
         histPitchRate[pid] = (pitched + SMOOTH * 0.15) / (total + SMOOTH);
     }
 
-    const benchPlan = planBench(attendeeIds, numGroups, benchPerGroup);
+    const benchPlan = planBench(attendeeIds, numGroups, benchPerGroup, lockedPositions, allPositions);
     const rotation = [];
     const inGamePrem = {};
     const inGameCatcher = {};
@@ -1010,10 +1059,7 @@ function generateDefensiveRotation(attendeeIds, rotFreq, totalInnings, lockedPos
         const startInning = g * rotFreq + 1;
         const endInning   = Math.min(startInning + rotFreq - 1, totalInnings);
         const inningCount = endInning - startInning + 1;
-        const lockedOnField = new Set(allPositions
-            .map(pos => lockedPositions[`${groupNum}_${pos}`])
-            .filter(pid => attendeeIds.includes(pid)));
-        const benched = benchPlan[g].filter(pid => !lockedOnField.has(pid));
+        const benched = benchPlan[g];
         const available = attendeeIds.filter(pid => !benched.includes(pid));
         const positionsAssigned = {};
         const used = new Set();
