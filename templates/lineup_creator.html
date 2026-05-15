@@ -256,15 +256,6 @@ function shuffle(arr) {
     return arr;
 }
 
-// Pick from front of sorted array with bias toward lower indices
-function weightedPick(arr, frontBias = 0.65) {
-    if (!arr.length) return null;
-    if (arr.length === 1) return arr[0];
-    return Math.random() < frontBias
-        ? arr[0]
-        : arr[Math.floor(1 + Math.random() * (arr.length - 1))];
-}
-
 function cloneGame(game) {
     return game ? JSON.parse(JSON.stringify(game)) : null;
 }
@@ -1099,11 +1090,13 @@ function generateDefensiveRotation(attendeeIds, rotFreq, totalInnings, lockedPos
         const samePositionPenalty = (pid, pos) =>
             (inGamePosition[pid][pos] || 0) * 3
             + (playedPrevPosition(pid, pos) ? 1.5 : 0);
-        const scoreForPremiumPosition = pos => pid => score(pid) + samePositionPenalty(pid, pos);
+        const premiumBalanceTier = pid => inGamePrem[pid] * 100;
+        const scoreForPremiumPosition = pos => pid => premiumBalanceTier(pid) + histRate[pid] * 0.15 + rerollJitter[pid] + samePositionPenalty(pid, pos);
         const scoreForOutfieldPosition = pos => pid => -score(pid) + samePositionPenalty(pid, pos);
         const catcherScore = pid => inGameCatcher[pid] * 10 + score(pid);
         const pitcherScore = pid => (
-            inGamePitcher[pid] * PITCHER_REPEAT_PENALTY
+            premiumBalanceTier(pid)
+            + inGamePitcher[pid] * PITCHER_REPEAT_PENALTY
             + histPitchRate[pid] * 0.35
             + score(pid) * 0.1
             + samePositionPenalty(pid, 'P')
@@ -1111,17 +1104,21 @@ function generateDefensiveRotation(attendeeIds, rotFreq, totalInnings, lockedPos
         );
 
         // Catcher consecutive-position penalty discourages back-to-back innings.
-        const scoreCatcher = pid => catcherScore(pid) + samePositionPenalty(pid, 'C') + (prevPositions['C'] === pid ? 4 : 0);
+        const scoreCatcher = pid => premiumBalanceTier(pid) + catcherScore(pid) + samePositionPenalty(pid, 'C') + (prevPositions['C'] === pid ? 4 : 0);
 
-        const pickFrom = (pool, sortFn = score, frontBias = 1) => {
-            const sorted = pool.filter(pid => !used.has(pid)).sort((a, b) => sortFn(a) - sortFn(b));
-            return sorted.length ? weightedPick(sorted, frontBias) : null;
+        const pickPremium = (pool, pos, sortFn = scoreForPremiumPosition(pos)) => {
+            const candidates = pool.filter(pid => !used.has(pid));
+            if (!candidates.length) return null;
+            const minPrem = Math.min(...candidates.map(pid => inGamePrem[pid]));
+            const lowestTier = candidates.filter(pid => inGamePrem[pid] === minPrem);
+            lowestTier.sort((a, b) => sortFn(a) - sortFn(b));
+            return lowestTier[0] || null;
         };
 
         // Pitcher
         if (!positionsAssigned['P']) {
             const eligible = available.filter(pid => !used.has(pid) && S.players.find(pl => pl.id === pid)?.canPitch);
-            const pick = pickFrom(eligible.length ? eligible : available, pitcherScore);
+            const pick = pickPremium(eligible.length ? eligible : available, 'P', pitcherScore);
             if (pick) {
                 positionsAssigned['P'] = pick;
                 used.add(pick);
@@ -1132,7 +1129,7 @@ function generateDefensiveRotation(attendeeIds, rotFreq, totalInnings, lockedPos
         // Catcher
         if (!positionsAssigned['C']) {
             const eligible = available.filter(pid => !used.has(pid) && S.players.find(pl => pl.id === pid)?.canCatch);
-            const pick = pickFrom(eligible.length ? eligible : available, scoreCatcher);
+            const pick = pickPremium(eligible.length ? eligible : available, 'C', scoreCatcher);
             if (pick) {
                 positionsAssigned['C'] = pick;
                 used.add(pick);
@@ -1143,7 +1140,7 @@ function generateDefensiveRotation(attendeeIds, rotFreq, totalInnings, lockedPos
         // Remaining infield
         for (const pos of ['1B','2B','3B','SS']) {
             if (!positionsAssigned[pos]) {
-                const pick = pickFrom(available, scoreForPremiumPosition(pos));
+                const pick = pickPremium(available, pos);
                 if (pick) { positionsAssigned[pos] = pick; used.add(pick); markPosition(pick, pos); }
             }
         }
