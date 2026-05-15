@@ -344,6 +344,17 @@ function activeInningsForRotation(r, game = S.game) {
     return activeInningsForGame(game).filter(inn => inn >= start && inn <= end);
 }
 
+function orderedPositionsForRotation(r) {
+    const positions = r?.positions || {};
+    const canonical = Object.prototype.hasOwnProperty.call(positions, 'LCF')
+        || Object.prototype.hasOwnProperty.call(positions, 'RCF')
+        ? POSITIONS_10
+        : POSITIONS_9;
+    const known = canonical.filter(pos => Object.prototype.hasOwnProperty.call(positions, pos));
+    const extras = Object.keys(positions).filter(pos => !canonical.includes(pos)).sort();
+    return [...known, ...extras];
+}
+
 function serializeWorkingGame(game = S.game) {
     if (!game) return null;
     const totalInnings = game.totalInnings || activeInningsForGame(game).length || 6;
@@ -1330,7 +1341,7 @@ function renderDiamondView() {
         RF:  { x: 80, y: 24 }
     };
 
-    const positions = Object.keys(rotation.positions || {});
+    const positions = orderedPositionsForRotation(rotation);
     const markers = positions.map(pos => {
         const spot = markerPositions[pos] || { x: 50, y: 50 };
         const pid = rotation.positions[pos];
@@ -1394,7 +1405,7 @@ function renderRotationGrid() {
     if (!S.game.rotation.length) { el.innerHTML = ''; return; }
 
     const sample = S.game.rotation[0];
-    const positions = Object.keys(sample.positions);
+    const positions = orderedPositionsForRotation(sample);
 
     const headerCols = positions.map(p => `<th class="${PREMIUM.has(p) ? 'premium-header' : ''}">${p}</th>`).join('');
     const hasBench = S.game.rotation.some(r => r.bench?.length > 0);
