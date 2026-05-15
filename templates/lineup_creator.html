@@ -984,10 +984,12 @@ function generateDefensiveRotation(attendeeIds, rotFreq, totalInnings, lockedPos
     const inGamePrem = {};
     const inGameCatcher = {};
     const inGamePitcher = {};
+    const inGamePosition = {};
     attendeeIds.forEach(pid => {
         inGamePrem[pid] = 0;
         inGameCatcher[pid] = 0;
         inGamePitcher[pid] = 0;
+        inGamePosition[pid] = {};
     });
 
     for (let g = 0; g < numGroups; g++) {
@@ -1002,6 +1004,14 @@ function generateDefensiveRotation(attendeeIds, rotFreq, totalInnings, lockedPos
 
         // Previous group for consecutive-position penalty
         const prevPositions = g > 0 ? rotation[g - 1].positions : {};
+        const playedPrevPosition = (pid, pos) => prevPositions[pos] === pid;
+        const markPosition = (pid, pos) => {
+            if (!pid) return;
+            inGamePosition[pid][pos] = (inGamePosition[pid][pos] || 0) + inningCount;
+            if (PREMIUM.has(pos)) inGamePrem[pid] += inningCount;
+            if (pos === 'C') inGameCatcher[pid] += inningCount;
+            if (pos === 'P') inGamePitcher[pid] += inningCount;
+        };
 
         // Apply locked positions for this group first
         for (const pos of allPositions) {
@@ -1011,9 +1021,7 @@ function generateDefensiveRotation(attendeeIds, rotFreq, totalInnings, lockedPos
                 if (available.includes(lockedPid) && !used.has(lockedPid)) {
                     positionsAssigned[pos] = lockedPid;
                     used.add(lockedPid);
-                    if (PREMIUM.has(pos)) inGamePrem[lockedPid] += inningCount;
-                    if (pos === 'C') inGameCatcher[lockedPid] += inningCount;
-                    if (pos === 'P') inGamePitcher[lockedPid] += inningCount;
+                    markPosition(lockedPid, pos);
                 }
             }
         }
@@ -1026,16 +1034,22 @@ function generateDefensiveRotation(attendeeIds, rotFreq, totalInnings, lockedPos
         // behind everyone with fewer premium innings this game, regardless of historical rate.
         // This ensures within-game fairness dominates while re-rolls still produce fresh rotations.
         const score = pid => inGamePrem[pid] + histRate[pid] * 0.15 + rerollJitter[pid];
+        const samePositionPenalty = (pid, pos) =>
+            (inGamePosition[pid][pos] || 0) * 3
+            + (playedPrevPosition(pid, pos) ? 1.5 : 0);
+        const scoreForPremiumPosition = pos => pid => score(pid) + samePositionPenalty(pid, pos);
+        const scoreForOutfieldPosition = pos => pid => -score(pid) + samePositionPenalty(pid, pos);
         const catcherScore = pid => inGameCatcher[pid] * 10 + score(pid);
         const pitcherScore = pid => (
             inGamePitcher[pid] * PITCHER_REPEAT_PENALTY
             + histPitchRate[pid] * 0.35
             + score(pid) * 0.1
+            + samePositionPenalty(pid, 'P')
             + (prevPositions['P'] === pid ? PITCHER_REPEAT_PENALTY : 0)
         );
 
         // Catcher consecutive-position penalty discourages back-to-back innings.
-        const scoreCatcher = pid => catcherScore(pid) + (prevPositions['C'] === pid ? 4 : 0);
+        const scoreCatcher = pid => catcherScore(pid) + samePositionPenalty(pid, 'C') + (prevPositions['C'] === pid ? 4 : 0);
 
         const pickFrom = (pool, sortFn = score, frontBias = 1) => {
             const sorted = pool.filter(pid => !used.has(pid)).sort((a, b) => sortFn(a) - sortFn(b));
@@ -1049,8 +1063,7 @@ function generateDefensiveRotation(attendeeIds, rotFreq, totalInnings, lockedPos
             if (pick) {
                 positionsAssigned['P'] = pick;
                 used.add(pick);
-                inGamePrem[pick] += inningCount;
-                inGamePitcher[pick] += inningCount;
+                markPosition(pick, 'P');
             }
         }
 
@@ -1061,16 +1074,15 @@ function generateDefensiveRotation(attendeeIds, rotFreq, totalInnings, lockedPos
             if (pick) {
                 positionsAssigned['C'] = pick;
                 used.add(pick);
-                inGamePrem[pick] += inningCount;
-                inGameCatcher[pick] += inningCount;
+                markPosition(pick, 'C');
             }
         }
 
         // Remaining infield
         for (const pos of ['1B','2B','3B','SS']) {
             if (!positionsAssigned[pos]) {
-                const pick = pickFrom(available, score);
-                if (pick) { positionsAssigned[pos] = pick; used.add(pick); inGamePrem[pick] += inningCount; }
+                const pick = pickFrom(available, scoreForPremiumPosition(pos));
+                if (pick) { positionsAssigned[pos] = pick; used.add(pick); markPosition(pick, pos); }
             }
         }
 
@@ -1079,12 +1091,13 @@ function generateDefensiveRotation(attendeeIds, rotFreq, totalInnings, lockedPos
         for (const pos of outfieldPositions) {
             if (!positionsAssigned[pos]) {
                 const remaining = available.filter(pid => !used.has(pid));
-                // Reverse priority: highest score (most premium this game + history) → outfield
-                remaining.sort((a, b) => score(b) - score(a));
+                // Reverse premium priority, while rotating exact outfield spots within the group.
+                remaining.sort((a, b) => scoreForOutfieldPosition(pos)(a) - scoreForOutfieldPosition(pos)(b));
                 const pick = remaining.length ? remaining[0] : null;
                 if (pick) {
                     positionsAssigned[pos] = pick;
                     used.add(pick);
+                    markPosition(pick, pos);
                 }
             }
         }
