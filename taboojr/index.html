@@ -1,0 +1,1941 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Taboo Jr. 🤐</title>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  /* ===== RESET & BASE ===== */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:        #241447;
+    --bg2:       #4A2585;
+    --card:      #FFF8F0;
+    --cream:     #FFF3E0;
+    --red:       #E63946;
+    --red-dark:  #B02A35;
+    --green:     #06D6A0;
+    --green-dk:  #049C75;
+    --yellow:    #FFBE0B;
+    --gold:      #FFD166;
+    --blue:      #118AB2;
+    --purple:    #9B5DE5;
+    --dark:      #2D2D2D;
+    --muted:     #7A6A92;
+  }
+
+  html, body { height: 100%; }
+
+  body {
+    font-family: 'Baloo 2', 'Trebuchet MS', cursive, sans-serif;
+    background: var(--bg);
+    background-image: radial-gradient(circle at 50% 0%, var(--bg2) 0%, var(--bg) 65%);
+    color: var(--card);
+    min-height: 100%;
+    overflow-x: hidden;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  /* ===== ANIMATIONS ===== */
+  @keyframes pop {
+    0%   { transform: scale(0.6); opacity: 0; }
+    70%  { transform: scale(1.06); }
+    100% { transform: scale(1); opacity: 1; }
+  }
+  @keyframes slideUp {
+    from { transform: translateY(26px); opacity: 0; }
+    to   { transform: translateY(0); opacity: 1; }
+  }
+  @keyframes shake {
+    0%,100% { transform: translateX(0); }
+    20% { transform: translateX(-10px); }
+    40% { transform: translateX(10px); }
+    60% { transform: translateX(-7px); }
+    80% { transform: translateX(7px); }
+  }
+  @keyframes flyRight {
+    to { transform: translateX(120%) rotate(14deg); opacity: 0; }
+  }
+  @keyframes flyLeft {
+    to { transform: translateX(-120%) rotate(-14deg); opacity: 0; }
+  }
+  @keyframes flyDown {
+    to { transform: translateY(120%) scale(0.8); opacity: 0; }
+  }
+  @keyframes pulseRed {
+    0%,100% { box-shadow: 0 0 0 0 rgba(230,57,70,0.7); }
+    50%     { box-shadow: 0 0 0 18px rgba(230,57,70,0); }
+  }
+  @keyframes bobble {
+    0%,100% { transform: translateY(0) rotate(-2deg); }
+    50%     { transform: translateY(-9px) rotate(2deg); }
+  }
+  @keyframes confettiFall {
+    0%   { transform: translateY(-10vh) rotate(0deg); opacity: 1; }
+    100% { transform: translateY(110vh) rotate(760deg); opacity: 0; }
+  }
+  @keyframes floatUp {
+    0%   { transform: translate(-50%, 0) scale(0.7); opacity: 0; }
+    25%  { transform: translate(-50%, -18px) scale(1.15); opacity: 1; }
+    100% { transform: translate(-50%, -95px) scale(1); opacity: 0; }
+  }
+
+  /* ===== SCREENS ===== */
+  .screen { display: none; min-height: 100vh; min-height: 100dvh; padding: 20px 16px 28px; }
+  .screen.active { display: flex; flex-direction: column; }
+  .screen-pad { max-width: 620px; width: 100%; margin: 0 auto; }
+
+  /* ===== BUTTONS ===== */
+  .btn {
+    font-family: inherit;
+    font-weight: 800;
+    font-size: 1.25rem;
+    border: none;
+    border-radius: 18px;
+    padding: 16px 26px;
+    cursor: pointer;
+    color: #fff;
+    background: var(--purple);
+    box-shadow: 0 5px 0 rgba(0,0,0,0.28);
+    transition: transform .08s, box-shadow .08s, filter .15s;
+    letter-spacing: .3px;
+  }
+  .btn:active { transform: translateY(4px); box-shadow: 0 1px 0 rgba(0,0,0,0.28); }
+  .btn:disabled { opacity: .45; cursor: default; transform: none; }
+  .btn-big     { width: 100%; font-size: 1.6rem; padding: 22px; border-radius: 22px; }
+  .btn-gold    { background: var(--gold); color: #4A2585; }
+  .btn-green   { background: var(--green); color: #05412F; }
+  .btn-red     { background: var(--red); }
+  .btn-yellow  { background: var(--yellow); color: #5A3B00; }
+  .btn-blue    { background: var(--blue); }
+  .btn-ghost {
+    background: transparent;
+    box-shadow: none;
+    border: 2px solid rgba(255,255,255,0.32);
+    color: rgba(255,255,255,0.85);
+    font-size: 1rem;
+    padding: 11px 20px;
+  }
+  .btn-ghost:active { transform: translateY(2px); box-shadow: none; }
+
+  /* ===== MENU ===== */
+  .logo { text-align: center; margin: 6vh 0 4px; animation: pop .5s ease-out; }
+  .logo-word {
+    font-size: clamp(3.2rem, 17vw, 5.4rem);
+    font-weight: 800;
+    line-height: .92;
+    color: var(--gold);
+    text-shadow: 0 5px 0 var(--red-dark), 0 9px 22px rgba(0,0,0,.45);
+    letter-spacing: 2px;
+  }
+  .logo-jr {
+    display: inline-block;
+    font-size: clamp(1.3rem, 6vw, 2rem);
+    background: var(--red);
+    color: #fff;
+    padding: 2px 16px 4px;
+    border-radius: 30px;
+    transform: rotate(-4deg);
+    margin-top: 8px;
+    box-shadow: 0 4px 0 var(--red-dark);
+  }
+  .logo-sub { color: rgba(255,255,255,.62); font-size: 1.05rem; margin-top: 14px; }
+
+  .menu-stack { display: flex; flex-direction: column; gap: 14px; margin-top: 30px; }
+  .menu-card {
+    display: flex; align-items: center; gap: 16px;
+    background: rgba(255,255,255,.09);
+    border: 2px solid rgba(255,255,255,.16);
+    border-radius: 22px;
+    padding: 18px 20px;
+    cursor: pointer;
+    text-align: left;
+    color: inherit;
+    font-family: inherit;
+    width: 100%;
+    transition: transform .1s, background .15s;
+  }
+  .menu-card:active { transform: scale(.97); background: rgba(255,255,255,.15); }
+  .menu-card-icon { font-size: 2.4rem; line-height: 1; }
+  .menu-card-name { font-size: 1.4rem; font-weight: 800; }
+  .menu-card-desc { font-size: .95rem; color: rgba(255,255,255,.6); line-height: 1.25; }
+
+  /* ===== DECK METER ===== */
+  .deck-meter { margin-top: 26px; text-align: center; }
+  .deck-meter-label { font-size: .9rem; color: rgba(255,255,255,.55); margin-bottom: 6px; }
+  .deck-bar {
+    height: 12px; border-radius: 8px;
+    background: rgba(0,0,0,.3);
+    overflow: hidden;
+    border: 1px solid rgba(255,255,255,.12);
+  }
+  .deck-bar-fill {
+    height: 100%; border-radius: 8px;
+    background: linear-gradient(90deg, var(--green), var(--gold));
+    transition: width .4s ease;
+  }
+
+  /* ===== SETUP ===== */
+  .setup-title { font-size: 2rem; font-weight: 800; text-align: center; margin: 8px 0 4px; }
+  .setup-sub { text-align: center; color: rgba(255,255,255,.6); margin-bottom: 22px; }
+  .field { margin-bottom: 22px; }
+  .field-label { font-size: 1.05rem; font-weight: 700; margin-bottom: 9px; color: var(--gold); }
+  .chip-row { display: flex; gap: 9px; flex-wrap: wrap; }
+  .chip {
+    flex: 1 1 0; min-width: 68px;
+    font-family: inherit; font-size: 1.05rem; font-weight: 700;
+    padding: 13px 8px;
+    border-radius: 14px;
+    border: 2px solid rgba(255,255,255,.2);
+    background: rgba(255,255,255,.07);
+    color: rgba(255,255,255,.75);
+    cursor: pointer;
+    transition: all .13s;
+  }
+  .chip.on {
+    background: var(--gold); color: #4A2585;
+    border-color: var(--gold);
+    box-shadow: 0 4px 0 #C79A3C;
+    transform: translateY(-2px);
+  }
+  .team-input-row { display: flex; align-items: center; gap: 11px; margin-bottom: 10px; }
+  .team-dot { width: 30px; height: 30px; border-radius: 50%; flex-shrink: 0; box-shadow: 0 2px 0 rgba(0,0,0,.3); }
+  .team-input {
+    flex: 1;
+    font-family: inherit; font-size: 1.15rem; font-weight: 700;
+    padding: 12px 15px;
+    border-radius: 14px;
+    border: 2px solid rgba(255,255,255,.2);
+    background: rgba(255,255,255,.09);
+    color: #fff;
+  }
+  .team-input:focus { outline: none; border-color: var(--gold); background: rgba(255,255,255,.15); }
+
+  /* ===== HANDOFF / READY ===== */
+  .handoff { flex: 1; display: flex; flex-direction: column; justify-content: center; text-align: center; gap: 8px; }
+  .handoff-emoji { font-size: 4.5rem; animation: bobble 2.2s ease-in-out infinite; }
+  .handoff-team { font-size: 2.6rem; font-weight: 800; line-height: 1.05; }
+  .handoff-msg { color: rgba(255,255,255,.7); font-size: 1.15rem; line-height: 1.35; margin-bottom: 6px; }
+  .handoff-hint {
+    background: rgba(0,0,0,.28);
+    border-radius: 16px;
+    padding: 13px 17px;
+    font-size: .95rem;
+    color: rgba(255,255,255,.72);
+    line-height: 1.4;
+    margin: 4px auto 14px;
+    max-width: 420px;
+  }
+
+  /* ===== PLAY ===== */
+  #screen-play.active { padding: 0; }
+  .play-wrap { display: flex; flex-direction: column; height: 100vh; height: 100dvh; width: 100%; max-width: 620px; margin: 0 auto; }
+
+  .play-top { padding: 12px 16px 6px; flex-shrink: 0; }
+  .play-top-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+  .play-team { font-size: 1.15rem; font-weight: 800; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .play-score { font-size: 1.15rem; font-weight: 800; color: var(--green); flex-shrink: 0; }
+  .icon-btn {
+    background: rgba(255,255,255,.12); border: none; color: #fff;
+    width: 40px; height: 40px; border-radius: 12px;
+    font-size: 1.2rem; cursor: pointer; flex-shrink: 0;
+    font-family: inherit;
+  }
+  .icon-btn:active { transform: scale(.92); }
+
+  .timer-row { display: flex; align-items: baseline; gap: 10px; margin-top: 6px; }
+  .timer-num { font-size: 2.5rem; font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums; }
+  .timer-bar { flex: 1; height: 14px; border-radius: 9px; background: rgba(0,0,0,.32); overflow: hidden; }
+  .timer-bar-fill { height: 100%; background: var(--green); border-radius: 9px; transition: width 1s linear, background .4s; }
+  .timer-warn .timer-num { color: var(--yellow); }
+  .timer-warn .timer-bar-fill { background: var(--yellow); }
+  .timer-danger .timer-num { color: var(--red); animation: pop .35s ease-out; }
+  .timer-danger .timer-bar-fill { background: var(--red); }
+
+  /* ── the card ── */
+  .card-area { flex: 1; display: flex; align-items: center; justify-content: center; padding: 10px 16px; min-height: 0; }
+  .taboo-card {
+    background: var(--card);
+    color: var(--dark);
+    border-radius: 26px;
+    width: 100%;
+    height: 100%;
+    box-shadow: 0 12px 34px rgba(0,0,0,.45);
+    overflow: hidden;
+    display: flex; flex-direction: column;
+    animation: pop .3s ease-out;
+  }
+  .card-answer {
+    background: linear-gradient(160deg, #FFFFFF, var(--cream));
+    padding: 16px 16px;
+    text-align: center;
+    border-bottom: 5px dashed rgba(0,0,0,.13);
+    flex-shrink: 0;
+    display: flex; flex-direction: column; justify-content: center;
+    min-height: 34%;
+  }
+  .card-answer-word {
+    font-size: clamp(1.9rem, 8.5vw, 3.1rem);
+    font-weight: 800;
+    line-height: 1.02;
+    color: var(--red-dark);
+    letter-spacing: .5px;
+    word-break: break-word;
+  }
+  .card-answer-label {
+    font-size: .78rem; letter-spacing: 2.5px; font-weight: 700;
+    color: var(--muted); text-transform: uppercase; margin-bottom: 5px;
+  }
+  .card-taboo-label {
+    font-size: .74rem; letter-spacing: 2.2px; font-weight: 700;
+    color: rgba(255,255,255,.85); text-transform: uppercase;
+    background: var(--red-dark);
+    text-align: center; padding: 5px;
+    flex-shrink: 0;
+  }
+  .card-taboo-list {
+    background: var(--red);
+    padding: 6px 12px 10px;
+    flex: 1; min-height: 0; overflow-y: auto;
+    display: flex; flex-direction: column; justify-content: space-evenly;
+  }
+  .card-taboo-word {
+    color: #fff;
+    font-size: clamp(1.1rem, 5vw, 1.6rem);
+    font-weight: 700;
+    text-align: center;
+    padding: 5px 4px;
+    border-bottom: 1px solid rgba(255,255,255,.22);
+    line-height: 1.15;
+  }
+  .card-taboo-word:last-child { border-bottom: none; }
+
+  .card-fly-right { animation: flyRight .28s ease-in forwards; }
+  .card-fly-left  { animation: flyLeft .28s ease-in forwards; }
+  .card-fly-down  { animation: flyDown .3s ease-in forwards; }
+  .card-shake     { animation: shake .4s; }
+
+  /* ── action buttons ── */
+  .play-actions { flex-shrink: 0; padding: 8px 16px calc(14px + env(safe-area-inset-bottom)); display: flex; flex-direction: column; gap: 9px; }
+  .action-secondary { display: flex; gap: 9px; }
+  .action-secondary .btn { flex: 1; font-size: 1.1rem; padding: 15px 10px; }
+  .btn-gotit { font-size: 1.75rem; padding: 20px; width: 100%; border-radius: 20px; }
+
+  /* floating +1 */
+  .float-point {
+    position: fixed; left: 50%; bottom: 150px;
+    font-size: 3rem; font-weight: 800; color: var(--green);
+    text-shadow: 0 3px 10px rgba(0,0,0,.5);
+    pointer-events: none; z-index: 60;
+    animation: floatUp 1s ease-out forwards;
+  }
+
+  /* ===== ROUND SUMMARY ===== */
+  .summary-head { text-align: center; margin: 3vh 0 18px; }
+  .summary-title { font-size: 2.1rem; font-weight: 800; }
+  .summary-team { color: var(--gold); font-size: 1.25rem; }
+  .tally-row { display: flex; gap: 10px; margin-bottom: 20px; }
+  .tally {
+    flex: 1; text-align: center;
+    background: rgba(255,255,255,.09);
+    border: 2px solid rgba(255,255,255,.14);
+    border-radius: 18px; padding: 14px 6px;
+  }
+  .tally-num { font-size: 2.2rem; font-weight: 800; line-height: 1; }
+  .tally-label { font-size: .82rem; color: rgba(255,255,255,.6); margin-top: 4px; }
+  .tally-got .tally-num  { color: var(--green); }
+  .tally-skip .tally-num { color: var(--yellow); }
+  .tally-buzz .tally-num { color: var(--red); }
+
+  .review-list { flex: 1; min-height: 0; overflow-y: auto; margin-bottom: 18px; -webkit-overflow-scrolling: touch; }
+  .review-item {
+    display: flex; align-items: center; gap: 10px;
+    background: rgba(255,255,255,.07);
+    border-radius: 13px; padding: 10px 14px; margin-bottom: 7px;
+    font-size: 1.05rem; font-weight: 700;
+  }
+  .review-mark { font-size: 1.15rem; flex-shrink: 0; }
+
+  /* ===== SCOREBOARD ===== */
+  .score-row {
+    display: flex; align-items: center; gap: 13px;
+    background: rgba(255,255,255,.09);
+    border: 2px solid rgba(255,255,255,.14);
+    border-radius: 18px; padding: 14px 17px; margin-bottom: 10px;
+    animation: slideUp .35s ease-out backwards;
+  }
+  .score-row.leading { border-color: var(--gold); background: rgba(255,209,102,.14); }
+  .score-name { flex: 1; font-size: 1.25rem; font-weight: 800; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .score-pts { font-size: 1.7rem; font-weight: 800; color: var(--gold); font-variant-numeric: tabular-nums; }
+
+  /* ===== WIN ===== */
+  .win-wrap { flex: 1; display: flex; flex-direction: column; justify-content: center; text-align: center; }
+  .win-trophy { font-size: 5.5rem; animation: bobble 2s ease-in-out infinite; }
+  .win-title { font-size: 1.3rem; color: var(--gold); letter-spacing: 3px; text-transform: uppercase; font-weight: 700; }
+  .win-name { font-size: clamp(2.2rem, 11vw, 3.4rem); font-weight: 800; line-height: 1.05; margin: 4px 0 8px; }
+  .confetti-bit { position: fixed; top: 0; width: 11px; height: 17px; z-index: 90; pointer-events: none; animation: confettiFall linear forwards; }
+
+  /* ===== HOW TO PLAY ===== */
+  .rules-h { font-size: 1.9rem; font-weight: 800; text-align: center; margin: 6px 0 20px; }
+  .rule-block {
+    background: rgba(255,255,255,.08);
+    border-radius: 18px; padding: 16px 18px; margin-bottom: 12px;
+    border-left: 5px solid var(--gold);
+  }
+  .rule-block h3 { font-size: 1.15rem; margin-bottom: 5px; color: var(--gold); }
+  .rule-block p { font-size: 1rem; line-height: 1.45; color: rgba(255,255,255,.82); }
+  .rule-block p + p { margin-top: 8px; }
+  .rule-block strong { color: #fff; }
+
+  /* ===== MISC ===== */
+  .spacer { flex: 1; }
+  .center { text-align: center; }
+  .stack-gap { display: flex; flex-direction: column; gap: 11px; }
+  .tiny-note { font-size: .85rem; color: rgba(255,255,255,.45); text-align: center; margin-top: 14px; line-height: 1.4; }
+  .best-badge {
+    display: inline-block; background: var(--gold); color: #4A2585;
+    font-weight: 800; padding: 5px 16px; border-radius: 20px;
+    font-size: 1rem; margin-top: 8px;
+  }
+
+  /* toast */
+  .toast {
+    position: fixed; left: 50%; transform: translateX(-50%);
+    bottom: 28px; z-index: 100;
+    background: rgba(0,0,0,.85); color: #fff;
+    padding: 13px 22px; border-radius: 30px;
+    font-size: 1rem; font-weight: 700;
+    animation: slideUp .25s ease-out;
+    max-width: 90vw; text-align: center;
+  }
+
+  /* paused overlay */
+  .pause-veil {
+    position: fixed; inset: 0; z-index: 80;
+    background: rgba(20,10,40,.94);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 18px; text-align: center; padding: 24px;
+  }
+  .pause-veil h2 { font-size: 2.3rem; }
+
+  @media (max-height: 620px) {
+    .logo { margin-top: 2vh; }
+    .card-taboo-word { padding: 3px; }
+    .btn-gotit { font-size: 1.45rem; padding: 15px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════ MENU ══════════════════════ -->
+<div class="screen active" id="screen-menu">
+  <div class="screen-pad">
+    <div class="logo">
+      <div class="logo-word">TABOO</div>
+      <div class="logo-jr">JUNIOR</div>
+      <div class="logo-sub">Say it without saying it!</div>
+    </div>
+
+    <div class="menu-stack">
+      <button class="menu-card" onclick="goSetupTeams()">
+        <span class="menu-card-icon">👥</span>
+        <span>
+          <span class="menu-card-name">Teams</span><br>
+          <span class="menu-card-desc">2–4 teams take turns. First to the target score wins.</span>
+        </span>
+      </button>
+      <button class="menu-card" onclick="goSetupCoop()">
+        <span class="menu-card-icon">🤝</span>
+        <span>
+          <span class="menu-card-name">Just Us</span><br>
+          <span class="menu-card-desc">Everyone on one team. Try to beat your best score.</span>
+        </span>
+      </button>
+      <button class="menu-card" onclick="show('screen-rules')">
+        <span class="menu-card-icon">📖</span>
+        <span>
+          <span class="menu-card-name">How to Play</span><br>
+          <span class="menu-card-desc">The rules, in about a minute.</span>
+        </span>
+      </button>
+    </div>
+
+    <div class="deck-meter">
+      <div class="deck-meter-label" id="deck-meter-label">…</div>
+      <div class="deck-bar"><div class="deck-bar-fill" id="deck-bar-fill" style="width:0%"></div></div>
+      <button class="btn btn-ghost" style="margin-top:14px" onclick="resetDeck()">Shuffle a fresh deck</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════ HOW TO PLAY ══════════════════════ -->
+<div class="screen" id="screen-rules">
+  <div class="screen-pad">
+    <div class="rules-h">How to Play</div>
+
+    <div class="rule-block">
+      <h3>1. One person gives the clues</h3>
+      <p>That person holds the tablet or phone so <strong>nobody else can see it</strong>. Everybody else is guessing.</p>
+    </div>
+    <div class="rule-block">
+      <h3>2. Describe the big word on top</h3>
+      <p>Talk, and get your team to say that word out loud. When they say it — tap <strong>GOT IT</strong> and a new card appears.</p>
+    </div>
+    <div class="rule-block">
+      <h3>3. But the red words are TABOO</h3>
+      <p>You may not say any of the five red words. You also may not say the answer itself, or any piece of it — no "dogs" for DOG, no "sun" for SUNSHINE.</p>
+      <p>No spelling it, no rhyming it ("it rhymes with cat"), and no acting it out. Just words!</p>
+    </div>
+    <div class="rule-block">
+      <h3>4. The other team watches</h3>
+      <p>They peek over your shoulder at the card. If you slip and say a taboo word, they tap <strong>BUZZ</strong> — that card is gone and you get nothing for it. No points lost though!</p>
+    </div>
+    <div class="rule-block">
+      <h3>5. Stuck? Skip it</h3>
+      <p>Tap <strong>SKIP</strong> for a fresh card any time. Skips are free, but the clock keeps running.</p>
+    </div>
+    <div class="rule-block">
+      <h3>6. When the timer hits zero</h3>
+      <p>Your turn is over. You score one point for every card your team got. Then it's the next team's turn.</p>
+    </div>
+
+    <button class="btn btn-gold btn-big" style="margin-top:8px" onclick="show('screen-menu')">Got it!</button>
+  </div>
+</div>
+
+<!-- ══════════════════════ SETUP: TEAMS ══════════════════════ -->
+<div class="screen" id="screen-setup-teams">
+  <div class="screen-pad">
+    <div class="setup-title">Teams</div>
+    <div class="setup-sub">Who's playing?</div>
+
+    <div class="field">
+      <div class="field-label">How many teams?</div>
+      <div class="chip-row" id="chips-teamcount"></div>
+    </div>
+
+    <div class="field">
+      <div class="field-label">Team names</div>
+      <div id="team-name-inputs"></div>
+    </div>
+
+    <div class="field">
+      <div class="field-label">How long is each turn?</div>
+      <div class="chip-row" id="chips-duration"></div>
+    </div>
+
+    <div class="field">
+      <div class="field-label">Play to how many points?</div>
+      <div class="chip-row" id="chips-target"></div>
+    </div>
+
+    <button class="btn btn-green btn-big" onclick="startTeamGame()">Start Game!</button>
+    <button class="btn btn-ghost" style="width:100%;margin-top:11px" onclick="show('screen-menu')">Back</button>
+  </div>
+</div>
+
+<!-- ══════════════════════ SETUP: CO-OP ══════════════════════ -->
+<div class="screen" id="screen-setup-coop">
+  <div class="screen-pad">
+    <div class="setup-title">Just Us</div>
+    <div class="setup-sub">One person describes, everyone else guesses.<br>How many can you get before time runs out?</div>
+
+    <div class="field">
+      <div class="field-label">How long?</div>
+      <div class="chip-row" id="chips-coop-duration"></div>
+    </div>
+
+    <div class="center" id="coop-best-wrap" style="margin-bottom:22px"></div>
+
+    <button class="btn btn-green btn-big" onclick="startCoopGame()">Start!</button>
+    <button class="btn btn-ghost" style="width:100%;margin-top:11px" onclick="show('screen-menu')">Back</button>
+  </div>
+</div>
+
+<!-- ══════════════════════ HANDOFF / READY ══════════════════════ -->
+<div class="screen" id="screen-ready">
+  <div class="screen-pad" style="flex:1;display:flex;flex-direction:column">
+    <div class="handoff">
+      <div class="handoff-emoji" id="ready-emoji">🤐</div>
+      <div class="handoff-msg" id="ready-msg">Pass the screen to the clue-giver</div>
+      <div class="handoff-team" id="ready-team">Team 1</div>
+      <div class="handoff-hint" id="ready-hint">
+        Hold the screen so only <em>you</em> can see it. Tap start when your team is ready to guess.
+      </div>
+    </div>
+    <button class="btn btn-green btn-big" onclick="beginRound()">I'm ready — START</button>
+    <button class="btn btn-ghost" style="width:100%;margin-top:11px" onclick="confirmQuit()">Quit game</button>
+  </div>
+</div>
+
+<!-- ══════════════════════ PLAY ══════════════════════ -->
+<div class="screen" id="screen-play">
+  <div class="play-wrap">
+    <div class="play-top" id="play-top">
+      <div class="play-top-row">
+        <div class="play-team" id="play-team">Team 1</div>
+        <div class="play-score" id="play-score">0</div>
+        <button class="icon-btn" onclick="pauseRound()" aria-label="Pause">⏸</button>
+      </div>
+      <div class="timer-row">
+        <div class="timer-num" id="timer-num">60</div>
+        <div class="timer-bar"><div class="timer-bar-fill" id="timer-fill" style="width:100%"></div></div>
+      </div>
+    </div>
+
+    <div class="card-area">
+      <div class="taboo-card" id="taboo-card">
+        <div class="card-answer">
+          <div class="card-answer-label">Get them to say</div>
+          <div class="card-answer-word" id="card-word">…</div>
+        </div>
+        <div class="card-taboo-label">Don't say these</div>
+        <div class="card-taboo-list" id="card-taboos"></div>
+      </div>
+    </div>
+
+    <div class="play-actions">
+      <button class="btn btn-green btn-gotit" onclick="gotIt()">✓ GOT IT</button>
+      <div class="action-secondary">
+        <button class="btn btn-yellow" onclick="skipCard()">↷ SKIP</button>
+        <button class="btn btn-red" onclick="buzzCard()">✋ BUZZ</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════ ROUND SUMMARY ══════════════════════ -->
+<div class="screen" id="screen-summary">
+  <div class="screen-pad" style="flex:1;display:flex;flex-direction:column">
+    <div class="summary-head">
+      <div class="summary-title">Time's up!</div>
+      <div class="summary-team" id="summary-team">Team 1</div>
+    </div>
+
+    <div class="tally-row">
+      <div class="tally tally-got"><div class="tally-num" id="tally-got">0</div><div class="tally-label">got it</div></div>
+      <div class="tally tally-skip"><div class="tally-num" id="tally-skip">0</div><div class="tally-label">skipped</div></div>
+      <div class="tally tally-buzz"><div class="tally-num" id="tally-buzz">0</div><div class="tally-label">buzzed</div></div>
+    </div>
+
+    <div class="review-list" id="review-list"></div>
+    <button class="btn btn-gold btn-big" id="summary-next" onclick="afterSummary()">Next</button>
+  </div>
+</div>
+
+<!-- ══════════════════════ SCOREBOARD ══════════════════════ -->
+<div class="screen" id="screen-scores">
+  <div class="screen-pad" style="flex:1;display:flex;flex-direction:column">
+    <div class="setup-title">Scoreboard</div>
+    <div class="setup-sub" id="scores-sub">Playing to 20</div>
+    <div id="score-rows"></div>
+    <div class="spacer"></div>
+    <button class="btn btn-green btn-big" id="scores-next" onclick="nextTurn()">Next team</button>
+    <button class="btn btn-ghost" style="width:100%;margin-top:11px" onclick="confirmQuit()">Quit game</button>
+  </div>
+</div>
+
+<!-- ══════════════════════ WIN ══════════════════════ -->
+<div class="screen" id="screen-win">
+  <div class="screen-pad" style="flex:1;display:flex;flex-direction:column">
+    <div class="win-wrap">
+      <div class="win-trophy" id="win-trophy">🏆</div>
+      <div class="win-title" id="win-title">Winner</div>
+      <div class="win-name" id="win-name">Team 1</div>
+      <div id="win-extra"></div>
+    </div>
+    <div class="stack-gap">
+      <button class="btn btn-gold btn-big" onclick="playAgain()">Play again</button>
+      <button class="btn btn-ghost" style="width:100%" onclick="show('screen-menu')">Main menu</button>
+    </div>
+  </div>
+</div>
+
+<script>
+"use strict";
+
+// ============================================================
+//  TABOO JR. — THE DECK
+//  Each card: [ ANSWER, taboo1, taboo2, taboo3, taboo4, taboo5 ]
+//
+//  Rules of thumb when adding cards:
+//   - The answer should be something an 8-year-old could guess.
+//   - The 5 taboo words should be the 5 words you'd MOST want to
+//     say. If a taboo word is one you'd never reach for, swap it.
+//   - Keep taboo words lowercase, answers UPPERCASE.
+//   - No brand names, no anything that needs specific TV/movie
+//     knowledge. Run build.py after editing — it checks for
+//     duplicates and malformed cards.
+// ============================================================
+
+const DECK = [
+
+// ─────────────────────────  ANIMALS  ─────────────────────────
+["PENGUIN",       "bird",      "ice",       "black",     "swim",      "waddle"],
+["ELEPHANT",      "trunk",     "big",       "gray",      "ears",      "peanut"],
+["GIRAFFE",       "neck",      "tall",      "spots",     "zoo",       "leaves"],
+["LION",          "king",      "mane",      "roar",      "jungle",    "cat"],
+["MONKEY",        "banana",    "tree",      "tail",      "climb",     "zoo"],
+["KANGAROO",      "Australia", "hop",       "pouch",     "jump",      "baby"],
+["DOLPHIN",       "ocean",     "smart",     "swim",      "jump",      "gray"],
+["SHARK",         "teeth",     "ocean",     "fin",       "bite",      "scary"],
+["OCTOPUS",       "eight",     "arms",      "ocean",     "ink",       "tentacle"],
+["BUTTERFLY",     "wings",     "caterpillar","flower",    "colorful",  "garden"],
+["SPIDER",        "web",       "eight",     "legs",      "scary",     "bug"],
+["SNAKE",         "slither",   "hiss",      "legs",      "long",      "venom"],
+["FROG",          "hop",       "green",     "pond",      "ribbit",    "tadpole"],
+["TURTLE",        "shell",     "slow",      "green",     "hide",      "ocean"],
+["OWL",           "night",     "hoot",      "bird",      "wise",      "tree"],
+["EAGLE",         "bird",      "fly",       "bald",      "America",   "sharp"],
+["PARROT",        "talk",      "colorful",  "bird",      "pirate",    "feathers"],
+["HAMSTER",       "pet",       "wheel",     "cage",      "small",     "furry"],
+["RABBIT",        "hop",       "carrot",    "ears",      "bunny",     "fluffy"],
+["SQUIRREL",      "nut",       "tree",      "tail",      "acorn",     "park"],
+["HORSE",         "ride",      "saddle",    "gallop",    "neigh",     "farm"],
+["COW",           "milk",      "moo",       "farm",      "spots",     "barn"],
+["PIG",           "oink",      "mud",       "farm",      "pink",      "bacon"],
+["CHICKEN",       "egg",       "cluck",     "farm",      "bird",      "nugget"],
+["SHEEP",         "wool",      "baa",       "farm",      "white",     "fluffy"],
+["GOAT",          "horns",     "eat",       "farm",      "milk",      "beard"],
+["DUCK",          "quack",     "pond",      "water",     "bird",      "feet"],
+["BEE",           "honey",     "sting",     "buzz",      "flower",    "yellow"],
+["ANT",           "small",     "hill",      "picnic",    "bug",       "colony"],
+["WHALE",         "ocean",     "big",       "blue",      "water",     "spout"],
+["CRAB",          "claws",     "beach",     "sideways",  "shell",     "ocean"],
+["JELLYFISH",     "sting",     "ocean",     "clear",     "float",     "tentacle"],
+["STARFISH",      "beach",     "five",      "ocean",     "arms",      "sea"],
+["WOLF",          "howl",      "dog",       "moon",      "pack",      "forest"],
+["BEAR",          "honey",     "cave",      "hibernate", "growl",     "forest"],
+["FOX",           "orange",    "sly",       "tail",      "forest",    "clever"],
+["DEER",          "antlers",   "forest",    "run",       "spots",     "hunt"],
+["RACCOON",       "trash",     "mask",      "night",     "stripes",   "tail"],
+["SKUNK",         "smell",     "spray",     "stripe",    "black",     "stink"],
+["MOUSE",         "cheese",    "small",     "squeak",    "trap",      "tail"],
+["BEAVER",        "dam",       "teeth",     "wood",      "tail",      "river"],
+["TIGER",         "stripes",   "orange",    "cat",       "jungle",    "roar"],
+["ZEBRA",         "stripes",   "black",     "white",     "horse",     "Africa"],
+["HIPPO",         "water",     "big",       "mouth",     "Africa",    "gray"],
+["RHINO",         "horn",      "big",       "gray",      "Africa",    "charge"],
+["CHEETAH",       "fast",      "spots",     "run",       "cat",       "Africa"],
+["GORILLA",       "ape",       "chest",     "jungle",    "strong",    "banana"],
+["PANDA",         "bamboo",    "China",     "black",     "white",     "bear"],
+["KOALA",         "Australia", "tree",      "sleep",     "gray",      "leaves"],
+["SLOTH",         "slow",      "tree",      "hang",      "lazy",      "jungle"],
+["CAMEL",         "hump",      "desert",    "sand",      "ride",      "water"],
+["OSTRICH",       "big",       "bird",      "fly",       "fast",      "egg"],
+["FLAMINGO",      "pink",      "leg",       "bird",      "stand",     "water"],
+["PEACOCK",       "feathers",  "tail",      "blue",      "colorful",  "show"],
+["SNAIL",         "slow",      "shell",     "slime",     "garden",    "trail"],
+["WORM",          "dirt",      "wiggle",    "fishing",   "long",      "ground"],
+["LADYBUG",       "red",       "spots",     "black",     "garden",    "beetle"],
+["DRAGONFLY",     "wings",     "pond",      "insect",    "zip",       "skinny"],
+["CATERPILLAR",   "butterfly", "crawl",     "leaf",      "cocoon",    "green"],
+["LIZARD",        "reptile",   "tail",      "scales",    "sun",       "rock"],
+["SEAL",          "ocean",     "clap",      "fish",      "bark",      "flipper"],
+["WALRUS",        "tusks",     "ocean",     "big",       "ice",       "whiskers"],
+["POLAR BEAR",    "white",     "ice",       "Arctic",    "cold",      "seal"],
+["MOOSE",         "antlers",   "big",       "Canada",    "forest",    "deer"],
+["BUFFALO",       "big",       "brown",     "herd",      "plains",    "horns"],
+["DONKEY",        "farm",      "ears",      "stubborn",  "carry",     "bray"],
+["MOLE",          "dig",       "underground","blind",     "tunnel",    "yard"],
+["HEDGEHOG",      "spikes",    "small",     "curl",      "prickly",   "ball"],
+["OTTER",         "river",     "swim",      "cute",      "float",     "hands"],
+["CROCODILE",     "teeth",     "river",     "snap",      "green",     "reptile"],
+["TOAD",          "frog",      "bumpy",     "hop",       "warts",     "brown"],
+["MOTH",          "light",     "butterfly", "night",     "wings",     "gray"],
+["GRASSHOPPER",   "jump",      "green",     "insect",    "lawn",      "legs"],
+["CRICKET",       "chirp",     "night",     "bug",       "sound",     "jump"],
+["FIREFLY",       "glow",      "night",     "bug",       "light",     "summer"],
+["MOSQUITO",      "bite",      "itch",      "buzz",      "blood",     "summer"],
+["ROOSTER",       "morning",   "crow",      "farm",      "chicken",   "red"],
+["PUPPY",         "dog",       "baby",      "cute",      "bark",      "little"],
+["KITTEN",        "cat",       "baby",      "cute",      "meow",      "little"],
+
+// ─────────────────────  FOOD & DRINK  ─────────────────────
+["PIZZA",         "cheese",    "slice",     "round",     "pepperoni", "Italian"],
+["HAMBURGER",     "bun",       "beef",      "patty",     "grill",     "cheese"],
+["SPAGHETTI",     "noodles",   "sauce",     "pasta",     "long",      "meatball"],
+["POPCORN",       "movie",     "kernel",    "butter",    "salty",     "bowl"],
+["ICE CREAM",     "cone",      "cold",      "scoop",     "sundae",    "sprinkles"],
+["PANCAKE",       "syrup",     "breakfast", "flat",      "flip",      "stack"],
+["SANDWICH",      "bread",     "lunch",     "slices",    "peanut",    "jelly"],
+["CEREAL",        "milk",      "bowl",      "breakfast", "spoon",     "box"],
+["COOKIE",        "chocolate", "chip",      "bake",      "jar",       "sweet"],
+["CAKE",          "birthday",  "candles",   "frosting",  "slice",     "bake"],
+["DONUT",         "hole",      "glaze",     "round",     "sprinkles", "sweet"],
+["CUPCAKE",       "frosting",  "small",     "wrapper",   "birthday",  "bake"],
+["CANDY",         "sweet",     "Halloween", "sugar",     "wrapper",   "treat"],
+["CHOCOLATE",     "brown",     "sweet",     "bar",       "melt",      "candy"],
+["LOLLIPOP",      "stick",     "lick",      "candy",     "round",     "sweet"],
+["MARSHMALLOW",   "campfire",  "white",     "squishy",   "roast",     "smore"],
+["APPLE",         "red",       "fruit",     "tree",      "teacher",   "crunch"],
+["BANANA",        "yellow",    "peel",      "monkey",    "fruit",     "curved"],
+["ORANGE",        "peel",      "juice",     "round",     "fruit",     "citrus"],
+["GRAPES",        "purple",    "bunch",     "small",     "vine",      "raisin"],
+["STRAWBERRY",    "red",       "seeds",     "jam",       "sweet",     "shortcake"],
+["WATERMELON",    "red",       "seeds",     "summer",    "green",     "slice"],
+["PINEAPPLE",     "spiky",     "yellow",    "tropical",  "pizza",     "juice"],
+["LEMON",         "yellow",    "sour",      "juice",     "citrus",    "pucker"],
+["CARROT",        "orange",    "rabbit",    "vegetable", "crunch",    "ground"],
+["BROCCOLI",      "green",     "tree",      "vegetable", "healthy",   "yucky"],
+["POTATO",        "fries",     "mash",      "brown",     "vegetable", "chips"],
+["CORN",          "yellow",    "cob",       "kernel",    "butter",    "field"],
+["TOMATO",        "red",       "ketchup",   "sauce",     "round",     "salad"],
+["LETTUCE",       "green",     "salad",     "leaf",      "crunch",    "burger"],
+["PEAS",          "green",     "small",     "round",     "pod",       "vegetable"],
+["ONION",         "cry",       "layers",    "smell",     "white",     "chop"],
+["MUSHROOM",      "fungus",    "forest",    "pizza",     "cap",       "grow"],
+["BREAD",         "loaf",      "slice",     "toast",     "bake",      "sandwich"],
+["CHEESE",        "yellow",    "milk",      "mouse",     "slice",     "pizza"],
+["BUTTER",        "yellow",    "toast",     "spread",    "stick",     "melt"],
+["EGG",           "chicken",   "shell",     "yolk",      "crack",     "breakfast"],
+["BACON",         "pig",       "crispy",    "breakfast", "strip",     "sizzle"],
+["SOUP",          "bowl",      "hot",       "spoon",     "chicken",   "noodle"],
+["SALAD",         "lettuce",   "bowl",      "healthy",   "green",     "dressing"],
+["TACO",          "shell",     "Mexican",   "fold",      "meat",      "cheese"],
+["BURRITO",       "wrap",      "tortilla",  "Mexican",   "beans",     "roll"],
+["SUSHI",         "rice",      "fish",      "roll",      "Japan",     "raw"],
+["HOT DOG",       "bun",       "mustard",   "ballpark",  "sausage",   "grill"],
+["FRENCH FRIES",  "potato",    "ketchup",   "salty",     "fast",      "crispy"],
+["PRETZEL",       "salt",      "twist",     "crunchy",   "mall",      "knot"],
+["PEANUT BUTTER", "jelly",     "sandwich",  "sticky",    "spread",    "creamy"],
+["HONEY",         "bee",       "sticky",    "sweet",     "gold",      "jar"],
+["SYRUP",         "pancake",   "sticky",    "maple",     "sweet",     "pour"],
+["KETCHUP",       "red",       "tomato",    "fries",     "bottle",    "squeeze"],
+["MILK",          "cow",       "white",     "glass",     "cereal",    "drink"],
+["JUICE",         "orange",    "drink",     "box",       "fruit",     "squeeze"],
+["WATER",         "drink",     "clear",     "thirsty",   "glass",     "wet"],
+["LEMONADE",      "stand",     "summer",    "sour",      "sweet",     "pitcher"],
+["HOT CHOCOLATE", "cocoa",     "warm",      "winter",    "marshmallow","mug"],
+["SODA",          "fizzy",     "bubbles",   "can",       "pop",       "sweet"],
+["SMOOTHIE",      "blender",   "fruit",     "straw",     "cold",      "drink"],
+["MILKSHAKE",     "straw",     "thick",     "ice",       "cold",      "cup"],
+["PIE",           "crust",     "slice",     "apple",     "bake",      "pumpkin"],
+["MUFFIN",        "blueberry", "bake",      "breakfast", "cup",       "top"],
+["WAFFLE",        "squares",   "syrup",     "breakfast", "iron",      "crispy"],
+["TOAST",         "bread",     "butter",    "crispy",    "breakfast", "pop"],
+["RICE",          "white",     "grain",     "bowl",      "small",     "chopsticks"],
+["NOODLES",       "pasta",     "long",      "slurp",     "soup",      "fork"],
+["YOGURT",        "cup",       "spoon",     "creamy",    "fruit",     "healthy"],
+["JELLY",         "peanut",    "jar",       "grape",     "spread",    "wiggle"],
+["PICKLE",        "cucumber",  "sour",      "jar",       "green",     "crunch"],
+["SALT",          "shaker",    "white",     "pepper",    "grain",     "taste"],
+["PEPPER",        "salt",      "sneeze",    "black",     "shaker",    "spicy"],
+["SUGAR",         "sweet",     "white",     "spoon",     "cube",      "candy"],
+["CHIPS",         "bag",       "crunchy",   "potato",    "salty",     "snack"],
+["CRACKER",       "cheese",    "crunchy",   "square",    "snack",     "salty"],
+["GUM",           "chew",      "bubble",    "stick",     "mint",      "sticky"],
+["BIRTHDAY CAKE", "candles",   "wish",      "party",     "frosting",  "sing"],
+
+// ────────────────  AROUND THE HOUSE  ────────────────
+["TOOTHBRUSH",    "teeth",     "paste",     "bathroom",  "clean",     "bristles"],
+["PILLOW",        "sleep",     "soft",      "bed",       "head",      "fight"],
+["BLANKET",       "warm",      "bed",       "cover",     "snuggle",   "cozy"],
+["MIRROR",        "reflect",   "look",      "glass",     "bathroom",  "yourself"],
+["LAMP",          "light",     "bulb",      "switch",    "table",     "shade"],
+["CLOCK",         "time",      "tick",      "hands",     "wall",      "hours"],
+["REFRIGERATOR",  "cold",      "food",      "kitchen",   "door",      "magnets"],
+["MICROWAVE",     "heat",      "beep",      "kitchen",   "minute",    "popcorn"],
+["OVEN",          "bake",      "hot",       "kitchen",   "cook",      "door"],
+["SINK",          "water",     "faucet",    "wash",      "dishes",    "drain"],
+["BATHTUB",       "water",     "bubbles",   "wash",      "soak",      "bathroom"],
+["SHOWER",        "water",     "wash",      "curtain",   "bathroom",  "soap"],
+["TOILET",        "flush",     "bathroom",  "seat",      "paper",     "potty"],
+["TOWEL",         "dry",       "wet",       "bathroom",  "beach",     "wrap"],
+["SOAP",          "wash",      "bubbles",   "hands",     "clean",     "slippery"],
+["BROOM",         "sweep",     "floor",     "dust",      "witch",     "handle"],
+["VACUUM",        "clean",     "carpet",    "suck",      "loud",      "floor"],
+["TRASH CAN",     "garbage",   "throw",     "smelly",    "lid",       "bag"],
+["COUCH",         "sit",       "living",    "cushion",   "sofa",      "TV"],
+["CHAIR",         "sit",       "legs",      "table",     "back",      "seat"],
+["TABLE",         "eat",       "legs",      "flat",      "dinner",    "set"],
+["BED",           "sleep",     "pillow",    "blanket",   "night",     "mattress"],
+["DOOR",          "open",      "knob",      "close",     "knock",     "enter"],
+["WINDOW",        "glass",     "look",      "outside",   "open",      "curtain"],
+["STAIRS",        "up",        "down",      "steps",     "climb",     "railing"],
+["CARPET",        "floor",     "soft",      "rug",       "vacuum",    "walk"],
+["CURTAIN",       "window",    "cloth",     "close",     "hang",      "shower"],
+["KEY",           "lock",      "door",      "unlock",    "metal",     "chain"],
+["UMBRELLA",      "rain",      "open",      "wet",       "handle",    "cover"],
+["FLASHLIGHT",    "dark",      "battery",   "beam",      "camping",   "shine"],
+["BATTERY",       "power",     "AA",        "remote",    "charge",    "dead"],
+["REMOTE",        "TV",        "buttons",   "channel",   "point",     "lost"],
+["SCISSORS",      "cut",       "paper",     "sharp",     "two",       "blades"],
+["TAPE",          "sticky",    "roll",      "stick",     "clear",     "wrap"],
+["GLUE",          "sticky",    "stick",     "craft",     "bottle",    "paste"],
+["HAMMER",        "nail",      "tool",      "hit",       "wood",      "pound"],
+["SCREWDRIVER",   "tool",      "twist",     "turn",      "fix",       "flat"],
+["LADDER",        "climb",     "steps",     "tall",      "reach",     "rungs"],
+["BUCKET",        "water",     "carry",     "handle",    "fill",      "pail"],
+["BASKET",        "carry",     "weave",     "picnic",    "handle",    "laundry"],
+["CANDLE",        "wax",       "flame",     "birthday",  "light",     "melt"],
+["BLENDER",       "smoothie",  "spin",      "loud",      "mix",       "kitchen"],
+["TOASTER",       "bread",     "pop",       "hot",       "slot",      "kitchen"],
+["DISHWASHER",    "dishes",    "clean",     "kitchen",   "load",      "machine"],
+["WASHING MACHINE", "clothes",   "clean",     "spin",      "laundry",   "soap"],
+["FAN",           "cool",      "spin",      "blow",      "air",       "hot"],
+["PLATE",         "eat",       "round",     "dinner",    "dish",      "food"],
+["FORK",          "eat",       "prongs",    "spoon",     "stab",      "utensil"],
+["SPOON",         "eat",       "soup",      "scoop",     "fork",      "round"],
+["KNIFE",         "cut",       "sharp",     "fork",      "blade",     "slice"],
+["CUP",           "drink",     "handle",    "mug",       "water",     "hold"],
+["BOWL",          "cereal",    "round",     "soup",      "eat",       "deep"],
+["NAPKIN",        "wipe",      "mouth",     "paper",     "dinner",    "messy"],
+["STRAW",         "drink",     "suck",      "plastic",   "cup",       "bendy"],
+
+// ─────────────  SCHOOL & LEARNING  ─────────────
+["PENCIL",        "write",     "eraser",    "yellow",    "sharpen",   "lead"],
+["ERASER",        "mistake",   "pencil",    "rub",       "pink",      "gone"],
+["CRAYON",        "color",     "wax",       "draw",      "box",       "paper"],
+["MARKER",        "color",     "cap",       "draw",      "smelly",    "ink"],
+["BACKPACK",      "school",    "carry",     "straps",    "books",     "shoulders"],
+["NOTEBOOK",      "write",     "pages",     "school",    "lines",     "spiral"],
+["HOMEWORK",      "school",    "assignment","due",       "boring",    "after"],
+["TEACHER",       "school",    "class",     "lesson",    "students",  "board"],
+["PRINCIPAL",     "school",    "office",    "boss",      "trouble",   "leader"],
+["CHALKBOARD",    "write",     "class",     "erase",     "black",     "teacher"],
+["RULER",         "measure",   "inches",    "straight",  "line",      "twelve"],
+["GLOBE",         "world",     "spin",      "map",       "round",     "countries"],
+["LIBRARY",       "books",     "quiet",     "borrow",    "cards",     "shelves"],
+["DESK",          "sit",       "school",    "write",     "table",     "drawer"],
+["RECESS",        "play",      "outside",   "school",    "break",     "bell"],
+["LUNCHBOX",      "food",      "school",    "carry",     "sandwich",  "pack"],
+["REPORT CARD",   "grades",    "school",    "parents",   "letters",   "home"],
+["SPELLING",      "letters",   "words",     "test",      "bee",       "correct"],
+["MATH",          "numbers",   "add",       "subtract",  "class",     "problems"],
+["SCIENCE",       "experiment","lab",       "class",     "discover",  "test"],
+["ALPHABET",      "letters",   "ABC",       "twenty",    "sing",      "order"],
+["FIELD TRIP",    "bus",       "school",    "museum",    "permission","class"],
+["TEST",          "quiz",      "grade",     "study",     "paper",     "questions"],
+["PAPER",         "write",     "white",     "sheet",     "tree",      "print"],
+["STAPLER",       "staples",   "papers",    "click",     "attach",    "desk"],
+["GLUE STICK",    "paste",     "purple",    "craft",     "twist",     "paper"],
+["SCHOOL BUS",    "yellow",    "ride",      "stop",      "driver",    "students"],
+["ALARM CLOCK",   "wake",      "morning",   "beep",      "snooze",    "time"],
+
+// ──────────────  SPORTS & GAMES  ──────────────
+["SOCCER",        "ball",      "kick",      "goal",      "field",     "net"],
+["BASKETBALL",    "hoop",      "dribble",   "court",     "shoot",     "orange"],
+["BASEBALL",      "bat",       "pitch",     "diamond",   "glove",     "home"],
+["FOOTBALL",      "touchdown", "helmet",    "throw",     "field",     "tackle"],
+["TENNIS",        "racket",    "net",       "ball",      "court",     "serve"],
+["SWIMMING",      "pool",      "water",     "laps",      "stroke",    "goggles"],
+["HOCKEY",        "ice",       "puck",      "stick",     "goal",      "skates"],
+["GOLF",          "club",      "hole",      "ball",      "course",    "swing"],
+["BOWLING",       "pins",      "ball",      "strike",    "lane",      "roll"],
+["SKATEBOARD",    "wheels",    "ride",      "trick",     "ramp",      "ollie"],
+["BICYCLE",       "pedal",     "wheels",    "ride",      "handlebars","helmet"],
+["SCOOTER",       "push",      "wheels",    "ride",      "handle",    "kick"],
+["ROLLER SKATES", "wheels",    "feet",      "rink",      "glide",     "four"],
+["ICE SKATING",   "rink",      "cold",      "glide",     "blades",    "spin"],
+["SKIING",        "snow",      "mountain",  "poles",     "slope",     "downhill"],
+["SNOWBOARD",     "mountain",  "ride",      "slope",     "strap",     "winter"],
+["SURFING",       "wave",      "ocean",     "board",     "ride",      "beach"],
+["JUMP ROPE",     "skip",      "turn",      "recess",    "count",     "swing"],
+["HOPSCOTCH",     "chalk",     "squares",   "sidewalk",  "number",    "jump"],
+["TAG",           "chase",     "it",        "run",       "touch",     "game"],
+["HIDE AND SEEK", "count",     "find",      "ready",     "closet",    "game"],
+["TRAMPOLINE",    "jump",      "bounce",    "spring",    "backyard",  "net"],
+["MONKEY BARS",   "hang",      "swing",     "playground","hands",     "across"],
+["SLIDE",         "playground","down",      "ladder",    "slippery",  "fun"],
+["SWING",         "push",      "playground","back",      "forth",     "chains"],
+["SEESAW",        "up",        "down",      "playground","balance",   "two"],
+["KITE",          "wind",      "fly",       "string",    "sky",       "tail"],
+["FRISBEE",       "throw",     "catch",     "disc",      "spin",      "park"],
+["PUZZLE",        "pieces",    "fit",       "picture",   "solve",     "table"],
+["CHESS",         "board",     "king",      "queen",     "pieces",    "checkmate"],
+["CHECKERS",      "board",     "red",       "black",     "jump",      "king"],
+["CARDS",         "deck",      "shuffle",   "deal",      "hand",      "game"],
+["DICE",          "roll",      "six",       "dots",      "cube",      "game"],
+["DOMINO",        "tiles",     "fall",      "dots",      "line",      "tip"],
+["MARBLES",       "glass",     "roll",      "small",     "shoot",     "round"],
+["YO-YO",         "string",    "up",        "down",      "spin",      "trick"],
+["JIGSAW",        "puzzle",    "pieces",    "picture",   "edge",      "fit"],
+["RACE",          "run",       "fast",      "finish",    "first",     "start"],
+["MEDAL",         "gold",      "win",       "neck",      "prize",     "Olympic"],
+["TROPHY",        "win",       "gold",      "cup",       "shelf",     "prize"],
+["REFEREE",       "whistle",   "rules",     "game",      "stripes",   "call"],
+["COACH",         "team",      "practice",  "teach",     "sideline",  "yell"],
+["TEAM",          "group",     "players",   "together",  "win",       "sport"],
+["WHISTLE",       "blow",      "sound",     "referee",   "loud",      "coach"],
+["HELMET",        "head",      "safety",    "bike",      "hard",      "protect"],
+["GOGGLES",       "eyes",      "swim",      "protect",   "strap",     "water"],
+
+// ──────────  PLACES & BUILDINGS  ──────────
+["HOSPITAL",      "doctor",    "sick",      "nurse",     "beds",      "ambulance"],
+["SCHOOL",        "learn",     "teacher",   "class",     "students",  "bus"],
+["ZOO",           "animals",   "cages",     "visit",     "lions",     "tickets"],
+["AQUARIUM",      "fish",      "tank",      "water",     "glass",     "sharks"],
+["MUSEUM",        "art",       "old",       "visit",     "exhibit",   "quiet"],
+["FIRE STATION",  "truck",     "firefighter","pole",      "red",       "emergency"],
+["POST OFFICE",   "mail",      "stamps",    "letters",   "packages",  "send"],
+["GROCERY STORE", "food",      "cart",      "aisles",    "buy",       "checkout"],
+["RESTAURANT",    "eat",       "menu",      "waiter",    "order",     "table"],
+["MOVIE THEATER", "screen",    "popcorn",   "seats",     "dark",      "tickets"],
+["PARK",          "grass",     "playground","trees",     "outside",   "bench"],
+["BEACH",         "sand",      "ocean",     "waves",     "sun",       "towel"],
+["FARM",          "animals",   "barn",      "crops",     "tractor",   "field"],
+["CASTLE",        "king",      "stone",     "moat",      "tower",     "knight"],
+["AIRPORT",       "planes",    "fly",       "gate",      "luggage",   "runway"],
+["GAS STATION",   "car",       "fuel",      "pump",      "fill",      "tank"],
+["BANK",          "money",     "save",      "account",   "teller",    "vault"],
+["CHURCH",        "pray",      "bells",     "Sunday",    "pews",      "steeple"],
+["MALL",          "shops",     "stores",    "food",      "buy",       "escalator"],
+["PLAYGROUND",    "swings",    "slide",     "kids",      "park",      "recess"],
+["CAMPGROUND",    "tent",      "fire",      "outside",   "sleep",     "woods"],
+["BARN",          "red",       "farm",      "hay",       "animals",   "loft"],
+["TREEHOUSE",     "climb",     "ladder",    "wood",      "hideout",   "backyard"],
+["LIGHTHOUSE",    "ocean",     "tall",      "ships",     "beam",      "warn"],
+["BRIDGE",        "cross",     "river",     "over",      "road",      "span"],
+["TUNNEL",        "through",   "dark",      "mountain",  "underground","road"],
+["CAVE",          "dark",      "rocks",     "bats",      "explore",   "underground"],
+["ISLAND",        "water",     "surrounded","beach",     "boat",      "palm"],
+["DESERT",        "sand",      "hot",       "cactus",    "dry",       "camel"],
+["JUNGLE",        "trees",     "vines",     "monkeys",   "hot",       "rainforest"],
+["FOREST",        "trees",     "woods",     "green",     "animals",   "hike"],
+["MOUNTAIN",      "tall",      "climb",     "peak",      "snow",      "hike"],
+["VOLCANO",       "lava",      "erupt",     "mountain",  "hot",       "ash"],
+["WATERFALL",     "cliff",     "river",     "loud",      "down",      "mist"],
+["HOTEL",         "sleep",     "rooms",     "travel",    "key",       "lobby"],
+["GARAGE",        "car",       "park",      "door",      "house",     "tools"],
+["BASEMENT",      "downstairs","dark",      "house",     "under",     "storage"],
+["ATTIC",         "upstairs",  "dusty",     "boxes",     "roof",      "storage"],
+
+// ─────────  NATURE, WEATHER & OUTDOORS  ─────────
+["RAINBOW",       "colors",    "sky",       "arc",       "sun",       "pot"],
+["THUNDER",       "loud",      "storm",     "lightning", "boom",      "sky"],
+["LIGHTNING",     "flash",     "storm",     "bolt",      "thunder",   "strike"],
+["SNOWMAN",       "carrot",    "build",     "scarf",     "melt",      "cold"],
+["SNOWFLAKE",     "white",     "fall",      "cold",      "unique",    "winter"],
+["ICICLE",        "ice",       "hang",      "drip",      "cold",      "roof"],
+["TORNADO",       "wind",      "spin",      "funnel",    "storm",     "damage"],
+["HURRICANE",     "storm",     "wind",      "rain",      "eye",       "ocean"],
+["FOG",           "cloudy",    "thick",     "morning",   "see",       "gray"],
+["CLOUD",         "sky",       "white",     "fluffy",    "rain",      "float"],
+["WIND",          "blow",      "air",       "breeze",    "leaves",    "kite"],
+["SUNSHINE",      "bright",    "warm",      "sky",       "yellow",    "day"],
+["MOON",          "night",     "sky",       "round",     "glow",      "crescent"],
+["STARS",         "night",     "sky",       "twinkle",   "wish",      "bright"],
+["TREE",          "leaves",    "branches",  "trunk",     "tall",      "wood"],
+["FLOWER",        "petals",    "bloom",     "garden",    "smell",     "pretty"],
+["GRASS",         "green",     "mow",       "lawn",      "yard",      "blades"],
+["LEAF",          "tree",      "green",     "fall",      "rake",      "branch"],
+["ROCK",          "hard",      "stone",     "ground",    "throw",     "heavy"],
+["SAND",          "beach",     "grains",    "castle",    "desert",    "shovel"],
+["RIVER",         "water",     "flow",      "stream",    "bank",      "long"],
+["LAKE",          "water",     "swim",      "boat",      "fish",      "shore"],
+["OCEAN",         "water",     "waves",     "salty",     "big",       "beach"],
+["PUDDLE",        "rain",      "splash",    "water",     "jump",      "small"],
+["MUD",           "dirt",      "wet",       "messy",     "brown",     "boots"],
+["SEASHELL",      "beach",     "ocean",     "collect",   "hear",      "spiral"],
+["CACTUS",        "desert",    "spiky",     "green",     "prickly",   "dry"],
+["ACORN",         "oak",       "squirrel",  "nut",       "tree",      "fall"],
+["PINECONE",      "tree",      "fall",      "craft",     "brown",     "squirrel"],
+["EARTHQUAKE",    "shake",     "ground",    "crack",     "rumble",    "disaster"],
+["SUNSET",        "evening",   "orange",    "sky",       "down",      "dark"],
+["SUNRISE",       "morning",   "up",        "sky",       "early",     "light"],
+["SHADOW",        "dark",      "sun",       "follow",    "shape",     "behind"],
+["ECHO",          "sound",     "repeat",    "canyon",    "hear",      "back"],
+["CAMPFIRE",      "wood",      "flames",    "marshmallow","warm",      "camping"],
+["TENT",          "camping",   "sleep",     "poles",     "zip",       "outside"],
+["HIKE",          "walk",      "trail",     "woods",     "boots",     "mountain"],
+["FISHING",       "rod",       "hook",      "bait",      "lake",      "catch"],
+["BINOCULARS",    "eyes",      "far",       "look",      "two",       "birds"],
+["COMPASS",       "north",     "direction", "needle",    "lost",      "point"],
+["MAP",           "directions","find",      "roads",     "fold",      "treasure"],
+["GARDEN",        "plants",    "grow",      "dirt",      "vegetables","water"],
+["SEED",          "plant",     "grow",      "dirt",      "small",     "sprout"],
+["ROOTS",         "underground","tree",      "grow",      "dirt",      "bottom"],
+["NEST",          "bird",      "eggs",      "twigs",     "tree",      "build"],
+["FEATHER",       "bird",      "soft",      "light",     "wing",      "tickle"],
+["HONEYCOMB",     "bees",      "hexagon",   "wax",       "hive",      "sticky"],
+["ANTHILL",       "ants",      "dirt",      "mound",     "tunnel",    "small"],
+["SPIDERWEB",     "sticky",    "silk",      "catch",     "corner",    "bug"],
+
+// ─────────────  BODY & HEALTH  ─────────────
+["ELBOW",         "arm",       "bend",      "joint",     "funny",     "point"],
+["KNEE",          "leg",       "bend",      "joint",     "scrape",    "cap"],
+["SHOULDER",      "arm",       "carry",     "body",      "shrug",     "neck"],
+["THUMB",         "finger",    "hand",      "up",        "suck",      "five"],
+["TONGUE",        "mouth",     "taste",     "lick",      "stick",     "pink"],
+["EYEBROW",       "hair",      "above",     "raise",     "face",      "forehead"],
+["EYELASH",       "hair",      "blink",     "wish",      "curl",      "tiny"],
+["FRECKLES",      "spots",     "face",      "brown",     "sun",       "nose"],
+["DIMPLE",        "cheek",     "smile",     "face",      "hole",      "cute"],
+["BELLY BUTTON",  "stomach",   "middle",    "inny",      "outie",     "navel"],
+["HEART",         "beat",      "chest",     "pump",      "love",      "blood"],
+["BRAIN",         "think",     "head",      "smart",     "skull",     "nerves"],
+["LUNGS",         "breathe",   "air",       "chest",     "two",       "oxygen"],
+["BONES",         "skeleton",  "hard",      "body",      "break",     "white"],
+["MUSCLES",       "strong",    "flex",      "arm",       "lift",      "workout"],
+["TEETH",         "mouth",     "brush",     "chew",      "white",     "dentist"],
+["HICCUPS",       "breath",    "sound",     "stop",      "water",     "scare"],
+["SNEEZE",        "nose",      "achoo",     "cold",      "tissue",    "blow"],
+["COUGH",         "throat",    "sick",      "sound",     "cover",     "drops"],
+["YAWN",          "tired",     "mouth",     "sleepy",    "open",      "catchy"],
+["BANDAGE",       "cut",       "cover",     "sticky",    "boo",       "heal"],
+["THERMOMETER",   "fever",     "temperature","sick",      "mouth",     "degrees"],
+["MEDICINE",      "sick",      "pills",     "doctor",    "better",    "spoon"],
+["VITAMIN",       "healthy",   "chew",      "daily",     "gummy",     "pill"],
+["EXERCISE",      "workout",   "healthy",   "sweat",     "gym",       "move"],
+["SLEEP",         "bed",       "night",     "tired",     "dream",     "rest"],
+["DREAM",         "sleep",     "night",     "imagine",   "nightmare", "wake"],
+["SNORE",         "sleep",     "loud",      "nose",      "noise",     "night"],
+["TICKLE",        "laugh",     "feather",   "stop",      "armpit",    "giggle"],
+["SHIVER",        "cold",      "shake",     "chilly",    "body",      "teeth"],
+
+// ─────────  CLOTHES & THINGS YOU WEAR  ─────────
+["MITTENS",       "hands",     "winter",    "warm",      "thumb",     "gloves"],
+["SCARF",         "neck",      "winter",    "wrap",      "warm",      "knit"],
+["SUNGLASSES",    "eyes",      "shade",     "cool",      "beach",     "bright"],
+["BACKWARDS HAT", "cap",       "head",      "turn",      "cool",      "brim"],
+["SNEAKERS",      "shoes",     "run",       "laces",     "feet",      "gym"],
+["BOOTS",         "feet",      "rain",      "tall",      "mud",       "shoes"],
+["FLIP FLOPS",    "feet",      "summer",    "sandals",   "beach",     "toe"],
+["SOCKS",         "feet",      "shoes",     "pair",      "lost",      "smelly"],
+["PAJAMAS",       "sleep",     "bed",       "night",     "comfy",     "wear"],
+["RAINCOAT",      "wet",       "yellow",    "hood",      "dry",       "puddle"],
+["SWIMSUIT",      "pool",      "wear",      "beach",     "wet",       "trunks"],
+["COSTUME",       "dress",     "Halloween", "pretend",   "wear",      "character"],
+["BOW TIE",       "neck",      "fancy",     "suit",      "clip",      "tuxedo"],
+["BELT",          "waist",     "pants",     "buckle",    "loops",     "hold"],
+["ZIPPER",        "up",        "jacket",    "teeth",     "stuck",     "pull"],
+["BUTTON",        "shirt",     "hole",      "sew",       "fasten",    "round"],
+["POCKET",        "pants",     "hold",      "hands",     "stuff",     "inside"],
+["CROWN",         "king",      "queen",     "head",      "gold",      "jewels"],
+["NECKLACE",      "chain",     "jewelry",   "wear",      "pendant",   "beads"],
+["BRACELET",      "wrist",     "jewelry",   "arm",       "beads",     "friendship"],
+["EARRING",       "jewelry",   "pierce",    "dangle",    "pair",      "lobe"],
+["RING",          "finger",    "jewelry",   "gold",      "wedding",   "round"],
+["WATCH",         "wrist",     "time",      "arm",       "clock",     "wear"],
+["APRON",         "cook",      "kitchen",   "tie",       "messy",     "wear"],
+["CAPE",          "hero",      "back",      "fly",       "tie",       "flow"],
+
+// ─────────────  VEHICLES & GOING PLACES  ─────────────
+["FIRE TRUCK",    "red",       "siren",     "ladder",    "hose",      "emergency"],
+["AMBULANCE",     "hospital",  "siren",     "emergency", "sick",      "lights"],
+["POLICE CAR",    "siren",     "officer",   "lights",    "chase",     "badge"],
+["TRACTOR",       "farm",      "field",     "plow",      "big",       "wheels"],
+["BULLDOZER",     "dig",       "push",      "dirt",      "construction","blade"],
+["CRANE",         "lift",      "tall",      "construction","hook",      "heavy"],
+["GARBAGE TRUCK", "trash",     "collect",   "smelly",    "cans",      "morning"],
+["HELICOPTER",    "blades",    "fly",       "hover",     "spin",      "landing"],
+["AIRPLANE",      "fly",       "wings",     "sky",       "pilot",     "airport"],
+["ROCKET",        "space",     "launch",    "blast",     "NASA",      "countdown"],
+["SUBMARINE",     "underwater","dive",      "ocean",     "periscope", "navy"],
+["SAILBOAT",      "wind",      "water",     "mast",      "cloth",     "float"],
+["CANOE",         "paddle",    "water",     "narrow",    "river",     "boat"],
+["TRAIN",         "tracks",    "cars",      "station",   "whistle",   "engine"],
+["SUBWAY",        "underground","train",     "city",      "station",   "tunnel"],
+["MOTORCYCLE",    "two",       "wheels",    "loud",      "helmet",    "ride"],
+["TAXI",          "yellow",    "ride",      "city",      "driver",    "fare"],
+["LIMOUSINE",     "long",      "fancy",     "car",       "driver",    "black"],
+["HOT AIR BALLOON", "fly",       "basket",    "float",     "sky",       "burner"],
+["SLED",          "snow",      "hill",      "slide",     "down",      "winter"],
+["ELEVATOR",      "up",        "down",      "buttons",   "floors",    "doors"],
+["ESCALATOR",     "stairs",    "moving",    "mall",      "step",      "up"],
+["FERRY",         "boat",      "cars",      "water",     "cross",     "ride"],
+["WAGON",         "pull",      "handle",    "red",       "wheels",    "kids"],
+["ROLLER COASTER", "ride",      "loop",      "scream",    "park",      "track"],
+["FERRIS WHEEL",  "ride",      "round",     "tall",      "fair",      "seats"],
+["CAROUSEL",      "horses",    "spin",      "ride",      "music",     "fair"],
+["BUMPER CARS",   "crash",     "ride",      "fair",      "electric",  "bang"],
+
+// ────────────  JOBS & PEOPLE  ────────────
+["FIREFIGHTER",   "hose",      "truck",     "rescue",    "helmet",    "flames"],
+["DOCTOR",        "sick",      "hospital",  "patient",   "medicine",  "checkup"],
+["DENTIST",       "teeth",     "drill",     "clean",     "chair",     "floss"],
+["VETERINARIAN",  "animals",   "pets",      "sick",      "doctor",    "clinic"],
+["ASTRONAUT",     "space",     "suit",      "rocket",    "moon",      "float"],
+["PILOT",         "plane",     "fly",       "cockpit",   "wings",     "captain"],
+["CHEF",          "cook",      "kitchen",   "hat",       "food",      "restaurant"],
+["FARMER",        "crops",     "tractor",   "animals",   "grow",      "barn"],
+["ARTIST",        "paint",     "draw",      "canvas",    "create",    "brush"],
+["SCIENTIST",     "lab",       "experiment","coat",      "discover",  "research"],
+["MAIL CARRIER",  "letters",   "deliver",   "route",     "bag",       "packages"],
+["LIFEGUARD",     "pool",      "rescue",    "whistle",   "chair",     "swim"],
+["JUDGE",         "court",     "gavel",     "robe",      "decide",    "law"],
+["CROSSING GUARD", "street",    "stop",      "kids",      "vest",      "sign"],
+["MAGICIAN",      "tricks",    "hat",       "rabbit",    "wand",      "disappear"],
+["CLOWN",         "circus",    "nose",      "funny",     "makeup",    "balloons"],
+["PIRATE",        "ship",      "treasure",  "parrot",    "eye",       "sail"],
+["KNIGHT",        "armor",     "sword",     "castle",    "horse",     "dragon"],
+["COWBOY",        "horse",     "hat",       "lasso",     "boots",     "ranch"],
+["BABYSITTER",    "kids",      "watch",     "parents",   "night",     "pay"],
+["LIBRARIAN",     "books",     "library",   "quiet",     "shelves",   "checkout"],
+["JANITOR",       "clean",     "school",    "mop",       "keys",      "cart"],
+["MECHANIC",      "car",       "fix",       "garage",    "tools",     "engine"],
+["ARCHITECT",     "building",  "design",    "plans",     "draw",      "house"],
+["ATHLETE",       "sport",     "train",     "compete",   "strong",    "team"],
+["NEIGHBOR",      "next",      "door",      "house",     "borrow",    "street"],
+["TWIN",          "two",       "same",      "born",      "sibling",   "identical"],
+["GRANDMA",       "grandmother","cookies",   "old",       "mom",       "hug"],
+
+// ────────  HOLIDAYS & CELEBRATIONS  ────────
+["HALLOWEEN",     "candy",     "costume",   "October",   "trick",     "pumpkin"],
+["PUMPKIN",       "orange",    "carve",     "Halloween", "pie",       "patch"],
+["JACK-O-LANTERN", "pumpkin",   "carve",     "candle",    "face",      "glow"],
+["THANKSGIVING",  "turkey",    "November",  "family",    "thankful",  "feast"],
+["TURKEY",        "Thanksgiving","gobble",    "bird",      "stuffing",  "feast"],
+["CHRISTMAS",     "presents",  "tree",      "December",  "Santa",     "snow"],
+["SANTA",         "Christmas", "beard",     "chimney",   "presents",  "red"],
+["REINDEER",      "Santa",     "sleigh",    "antlers",   "fly",       "nose"],
+["SNOW GLOBE",    "shake",     "glass",     "water",     "scene",     "winter"],
+["EASTER",        "eggs",      "bunny",     "spring",    "hunt",      "basket"],
+["VALENTINE",     "heart",     "love",      "February",  "card",      "candy"],
+["BIRTHDAY",      "cake",      "candles",   "presents",  "party",     "age"],
+["PRESENT",       "gift",      "wrap",      "bow",       "open",      "surprise"],
+["BALLOON",       "air",       "pop",       "party",     "float",     "string"],
+["CONFETTI",      "throw",     "party",     "paper",     "colorful",  "celebrate"],
+["FIREWORKS",     "sky",       "boom",      "July",      "colors",    "explode"],
+["PARADE",        "march",     "floats",    "street",    "band",      "watch"],
+["PARTY",         "friends",   "cake",      "games",     "celebrate", "invite"],
+["WEDDING",       "marry",     "bride",     "rings",     "cake",      "dress"],
+["NEW YEAR",      "midnight",  "January",   "countdown", "resolution","fireworks"],
+["TOOTH FAIRY",   "pillow",    "money",     "night",     "wings",     "lost"],
+["PIÑATA",        "candy",     "hit",       "stick",     "hang",      "party"],
+
+// ────────────  THINGS YOU DO  ────────────
+["SNEAKING",      "quiet",     "tiptoe",    "hide",      "slow",      "caught"],
+["WHISPER",       "quiet",     "ear",       "soft",      "secret",    "talk"],
+["GIGGLE",        "laugh",     "funny",     "small",     "cover",     "silly"],
+["JUGGLE",        "throw",     "balls",     "catch",     "circus",    "three"],
+["SOMERSAULT",    "roll",      "flip",      "tumble",    "head",      "over"],
+["CARTWHEEL",     "hands",     "spin",      "sideways",  "gymnastics","legs"],
+["PIGGYBACK",     "carry",     "ride",      "shoulders", "hold",      "up"],
+["HIGH FIVE",     "hand",      "slap",      "celebrate", "palm",      "air"],
+["THUMBS UP",     "good",      "hand",      "yes",       "sign",      "approve"],
+["HUG",           "arms",      "squeeze",   "love",      "hold",      "warm"],
+["WINK",          "eye",       "close",     "one",       "secret",    "blink"],
+["SHRUG",         "shoulders", "don't",     "know",      "up",        "unsure"],
+["TIPTOE",        "quiet",     "toes",      "sneak",     "walk",      "up"],
+["SKIP",          "hop",       "walk",      "happy",     "step",      "along"],
+["CRAWL",         "hands",     "knees",     "baby",      "floor",     "slow"],
+["SPIN",          "turn",      "round",     "dizzy",     "twirl",     "circle"],
+["FLOAT",         "water",     "air",       "top",       "sink",      "drift"],
+["DIVE",          "pool",      "head",      "jump",      "water",     "board"],
+["SNORKEL",       "tube",      "breathe",   "water",     "mask",      "fish"],
+["CAMPING",       "tent",      "outside",   "sleep",     "fire",      "woods"],
+["RECYCLE",       "bin",       "reuse",     "plastic",   "green",     "trash"],
+["VOTE",          "choose",    "ballot",    "election",  "pick",      "count"],
+["SHARE",         "give",      "half",      "friend",    "take",      "turns"],
+["APOLOGIZE",     "sorry",     "wrong",     "say",       "forgive",   "mistake"],
+
+// ──────────  IMAGINATION & STORIES  ──────────
+["DRAGON",        "fire",      "wings",     "scales",    "knight",    "cave"],
+["UNICORN",       "horn",      "horse",     "magic",     "rainbow",   "white"],
+["MERMAID",       "tail",      "ocean",     "half",      "fish",      "swim"],
+["FAIRY",         "wings",     "magic",     "tiny",      "dust",      "wand"],
+["WIZARD",        "magic",     "wand",      "hat",       "spell",     "beard"],
+["WITCH",         "broom",     "cauldron",  "hat",       "spell",     "green"],
+["GHOST",         "white",     "boo",       "haunted",   "float",     "sheet"],
+["VAMPIRE",       "fangs",     "blood",     "night",     "bat",       "cape"],
+["ZOMBIE",        "undead",    "brains",    "walk",      "groan",     "scary"],
+["MONSTER",       "scary",     "closet",    "big",       "growl",     "under"],
+["ROBOT",         "metal",     "beep",      "machine",   "program",   "arms"],
+["ALIEN",         "space",     "green",     "UFO",       "planet",    "visitor"],
+["SUPERHERO",     "cape",      "powers",    "save",      "fly",       "villain"],
+["GENIE",         "lamp",      "wishes",    "three",     "rub",       "magic"],
+["TREASURE",      "gold",      "chest",     "buried",    "pirate",    "map"],
+["MAGIC WAND",    "wave",      "spell",     "wizard",    "stick",     "sparkle"],
+["CRYSTAL BALL",  "future",    "see",       "round",     "fortune",   "glass"],
+["GIANT",         "big",       "tall",      "huge",      "beanstalk", "small"],
+["TROLL",         "bridge",    "ugly",      "under",     "scary",     "cave"],
+["ELF",           "ears",      "small",     "Santa",     "workshop",  "pointy"],
+
+// ──────  SCREENS, MUSIC & MAKING THINGS  ──────
+["HEADPHONES",    "ears",      "music",     "listen",    "wear",      "wires"],
+["SPEAKER",       "sound",     "loud",      "music",     "volume",    "box"],
+["CAMERA",        "photo",     "picture",   "click",     "lens",      "flash"],
+["VIDEO GAME",    "controller","play",      "screen",    "level",     "score"],
+["CONTROLLER",    "game",      "buttons",   "hold",      "joystick",  "play"],
+["KEYBOARD",      "type",      "computer",  "keys",      "letters",   "space"],
+["MOUSE PAD",     "computer",  "click",     "flat",      "desk",      "cursor"],
+["SCREEN",        "watch",     "display",   "computer",  "bright",    "look"],
+["CHARGER",       "plug",      "battery",   "power",     "cord",      "phone"],
+["PODCAST",       "listen",    "talk",      "episode",   "audio",     "show"],
+["CARTOON",       "animated",  "draw",      "TV",        "funny",     "kids"],
+["MOVIE",         "watch",     "screen",    "actors",    "popcorn",   "film"],
+["GUITAR",        "strings",   "strum",     "music",     "pick",      "band"],
+["PIANO",         "keys",      "black",     "white",     "play",      "music"],
+["DRUM",          "beat",      "sticks",    "loud",      "band",      "hit"],
+["VIOLIN",        "strings",   "bow",       "chin",      "music",     "orchestra"],
+["TRUMPET",       "brass",     "blow",      "loud",      "band",      "valves"],
+["FLUTE",         "blow",      "silver",    "band",      "holes",     "high"],
+["MICROPHONE",    "sing",      "loud",      "stage",     "voice",     "stand"],
+["PAINTBRUSH",    "bristles",  "art",       "canvas",    "stroke",    "color"],
+["CLAY",          "mold",      "shape",     "art",       "squish",    "pottery"],
+["ORIGAMI",       "paper",     "fold",      "crane",     "Japan",     "art"],
+["STICKER",       "peel",      "collect",   "paper",     "back",      "sheet"],
+["COMIC BOOK",    "pictures",  "panels",    "superhero", "read",      "bubbles"],
+
+// ────────────  SPACE & SCIENCE  ────────────
+["PLANET",        "space",     "orbit",     "round",     "Earth",     "solar"],
+["SATURN",        "rings",     "planet",    "space",     "gas",       "orbit"],
+["COMET",         "tail",      "space",     "ice",       "streak",    "orbit"],
+["METEOR",        "shooting",  "space",     "rock",      "burn",      "wish"],
+["TELESCOPE",     "stars",     "look",      "far",       "lens",      "night"],
+["MICROSCOPE",    "small",     "look",      "slide",     "lab",       "magnify"],
+["MAGNET",        "attract",   "metal",     "stick",     "fridge",    "poles"],
+["GRAVITY",       "fall",      "down",      "Earth",     "pull",      "apple"],
+["VOLCANO MODEL", "baking",    "soda",      "erupt",     "science",   "fair"],
+["FOSSIL",        "dinosaur",  "bones",     "rock",      "old",       "dig"],
+["DINOSAUR",      "extinct",   "big",       "Rex",       "fossil",    "roar"],
+["SKELETON",      "bones",     "body",      "white",     "Halloween", "skull"],
+["BALANCE SCALE", "weigh",     "heavy",     "two",       "sides",     "tip"],
+["THERMOSTAT",    "heat",      "cold",      "wall",      "set",       "house"],
+["BUBBLE",        "soap",      "float",     "pop",       "round",     "blow"],
+["ICE CUBE",      "freeze",    "cold",      "melt",      "tray",      "drink"],
+["STEAM",         "hot",       "water",     "boil",      "cloud",     "rise"],
+["SHADOW PUPPET", "hands",     "wall",      "light",     "shape",     "dark"],
+["SOLAR PANEL",   "sun",       "power",     "roof",      "energy",    "electricity"],
+["WINDMILL",      "blades",    "spin",      "power",     "tall",      "farm"],
+
+];
+
+// ══════════════════════════════════════════════════════════════
+//  DECK MEMORY
+//  We keep a shuffled running order in localStorage plus a pointer
+//  to how far through it we are, so no card repeats until the whole
+//  deck has been played — even across days and separate sittings.
+// ══════════════════════════════════════════════════════════════
+const DECK_KEY = "taboojr.deck.v1";
+const BEST_KEY = "taboojr.coopBest.v1";
+const SETUP_KEY = "taboojr.setup.v1";
+
+let deckState = null;
+let justReshuffled = false;
+
+function shuffled(n) {
+  const a = Array.from({ length: n }, (_, i) => i);
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function freshDeck() {
+  return { order: shuffled(DECK.length), pos: 0, size: DECK.length };
+}
+
+function loadDeck() {
+  try {
+    const raw = localStorage.getItem(DECK_KEY);
+    if (raw) {
+      const d = JSON.parse(raw);
+      // If the deck file itself grew or shrank, the saved order is stale.
+      if (d && Array.isArray(d.order) && d.size === DECK.length &&
+          d.order.length === DECK.length && typeof d.pos === "number") {
+        deckState = d;
+        return;
+      }
+    }
+  } catch (e) { /* corrupt or blocked storage — just start fresh */ }
+  deckState = freshDeck();
+}
+
+function saveDeck() {
+  try { localStorage.setItem(DECK_KEY, JSON.stringify(deckState)); }
+  catch (e) { /* private mode / storage full — the game still works */ }
+}
+
+function drawCard() {
+  if (deckState.pos >= deckState.order.length) {
+    deckState = freshDeck();
+    justReshuffled = true;
+  }
+  const card = DECK[deckState.order[deckState.pos]];
+  deckState.pos++;
+  saveDeck();
+  return card;
+}
+
+function resetDeck() {
+  const seen = deckState.pos;
+  if (seen > 0 && !confirm(
+      "Shuffle a brand new deck?\n\nYou've played " + seen + " of " + DECK.length +
+      " cards. Starting over means those cards can show up again right away.")) {
+    return;
+  }
+  deckState = freshDeck();
+  saveDeck();
+  updateDeckMeter();
+  toast("Fresh deck — all " + DECK.length + " cards are back! 🔀");
+}
+
+function updateDeckMeter() {
+  const seen = deckState.pos, total = DECK.length;
+  document.getElementById("deck-bar-fill").style.width = (seen / total * 100) + "%";
+  const left = total - seen;
+  document.getElementById("deck-meter-label").textContent =
+    left === total ? total + " cards, none played yet"
+                   : seen + " of " + total + " cards played · " + left + " still to come";
+}
+
+// ══════════════════════════════════════════════════════════════
+//  GAME STATE
+// ══════════════════════════════════════════════════════════════
+const TEAM_COLORS = ["#E63946", "#118AB2", "#06D6A0", "#9B5DE5"];
+const TEAM_DEFAULTS = ["Red Team", "Blue Team", "Green Team", "Purple Team"];
+const TEAM_EMOJI = ["🔴", "🔵", "🟢", "🟣"];
+
+const setup = { teamCount: 2, names: TEAM_DEFAULTS.slice(), duration: 60, target: 20, coopDuration: 90 };
+
+// Remember last night's choices — team names especially are a pain to retype.
+function loadSetup() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(SETUP_KEY));
+    if (!saved) return;
+    if ([2, 3, 4].includes(saved.teamCount))        setup.teamCount = saved.teamCount;
+    if ([45, 60, 90].includes(saved.duration))      setup.duration = saved.duration;
+    if ([10, 15, 20, 25].includes(saved.target))    setup.target = saved.target;
+    if ([60, 90, 120].includes(saved.coopDuration)) setup.coopDuration = saved.coopDuration;
+    if (Array.isArray(saved.names)) {
+      saved.names.forEach((n, i) => {
+        if (i < 4 && typeof n === "string" && n.trim()) setup.names[i] = n.slice(0, 18);
+      });
+    }
+  } catch (e) { /* nothing saved yet, or storage is blocked */ }
+}
+function saveSetup() {
+  try { localStorage.setItem(SETUP_KEY, JSON.stringify(setup)); } catch (e) {}
+}
+
+let game = null;   // { mode, teams[], turnIndex, duration, target }
+let round = null;  // { got[], skipped[], buzzed[], missed, card, endTime, remaining, timer, locked, paused }
+
+// ══════════════════════════════════════════════════════════════
+//  SCREENS
+// ══════════════════════════════════════════════════════════════
+function show(id) {
+  document.querySelectorAll(".screen").forEach(s => s.classList.remove("active"));
+  document.getElementById(id).classList.add("active");
+  window.scrollTo(0, 0);
+  if (id === "screen-menu") updateDeckMeter();
+}
+
+function toast(msg, ms) {
+  const t = document.createElement("div");
+  t.className = "toast";
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), ms || 2600);
+}
+
+// ══════════════════════════════════════════════════════════════
+//  SOUND — created on the first tap, which mobile browsers require
+// ══════════════════════════════════════════════════════════════
+let audioCtx = null;
+function initAudio() {
+  if (audioCtx) { if (audioCtx.state === "suspended") audioCtx.resume(); return; }
+  try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
+  catch (e) { audioCtx = null; }
+}
+function beep(freq, dur, type, vol, delay) {
+  if (!audioCtx) return;
+  const t0 = audioCtx.currentTime + (delay || 0);
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc.type = type || "sine";
+  osc.frequency.setValueAtTime(freq, t0);
+  gain.gain.setValueAtTime(0.0001, t0);
+  gain.gain.exponentialRampToValueAtTime(vol || 0.25, t0 + 0.012);
+  gain.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+  osc.connect(gain); gain.connect(audioCtx.destination);
+  osc.start(t0); osc.stop(t0 + dur + 0.02);
+}
+const sfx = {
+  got:   () => { beep(784, .11, "triangle", .3); beep(1175, .17, "triangle", .3, .1); },
+  skip:  () => beep(392, .13, "sine", .2),
+  buzz:  () => { beep(150, .32, "sawtooth", .22); beep(110, .34, "sawtooth", .18, .04); },
+  tick:  () => beep(1100, .05, "square", .12),
+  timeup:() => { beep(523, .18, "square", .25); beep(415, .18, "square", .25, .17); beep(311, .38, "square", .25, .34); },
+  win:   () => [523, 659, 784, 1047].forEach((f, i) => beep(f, .28, "triangle", .3, i * .13))
+};
+
+// Keep the screen awake during a turn, like a real timer would.
+let wakeLock = null;
+async function keepAwake(on) {
+  try {
+    if (on && "wakeLock" in navigator && !wakeLock) {
+      wakeLock = await navigator.wakeLock.request("screen");
+      wakeLock.addEventListener("release", () => { wakeLock = null; });
+    } else if (!on && wakeLock) {
+      await wakeLock.release(); wakeLock = null;
+    }
+  } catch (e) { /* not supported, or tab isn't visible — harmless */ }
+}
+
+// ══════════════════════════════════════════════════════════════
+//  SETUP SCREENS
+// ══════════════════════════════════════════════════════════════
+function buildChips(containerId, options, getVal, setVal) {
+  const box = document.getElementById(containerId);
+  box.innerHTML = "";
+  options.forEach(o => {
+    const b = document.createElement("button");
+    b.className = "chip" + (getVal() === o.value ? " on" : "");
+    b.textContent = o.label;
+    b.onclick = () => { setVal(o.value); saveSetup(); buildChips(containerId, options, getVal, setVal); };
+    box.appendChild(b);
+  });
+}
+
+function buildTeamInputs() {
+  const box = document.getElementById("team-name-inputs");
+  box.innerHTML = "";
+  for (let i = 0; i < setup.teamCount; i++) {
+    const row = document.createElement("div");
+    row.className = "team-input-row";
+
+    const dot = document.createElement("div");
+    dot.className = "team-dot";
+    dot.style.background = TEAM_COLORS[i];
+
+    const input = document.createElement("input");
+    input.className = "team-input";
+    input.type = "text";
+    input.maxLength = 18;
+    input.value = setup.names[i];
+    input.placeholder = TEAM_DEFAULTS[i];
+    input.oninput = () => { setup.names[i] = input.value; saveSetup(); };
+    input.onfocus = () => input.select();
+
+    row.appendChild(dot); row.appendChild(input);
+    box.appendChild(row);
+  }
+}
+
+function goSetupTeams() {
+  buildChips("chips-teamcount",
+    [{label:"2",value:2},{label:"3",value:3},{label:"4",value:4}],
+    () => setup.teamCount,
+    v => { setup.teamCount = v; buildTeamInputs(); });
+  buildChips("chips-duration",
+    [{label:"45 sec",value:45},{label:"60 sec",value:60},{label:"90 sec",value:90}],
+    () => setup.duration, v => setup.duration = v);
+  buildChips("chips-target",
+    [{label:"10",value:10},{label:"15",value:15},{label:"20",value:20},{label:"25",value:25}],
+    () => setup.target, v => setup.target = v);
+  buildTeamInputs();
+  show("screen-setup-teams");
+}
+
+function goSetupCoop() {
+  buildChips("chips-coop-duration",
+    [{label:"60 sec",value:60},{label:"90 sec",value:90},{label:"2 min",value:120}],
+    () => setup.coopDuration, v => { setup.coopDuration = v; renderCoopBest(); });
+  renderCoopBest();
+  show("screen-setup-coop");
+}
+
+function bestScores() {
+  try { return JSON.parse(localStorage.getItem(BEST_KEY)) || {}; }
+  catch (e) { return {}; }
+}
+function renderCoopBest() {
+  const best = bestScores()[setup.coopDuration];
+  document.getElementById("coop-best-wrap").innerHTML = best
+    ? '<div class="best-badge">🏅 Best at this length: ' + best + '</div>'
+    : '<div class="tiny-note">No score yet at this length — go set one!</div>';
+}
+
+// ══════════════════════════════════════════════════════════════
+//  STARTING A GAME
+// ══════════════════════════════════════════════════════════════
+function startTeamGame() {
+  const teams = [];
+  for (let i = 0; i < setup.teamCount; i++) {
+    const name = (setup.names[i] || "").trim() || TEAM_DEFAULTS[i];
+    teams.push({ name: name, color: TEAM_COLORS[i], emoji: TEAM_EMOJI[i], score: 0 });
+  }
+  game = { mode: "teams", teams: teams, turnIndex: 0, duration: setup.duration, target: setup.target };
+  showReady();
+}
+
+function startCoopGame() {
+  game = {
+    mode: "coop",
+    teams: [{ name: "Everybody", color: TEAM_COLORS[2], emoji: "🤝", score: 0 }],
+    turnIndex: 0, duration: setup.coopDuration, target: null
+  };
+  showReady();
+}
+
+function currentTeam() { return game.teams[game.turnIndex % game.teams.length]; }
+
+function showReady() {
+  const t = currentTeam();
+  document.getElementById("ready-emoji").textContent = game.mode === "coop" ? "🤝" : t.emoji;
+  document.getElementById("ready-team").textContent = t.name;
+  document.getElementById("ready-team").style.color = t.color;
+  document.getElementById("ready-msg").textContent = game.mode === "coop"
+    ? "Whoever is giving clues, grab the screen"
+    : "Pass the screen to " + t.name + "'s clue-giver";
+  document.getElementById("ready-hint").innerHTML = game.mode === "coop"
+    ? "Hold it so only <em>you</em> can see. Describe the word — everyone else shouts guesses."
+    : "Hold it so only <em>you</em> can see. The other team can look over your shoulder to catch taboo words.";
+  show("screen-ready");
+}
+
+// ══════════════════════════════════════════════════════════════
+//  THE ROUND
+// ══════════════════════════════════════════════════════════════
+function beginRound() {
+  initAudio();
+  keepAwake(true);
+
+  round = {
+    got: [], skipped: [], buzzed: [], missed: null,
+    card: null, remaining: game.duration,
+    endTime: Date.now() + game.duration * 1000,
+    timer: null, locked: false, lastTick: null
+  };
+
+  const t = currentTeam();
+  document.getElementById("play-team").textContent = t.name;
+  document.getElementById("play-team").style.color = t.color;
+  document.getElementById("play-score").textContent = "0";
+
+  show("screen-play");
+  nextCard(null);
+  paintTimer();
+  round.timer = setInterval(tickTimer, 200);
+}
+
+function tickTimer() {
+  if (!round || round.paused) return;
+  const left = Math.max(0, Math.ceil((round.endTime - Date.now()) / 1000));
+
+  if (left !== round.remaining) {
+    round.remaining = left;
+    paintTimer();
+    if (left > 0 && left <= 5) sfx.tick();
+  }
+  if (left <= 0) endRound();
+}
+
+function paintTimer() {
+  const left = round.remaining;
+  document.getElementById("timer-num").textContent = left;
+  document.getElementById("timer-fill").style.width = (left / game.duration * 100) + "%";
+  const top = document.getElementById("play-top");
+  top.classList.toggle("timer-warn", left <= 15 && left > 5);
+  top.classList.toggle("timer-danger", left <= 5);
+}
+
+function renderCard(card) {
+  document.getElementById("card-word").textContent = card[0];
+  const list = document.getElementById("card-taboos");
+  list.innerHTML = "";
+  for (let i = 1; i < card.length; i++) {
+    const d = document.createElement("div");
+    d.className = "card-taboo-word";
+    d.textContent = card[i];
+    list.appendChild(d);
+  }
+}
+
+// flyClass animates the outgoing card before the new one snaps in.
+function nextCard(flyClass) {
+  const el = document.getElementById("taboo-card");
+  const deal = () => {
+    if (!round) return;
+    round.card = drawCard();
+    renderCard(round.card);
+    el.className = "taboo-card";
+    round.locked = false;
+    if (justReshuffled) {
+      justReshuffled = false;
+      toast("That's the whole deck! Reshuffling all " + DECK.length + " cards. 🔀", 3200);
+    }
+  };
+  if (flyClass) {
+    round.locked = true;
+    el.classList.add(flyClass);
+    setTimeout(deal, 270);
+  } else {
+    deal();
+  }
+}
+
+function gotIt() {
+  if (!round || round.locked || round.paused) return;
+  sfx.got();
+  round.got.push(round.card[0]);
+  currentTeam().score++;
+  document.getElementById("play-score").textContent = round.got.length;
+  floatPoint();
+  nextCard("card-fly-right");
+}
+
+function skipCard() {
+  if (!round || round.locked || round.paused) return;
+  sfx.skip();
+  round.skipped.push(round.card[0]);
+  nextCard("card-fly-left");
+}
+
+function buzzCard() {
+  if (!round || round.locked || round.paused) return;
+  sfx.buzz();
+  round.buzzed.push(round.card[0]);
+  const el = document.getElementById("taboo-card");
+  round.locked = true;
+  el.classList.add("card-shake");
+  if (navigator.vibrate) navigator.vibrate([90, 60, 90]);
+  setTimeout(() => { el.classList.remove("card-shake"); nextCard("card-fly-down"); }, 380);
+}
+
+function floatPoint() {
+  const p = document.createElement("div");
+  p.className = "float-point";
+  p.textContent = "+1";
+  document.body.appendChild(p);
+  setTimeout(() => p.remove(), 1000);
+}
+
+// ── pause ──
+function pauseRound() {
+  if (!round || round.paused) return;
+  round.paused = true;
+  round.frozenLeft = round.endTime - Date.now();
+
+  const veil = document.createElement("div");
+  veil.className = "pause-veil";
+  veil.id = "pause-veil";
+  veil.innerHTML =
+    '<div style="font-size:3.5rem">⏸</div>' +
+    '<h2>Paused</h2>' +
+    '<p style="color:rgba(255,255,255,.65);max-width:320px">No peeking at the card!</p>';
+
+  const resume = document.createElement("button");
+  resume.className = "btn btn-green btn-big";
+  resume.style.maxWidth = "300px";
+  resume.textContent = "Keep going";
+  resume.onclick = resumeRound;
+
+  const quit = document.createElement("button");
+  quit.className = "btn btn-ghost";
+  quit.textContent = "End this turn";
+  quit.onclick = () => { document.getElementById("pause-veil").remove(); round.paused = false; endRound(); };
+
+  veil.appendChild(resume); veil.appendChild(quit);
+  document.body.appendChild(veil);
+}
+
+function resumeRound() {
+  const veil = document.getElementById("pause-veil");
+  if (veil) veil.remove();
+  round.endTime = Date.now() + round.frozenLeft;
+  round.paused = false;
+}
+
+// ── end of turn ──
+function endRound() {
+  if (!round) return;
+  clearInterval(round.timer);
+  const veil = document.getElementById("pause-veil");
+  if (veil) veil.remove();
+  keepAwake(false);
+  sfx.timeup();
+  if (navigator.vibrate) navigator.vibrate(220);
+
+  // The card that was still on screen never got guessed — show it so
+  // everyone finds out what it was.
+  round.missed = round.card ? round.card[0] : null;
+  round.card = null;
+
+  showSummary();
+}
+
+function showSummary() {
+  const t = currentTeam();
+  document.getElementById("summary-team").textContent = t.name;
+  document.getElementById("summary-team").style.color = t.color;
+  document.getElementById("tally-got").textContent = round.got.length;
+  document.getElementById("tally-skip").textContent = round.skipped.length;
+  document.getElementById("tally-buzz").textContent = round.buzzed.length;
+
+  const list = document.getElementById("review-list");
+  list.innerHTML = "";
+  const add = (mark, word, dim) => {
+    const d = document.createElement("div");
+    d.className = "review-item";
+    if (dim) d.style.opacity = ".62";
+    d.innerHTML = '<span class="review-mark">' + mark + '</span><span>' + escapeHtml(word) + '</span>';
+    list.appendChild(d);
+  };
+  round.got.forEach(w => add("✅", w));
+  round.buzzed.forEach(w => add("✋", w, true));
+  round.skipped.forEach(w => add("↷", w, true));
+  if (round.missed) add("⏱", round.missed, true);
+  if (!list.children.length) {
+    list.innerHTML = '<div class="tiny-note">No cards this turn. Next time!</div>';
+  }
+
+  document.getElementById("summary-next").textContent =
+    game.mode === "coop" ? "See how you did" : "Scoreboard";
+  show("screen-summary");
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c =>
+    ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+}
+
+// ══════════════════════════════════════════════════════════════
+//  BETWEEN TURNS / WINNING
+// ══════════════════════════════════════════════════════════════
+function afterSummary() {
+  if (game.mode === "coop") { showCoopResult(); return; }
+  game.turnIndex++;
+  showScoreboard();
+}
+
+// Everyone gets the same number of turns — we only check for a winner
+// once the round-robin has come all the way back around.
+function roundComplete() { return game.turnIndex % game.teams.length === 0; }
+
+function findWinner() {
+  if (!roundComplete()) return null;
+  const top = Math.max(...game.teams.map(t => t.score));
+  if (top < game.target) return null;
+  const tied = game.teams.filter(t => t.score === top);
+  return tied.length === 1 ? tied[0] : null;   // a tie means one more round
+}
+
+function showScoreboard() {
+  const winner = findWinner();
+  const tiedAtTop = roundComplete() && !winner &&
+                    Math.max(...game.teams.map(t => t.score)) >= game.target;
+
+  document.getElementById("scores-sub").textContent =
+    tiedAtTop ? "It's a tie at the top — one more round!" : "Playing to " + game.target + " points";
+
+  const box = document.getElementById("score-rows");
+  box.innerHTML = "";
+  const ranked = game.teams.slice().sort((a, b) => b.score - a.score);
+  const top = ranked[0].score;
+
+  ranked.forEach((t, i) => {
+    const row = document.createElement("div");
+    row.className = "score-row" + (t.score === top && top > 0 ? " leading" : "");
+    row.style.animationDelay = (i * 0.07) + "s";
+    row.innerHTML =
+      '<div class="team-dot" style="background:' + t.color + '"></div>' +
+      '<div class="score-name">' + escapeHtml(t.name) + '</div>' +
+      '<div class="score-pts">' + t.score + '</div>';
+    box.appendChild(row);
+  });
+
+  const btn = document.getElementById("scores-next");
+  if (winner) {
+    btn.textContent = "🏆 See the winner!";
+    btn.onclick = () => declareWinner(winner);
+  } else {
+    btn.textContent = "Next: " + currentTeam().name;
+    btn.onclick = nextTurn;
+  }
+  show("screen-scores");
+}
+
+function nextTurn() { showReady(); }
+
+function declareWinner(team) {
+  document.getElementById("win-trophy").textContent = "🏆";
+  document.getElementById("win-title").textContent = "Winner!";
+  document.getElementById("win-name").textContent = team.name;
+  document.getElementById("win-name").style.color = team.color;
+  document.getElementById("win-extra").innerHTML =
+    '<div style="font-size:1.2rem;color:rgba(255,255,255,.72)">' +
+    team.score + ' points</div>';
+  sfx.win();
+  confetti();
+  show("screen-win");
+}
+
+function showCoopResult() {
+  const scored = round.got.length;
+  const all = bestScores();
+  const prev = all[game.duration] || 0;
+  const isBest = scored > prev;
+  if (isBest) {
+    all[game.duration] = scored;
+    try { localStorage.setItem(BEST_KEY, JSON.stringify(all)); } catch (e) {}
+  }
+
+  document.getElementById("win-trophy").textContent = isBest ? "🌟" : "🎉";
+  document.getElementById("win-title").textContent = isBest ? "New best score!" : "Nice work!";
+  document.getElementById("win-name").textContent = scored + (scored === 1 ? " card" : " cards");
+  document.getElementById("win-name").style.color = "var(--gold)";
+  document.getElementById("win-extra").innerHTML = isBest
+    ? '<div style="font-size:1.15rem;color:rgba(255,255,255,.72)">You beat your old record of ' + prev + '.</div>'
+    : '<div style="font-size:1.15rem;color:rgba(255,255,255,.72)">Your best at ' +
+      game.duration + ' seconds is ' + prev + '. ' +
+      (scored === prev ? 'You matched it!' : 'Only ' + (prev - scored + 1) + ' more to beat it!') + '</div>';
+
+  if (isBest) { sfx.win(); confetti(); } else { sfx.got(); }
+  show("screen-win");
+}
+
+function playAgain() {
+  if (game.mode === "coop") { goSetupCoop(); return; }
+  game.teams.forEach(t => t.score = 0);
+  game.turnIndex = 0;
+  showReady();
+}
+
+function confirmQuit() {
+  if (confirm("Quit this game and go back to the menu?\n\nScores will be lost, but your card deck is saved.")) {
+    if (round && round.timer) clearInterval(round.timer);
+    round = null; game = null;
+    keepAwake(false);
+    show("screen-menu");
+  }
+}
+
+function confetti() {
+  const colors = ["#FFD166", "#E63946", "#06D6A0", "#118AB2", "#9B5DE5", "#FFF"];
+  for (let i = 0; i < 70; i++) {
+    const bit = document.createElement("div");
+    bit.className = "confetti-bit";
+    bit.style.left = Math.random() * 100 + "vw";
+    bit.style.background = colors[Math.floor(Math.random() * colors.length)];
+    bit.style.animationDuration = (1.9 + Math.random() * 1.7) + "s";
+    bit.style.animationDelay = (Math.random() * 0.7) + "s";
+    if (Math.random() > 0.5) bit.style.borderRadius = "50%";
+    document.body.appendChild(bit);
+    setTimeout(() => bit.remove(), 4200);
+  }
+}
+
+// ══════════════════════════════════════════════════════════════
+//  KEYBOARD SHORTCUTS (handy on a laptop)
+//   space / → = got it,  ↓ = skip,  b = buzz
+// ══════════════════════════════════════════════════════════════
+document.addEventListener("keydown", e => {
+  if (!document.getElementById("screen-play").classList.contains("active")) return;
+  if (e.key === " " || e.key === "ArrowRight") { e.preventDefault(); gotIt(); }
+  else if (e.key === "ArrowDown" || e.key === "ArrowLeft") { e.preventDefault(); skipCard(); }
+  else if (e.key.toLowerCase() === "b") { e.preventDefault(); buzzCard(); }
+});
+
+// If the tab goes to sleep mid-turn, the wake lock drops — take it back.
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "visible" && round && !round.paused) keepAwake(true);
+});
+
+// ══════════════════════════════════════════════════════════════
+loadDeck();
+loadSetup();
+updateDeckMeter();
+</script>
+</body>
+</html>

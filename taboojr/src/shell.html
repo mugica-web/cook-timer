@@ -1,0 +1,1304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Taboo Jr. 🤐</title>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  /* ===== RESET & BASE ===== */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:        #241447;
+    --bg2:       #4A2585;
+    --card:      #FFF8F0;
+    --cream:     #FFF3E0;
+    --red:       #E63946;
+    --red-dark:  #B02A35;
+    --green:     #06D6A0;
+    --green-dk:  #049C75;
+    --yellow:    #FFBE0B;
+    --gold:      #FFD166;
+    --blue:      #118AB2;
+    --purple:    #9B5DE5;
+    --dark:      #2D2D2D;
+    --muted:     #7A6A92;
+  }
+
+  html, body { height: 100%; }
+
+  body {
+    font-family: 'Baloo 2', 'Trebuchet MS', cursive, sans-serif;
+    background: var(--bg);
+    background-image: radial-gradient(circle at 50% 0%, var(--bg2) 0%, var(--bg) 65%);
+    color: var(--card);
+    min-height: 100%;
+    overflow-x: hidden;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  /* ===== ANIMATIONS ===== */
+  @keyframes pop {
+    0%   { transform: scale(0.6); opacity: 0; }
+    70%  { transform: scale(1.06); }
+    100% { transform: scale(1); opacity: 1; }
+  }
+  @keyframes slideUp {
+    from { transform: translateY(26px); opacity: 0; }
+    to   { transform: translateY(0); opacity: 1; }
+  }
+  @keyframes shake {
+    0%,100% { transform: translateX(0); }
+    20% { transform: translateX(-10px); }
+    40% { transform: translateX(10px); }
+    60% { transform: translateX(-7px); }
+    80% { transform: translateX(7px); }
+  }
+  @keyframes flyRight {
+    to { transform: translateX(120%) rotate(14deg); opacity: 0; }
+  }
+  @keyframes flyLeft {
+    to { transform: translateX(-120%) rotate(-14deg); opacity: 0; }
+  }
+  @keyframes flyDown {
+    to { transform: translateY(120%) scale(0.8); opacity: 0; }
+  }
+  @keyframes pulseRed {
+    0%,100% { box-shadow: 0 0 0 0 rgba(230,57,70,0.7); }
+    50%     { box-shadow: 0 0 0 18px rgba(230,57,70,0); }
+  }
+  @keyframes bobble {
+    0%,100% { transform: translateY(0) rotate(-2deg); }
+    50%     { transform: translateY(-9px) rotate(2deg); }
+  }
+  @keyframes confettiFall {
+    0%   { transform: translateY(-10vh) rotate(0deg); opacity: 1; }
+    100% { transform: translateY(110vh) rotate(760deg); opacity: 0; }
+  }
+  @keyframes floatUp {
+    0%   { transform: translate(-50%, 0) scale(0.7); opacity: 0; }
+    25%  { transform: translate(-50%, -18px) scale(1.15); opacity: 1; }
+    100% { transform: translate(-50%, -95px) scale(1); opacity: 0; }
+  }
+
+  /* ===== SCREENS ===== */
+  .screen { display: none; min-height: 100vh; min-height: 100dvh; padding: 20px 16px 28px; }
+  .screen.active { display: flex; flex-direction: column; }
+  .screen-pad { max-width: 620px; width: 100%; margin: 0 auto; }
+
+  /* ===== BUTTONS ===== */
+  .btn {
+    font-family: inherit;
+    font-weight: 800;
+    font-size: 1.25rem;
+    border: none;
+    border-radius: 18px;
+    padding: 16px 26px;
+    cursor: pointer;
+    color: #fff;
+    background: var(--purple);
+    box-shadow: 0 5px 0 rgba(0,0,0,0.28);
+    transition: transform .08s, box-shadow .08s, filter .15s;
+    letter-spacing: .3px;
+  }
+  .btn:active { transform: translateY(4px); box-shadow: 0 1px 0 rgba(0,0,0,0.28); }
+  .btn:disabled { opacity: .45; cursor: default; transform: none; }
+  .btn-big     { width: 100%; font-size: 1.6rem; padding: 22px; border-radius: 22px; }
+  .btn-gold    { background: var(--gold); color: #4A2585; }
+  .btn-green   { background: var(--green); color: #05412F; }
+  .btn-red     { background: var(--red); }
+  .btn-yellow  { background: var(--yellow); color: #5A3B00; }
+  .btn-blue    { background: var(--blue); }
+  .btn-ghost {
+    background: transparent;
+    box-shadow: none;
+    border: 2px solid rgba(255,255,255,0.32);
+    color: rgba(255,255,255,0.85);
+    font-size: 1rem;
+    padding: 11px 20px;
+  }
+  .btn-ghost:active { transform: translateY(2px); box-shadow: none; }
+
+  /* ===== MENU ===== */
+  .logo { text-align: center; margin: 6vh 0 4px; animation: pop .5s ease-out; }
+  .logo-word {
+    font-size: clamp(3.2rem, 17vw, 5.4rem);
+    font-weight: 800;
+    line-height: .92;
+    color: var(--gold);
+    text-shadow: 0 5px 0 var(--red-dark), 0 9px 22px rgba(0,0,0,.45);
+    letter-spacing: 2px;
+  }
+  .logo-jr {
+    display: inline-block;
+    font-size: clamp(1.3rem, 6vw, 2rem);
+    background: var(--red);
+    color: #fff;
+    padding: 2px 16px 4px;
+    border-radius: 30px;
+    transform: rotate(-4deg);
+    margin-top: 8px;
+    box-shadow: 0 4px 0 var(--red-dark);
+  }
+  .logo-sub { color: rgba(255,255,255,.62); font-size: 1.05rem; margin-top: 14px; }
+
+  .menu-stack { display: flex; flex-direction: column; gap: 14px; margin-top: 30px; }
+  .menu-card {
+    display: flex; align-items: center; gap: 16px;
+    background: rgba(255,255,255,.09);
+    border: 2px solid rgba(255,255,255,.16);
+    border-radius: 22px;
+    padding: 18px 20px;
+    cursor: pointer;
+    text-align: left;
+    color: inherit;
+    font-family: inherit;
+    width: 100%;
+    transition: transform .1s, background .15s;
+  }
+  .menu-card:active { transform: scale(.97); background: rgba(255,255,255,.15); }
+  .menu-card-icon { font-size: 2.4rem; line-height: 1; }
+  .menu-card-name { font-size: 1.4rem; font-weight: 800; }
+  .menu-card-desc { font-size: .95rem; color: rgba(255,255,255,.6); line-height: 1.25; }
+
+  /* ===== DECK METER ===== */
+  .deck-meter { margin-top: 26px; text-align: center; }
+  .deck-meter-label { font-size: .9rem; color: rgba(255,255,255,.55); margin-bottom: 6px; }
+  .deck-bar {
+    height: 12px; border-radius: 8px;
+    background: rgba(0,0,0,.3);
+    overflow: hidden;
+    border: 1px solid rgba(255,255,255,.12);
+  }
+  .deck-bar-fill {
+    height: 100%; border-radius: 8px;
+    background: linear-gradient(90deg, var(--green), var(--gold));
+    transition: width .4s ease;
+  }
+
+  /* ===== SETUP ===== */
+  .setup-title { font-size: 2rem; font-weight: 800; text-align: center; margin: 8px 0 4px; }
+  .setup-sub { text-align: center; color: rgba(255,255,255,.6); margin-bottom: 22px; }
+  .field { margin-bottom: 22px; }
+  .field-label { font-size: 1.05rem; font-weight: 700; margin-bottom: 9px; color: var(--gold); }
+  .chip-row { display: flex; gap: 9px; flex-wrap: wrap; }
+  .chip {
+    flex: 1 1 0; min-width: 68px;
+    font-family: inherit; font-size: 1.05rem; font-weight: 700;
+    padding: 13px 8px;
+    border-radius: 14px;
+    border: 2px solid rgba(255,255,255,.2);
+    background: rgba(255,255,255,.07);
+    color: rgba(255,255,255,.75);
+    cursor: pointer;
+    transition: all .13s;
+  }
+  .chip.on {
+    background: var(--gold); color: #4A2585;
+    border-color: var(--gold);
+    box-shadow: 0 4px 0 #C79A3C;
+    transform: translateY(-2px);
+  }
+  .team-input-row { display: flex; align-items: center; gap: 11px; margin-bottom: 10px; }
+  .team-dot { width: 30px; height: 30px; border-radius: 50%; flex-shrink: 0; box-shadow: 0 2px 0 rgba(0,0,0,.3); }
+  .team-input {
+    flex: 1;
+    font-family: inherit; font-size: 1.15rem; font-weight: 700;
+    padding: 12px 15px;
+    border-radius: 14px;
+    border: 2px solid rgba(255,255,255,.2);
+    background: rgba(255,255,255,.09);
+    color: #fff;
+  }
+  .team-input:focus { outline: none; border-color: var(--gold); background: rgba(255,255,255,.15); }
+
+  /* ===== HANDOFF / READY ===== */
+  .handoff { flex: 1; display: flex; flex-direction: column; justify-content: center; text-align: center; gap: 8px; }
+  .handoff-emoji { font-size: 4.5rem; animation: bobble 2.2s ease-in-out infinite; }
+  .handoff-team { font-size: 2.6rem; font-weight: 800; line-height: 1.05; }
+  .handoff-msg { color: rgba(255,255,255,.7); font-size: 1.15rem; line-height: 1.35; margin-bottom: 6px; }
+  .handoff-hint {
+    background: rgba(0,0,0,.28);
+    border-radius: 16px;
+    padding: 13px 17px;
+    font-size: .95rem;
+    color: rgba(255,255,255,.72);
+    line-height: 1.4;
+    margin: 4px auto 14px;
+    max-width: 420px;
+  }
+
+  /* ===== PLAY ===== */
+  #screen-play.active { padding: 0; }
+  .play-wrap { display: flex; flex-direction: column; height: 100vh; height: 100dvh; width: 100%; max-width: 620px; margin: 0 auto; }
+
+  .play-top { padding: 12px 16px 6px; flex-shrink: 0; }
+  .play-top-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+  .play-team { font-size: 1.15rem; font-weight: 800; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .play-score { font-size: 1.15rem; font-weight: 800; color: var(--green); flex-shrink: 0; }
+  .icon-btn {
+    background: rgba(255,255,255,.12); border: none; color: #fff;
+    width: 40px; height: 40px; border-radius: 12px;
+    font-size: 1.2rem; cursor: pointer; flex-shrink: 0;
+    font-family: inherit;
+  }
+  .icon-btn:active { transform: scale(.92); }
+
+  .timer-row { display: flex; align-items: baseline; gap: 10px; margin-top: 6px; }
+  .timer-num { font-size: 2.5rem; font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums; }
+  .timer-bar { flex: 1; height: 14px; border-radius: 9px; background: rgba(0,0,0,.32); overflow: hidden; }
+  .timer-bar-fill { height: 100%; background: var(--green); border-radius: 9px; transition: width 1s linear, background .4s; }
+  .timer-warn .timer-num { color: var(--yellow); }
+  .timer-warn .timer-bar-fill { background: var(--yellow); }
+  .timer-danger .timer-num { color: var(--red); animation: pop .35s ease-out; }
+  .timer-danger .timer-bar-fill { background: var(--red); }
+
+  /* ── the card ── */
+  .card-area { flex: 1; display: flex; align-items: center; justify-content: center; padding: 10px 16px; min-height: 0; }
+  .taboo-card {
+    background: var(--card);
+    color: var(--dark);
+    border-radius: 26px;
+    width: 100%;
+    height: 100%;
+    box-shadow: 0 12px 34px rgba(0,0,0,.45);
+    overflow: hidden;
+    display: flex; flex-direction: column;
+    animation: pop .3s ease-out;
+  }
+  .card-answer {
+    background: linear-gradient(160deg, #FFFFFF, var(--cream));
+    padding: 16px 16px;
+    text-align: center;
+    border-bottom: 5px dashed rgba(0,0,0,.13);
+    flex-shrink: 0;
+    display: flex; flex-direction: column; justify-content: center;
+    min-height: 34%;
+  }
+  .card-answer-word {
+    font-size: clamp(1.9rem, 8.5vw, 3.1rem);
+    font-weight: 800;
+    line-height: 1.02;
+    color: var(--red-dark);
+    letter-spacing: .5px;
+    word-break: break-word;
+  }
+  .card-answer-label {
+    font-size: .78rem; letter-spacing: 2.5px; font-weight: 700;
+    color: var(--muted); text-transform: uppercase; margin-bottom: 5px;
+  }
+  .card-taboo-label {
+    font-size: .74rem; letter-spacing: 2.2px; font-weight: 700;
+    color: rgba(255,255,255,.85); text-transform: uppercase;
+    background: var(--red-dark);
+    text-align: center; padding: 5px;
+    flex-shrink: 0;
+  }
+  .card-taboo-list {
+    background: var(--red);
+    padding: 6px 12px 10px;
+    flex: 1; min-height: 0; overflow-y: auto;
+    display: flex; flex-direction: column; justify-content: space-evenly;
+  }
+  .card-taboo-word {
+    color: #fff;
+    font-size: clamp(1.1rem, 5vw, 1.6rem);
+    font-weight: 700;
+    text-align: center;
+    padding: 5px 4px;
+    border-bottom: 1px solid rgba(255,255,255,.22);
+    line-height: 1.15;
+  }
+  .card-taboo-word:last-child { border-bottom: none; }
+
+  .card-fly-right { animation: flyRight .28s ease-in forwards; }
+  .card-fly-left  { animation: flyLeft .28s ease-in forwards; }
+  .card-fly-down  { animation: flyDown .3s ease-in forwards; }
+  .card-shake     { animation: shake .4s; }
+
+  /* ── action buttons ── */
+  .play-actions { flex-shrink: 0; padding: 8px 16px calc(14px + env(safe-area-inset-bottom)); display: flex; flex-direction: column; gap: 9px; }
+  .action-secondary { display: flex; gap: 9px; }
+  .action-secondary .btn { flex: 1; font-size: 1.1rem; padding: 15px 10px; }
+  .btn-gotit { font-size: 1.75rem; padding: 20px; width: 100%; border-radius: 20px; }
+
+  /* floating +1 */
+  .float-point {
+    position: fixed; left: 50%; bottom: 150px;
+    font-size: 3rem; font-weight: 800; color: var(--green);
+    text-shadow: 0 3px 10px rgba(0,0,0,.5);
+    pointer-events: none; z-index: 60;
+    animation: floatUp 1s ease-out forwards;
+  }
+
+  /* ===== ROUND SUMMARY ===== */
+  .summary-head { text-align: center; margin: 3vh 0 18px; }
+  .summary-title { font-size: 2.1rem; font-weight: 800; }
+  .summary-team { color: var(--gold); font-size: 1.25rem; }
+  .tally-row { display: flex; gap: 10px; margin-bottom: 20px; }
+  .tally {
+    flex: 1; text-align: center;
+    background: rgba(255,255,255,.09);
+    border: 2px solid rgba(255,255,255,.14);
+    border-radius: 18px; padding: 14px 6px;
+  }
+  .tally-num { font-size: 2.2rem; font-weight: 800; line-height: 1; }
+  .tally-label { font-size: .82rem; color: rgba(255,255,255,.6); margin-top: 4px; }
+  .tally-got .tally-num  { color: var(--green); }
+  .tally-skip .tally-num { color: var(--yellow); }
+  .tally-buzz .tally-num { color: var(--red); }
+
+  .review-list { flex: 1; min-height: 0; overflow-y: auto; margin-bottom: 18px; -webkit-overflow-scrolling: touch; }
+  .review-item {
+    display: flex; align-items: center; gap: 10px;
+    background: rgba(255,255,255,.07);
+    border-radius: 13px; padding: 10px 14px; margin-bottom: 7px;
+    font-size: 1.05rem; font-weight: 700;
+  }
+  .review-mark { font-size: 1.15rem; flex-shrink: 0; }
+
+  /* ===== SCOREBOARD ===== */
+  .score-row {
+    display: flex; align-items: center; gap: 13px;
+    background: rgba(255,255,255,.09);
+    border: 2px solid rgba(255,255,255,.14);
+    border-radius: 18px; padding: 14px 17px; margin-bottom: 10px;
+    animation: slideUp .35s ease-out backwards;
+  }
+  .score-row.leading { border-color: var(--gold); background: rgba(255,209,102,.14); }
+  .score-name { flex: 1; font-size: 1.25rem; font-weight: 800; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .score-pts { font-size: 1.7rem; font-weight: 800; color: var(--gold); font-variant-numeric: tabular-nums; }
+
+  /* ===== WIN ===== */
+  .win-wrap { flex: 1; display: flex; flex-direction: column; justify-content: center; text-align: center; }
+  .win-trophy { font-size: 5.5rem; animation: bobble 2s ease-in-out infinite; }
+  .win-title { font-size: 1.3rem; color: var(--gold); letter-spacing: 3px; text-transform: uppercase; font-weight: 700; }
+  .win-name { font-size: clamp(2.2rem, 11vw, 3.4rem); font-weight: 800; line-height: 1.05; margin: 4px 0 8px; }
+  .confetti-bit { position: fixed; top: 0; width: 11px; height: 17px; z-index: 90; pointer-events: none; animation: confettiFall linear forwards; }
+
+  /* ===== HOW TO PLAY ===== */
+  .rules-h { font-size: 1.9rem; font-weight: 800; text-align: center; margin: 6px 0 20px; }
+  .rule-block {
+    background: rgba(255,255,255,.08);
+    border-radius: 18px; padding: 16px 18px; margin-bottom: 12px;
+    border-left: 5px solid var(--gold);
+  }
+  .rule-block h3 { font-size: 1.15rem; margin-bottom: 5px; color: var(--gold); }
+  .rule-block p { font-size: 1rem; line-height: 1.45; color: rgba(255,255,255,.82); }
+  .rule-block p + p { margin-top: 8px; }
+  .rule-block strong { color: #fff; }
+
+  /* ===== MISC ===== */
+  .spacer { flex: 1; }
+  .center { text-align: center; }
+  .stack-gap { display: flex; flex-direction: column; gap: 11px; }
+  .tiny-note { font-size: .85rem; color: rgba(255,255,255,.45); text-align: center; margin-top: 14px; line-height: 1.4; }
+  .best-badge {
+    display: inline-block; background: var(--gold); color: #4A2585;
+    font-weight: 800; padding: 5px 16px; border-radius: 20px;
+    font-size: 1rem; margin-top: 8px;
+  }
+
+  /* toast */
+  .toast {
+    position: fixed; left: 50%; transform: translateX(-50%);
+    bottom: 28px; z-index: 100;
+    background: rgba(0,0,0,.85); color: #fff;
+    padding: 13px 22px; border-radius: 30px;
+    font-size: 1rem; font-weight: 700;
+    animation: slideUp .25s ease-out;
+    max-width: 90vw; text-align: center;
+  }
+
+  /* paused overlay */
+  .pause-veil {
+    position: fixed; inset: 0; z-index: 80;
+    background: rgba(20,10,40,.94);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 18px; text-align: center; padding: 24px;
+  }
+  .pause-veil h2 { font-size: 2.3rem; }
+
+  @media (max-height: 620px) {
+    .logo { margin-top: 2vh; }
+    .card-taboo-word { padding: 3px; }
+    .btn-gotit { font-size: 1.45rem; padding: 15px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════ MENU ══════════════════════ -->
+<div class="screen active" id="screen-menu">
+  <div class="screen-pad">
+    <div class="logo">
+      <div class="logo-word">TABOO</div>
+      <div class="logo-jr">JUNIOR</div>
+      <div class="logo-sub">Say it without saying it!</div>
+    </div>
+
+    <div class="menu-stack">
+      <button class="menu-card" onclick="goSetupTeams()">
+        <span class="menu-card-icon">👥</span>
+        <span>
+          <span class="menu-card-name">Teams</span><br>
+          <span class="menu-card-desc">2–4 teams take turns. First to the target score wins.</span>
+        </span>
+      </button>
+      <button class="menu-card" onclick="goSetupCoop()">
+        <span class="menu-card-icon">🤝</span>
+        <span>
+          <span class="menu-card-name">Just Us</span><br>
+          <span class="menu-card-desc">Everyone on one team. Try to beat your best score.</span>
+        </span>
+      </button>
+      <button class="menu-card" onclick="show('screen-rules')">
+        <span class="menu-card-icon">📖</span>
+        <span>
+          <span class="menu-card-name">How to Play</span><br>
+          <span class="menu-card-desc">The rules, in about a minute.</span>
+        </span>
+      </button>
+    </div>
+
+    <div class="deck-meter">
+      <div class="deck-meter-label" id="deck-meter-label">…</div>
+      <div class="deck-bar"><div class="deck-bar-fill" id="deck-bar-fill" style="width:0%"></div></div>
+      <button class="btn btn-ghost" style="margin-top:14px" onclick="resetDeck()">Shuffle a fresh deck</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════ HOW TO PLAY ══════════════════════ -->
+<div class="screen" id="screen-rules">
+  <div class="screen-pad">
+    <div class="rules-h">How to Play</div>
+
+    <div class="rule-block">
+      <h3>1. One person gives the clues</h3>
+      <p>That person holds the tablet or phone so <strong>nobody else can see it</strong>. Everybody else is guessing.</p>
+    </div>
+    <div class="rule-block">
+      <h3>2. Describe the big word on top</h3>
+      <p>Talk, and get your team to say that word out loud. When they say it — tap <strong>GOT IT</strong> and a new card appears.</p>
+    </div>
+    <div class="rule-block">
+      <h3>3. But the red words are TABOO</h3>
+      <p>You may not say any of the five red words. You also may not say the answer itself, or any piece of it — no "dogs" for DOG, no "sun" for SUNSHINE.</p>
+      <p>No spelling it, no rhyming it ("it rhymes with cat"), and no acting it out. Just words!</p>
+    </div>
+    <div class="rule-block">
+      <h3>4. The other team watches</h3>
+      <p>They peek over your shoulder at the card. If you slip and say a taboo word, they tap <strong>BUZZ</strong> — that card is gone and you get nothing for it. No points lost though!</p>
+    </div>
+    <div class="rule-block">
+      <h3>5. Stuck? Skip it</h3>
+      <p>Tap <strong>SKIP</strong> for a fresh card any time. Skips are free, but the clock keeps running.</p>
+    </div>
+    <div class="rule-block">
+      <h3>6. When the timer hits zero</h3>
+      <p>Your turn is over. You score one point for every card your team got. Then it's the next team's turn.</p>
+    </div>
+
+    <button class="btn btn-gold btn-big" style="margin-top:8px" onclick="show('screen-menu')">Got it!</button>
+  </div>
+</div>
+
+<!-- ══════════════════════ SETUP: TEAMS ══════════════════════ -->
+<div class="screen" id="screen-setup-teams">
+  <div class="screen-pad">
+    <div class="setup-title">Teams</div>
+    <div class="setup-sub">Who's playing?</div>
+
+    <div class="field">
+      <div class="field-label">How many teams?</div>
+      <div class="chip-row" id="chips-teamcount"></div>
+    </div>
+
+    <div class="field">
+      <div class="field-label">Team names</div>
+      <div id="team-name-inputs"></div>
+    </div>
+
+    <div class="field">
+      <div class="field-label">How long is each turn?</div>
+      <div class="chip-row" id="chips-duration"></div>
+    </div>
+
+    <div class="field">
+      <div class="field-label">Play to how many points?</div>
+      <div class="chip-row" id="chips-target"></div>
+    </div>
+
+    <button class="btn btn-green btn-big" onclick="startTeamGame()">Start Game!</button>
+    <button class="btn btn-ghost" style="width:100%;margin-top:11px" onclick="show('screen-menu')">Back</button>
+  </div>
+</div>
+
+<!-- ══════════════════════ SETUP: CO-OP ══════════════════════ -->
+<div class="screen" id="screen-setup-coop">
+  <div class="screen-pad">
+    <div class="setup-title">Just Us</div>
+    <div class="setup-sub">One person describes, everyone else guesses.<br>How many can you get before time runs out?</div>
+
+    <div class="field">
+      <div class="field-label">How long?</div>
+      <div class="chip-row" id="chips-coop-duration"></div>
+    </div>
+
+    <div class="center" id="coop-best-wrap" style="margin-bottom:22px"></div>
+
+    <button class="btn btn-green btn-big" onclick="startCoopGame()">Start!</button>
+    <button class="btn btn-ghost" style="width:100%;margin-top:11px" onclick="show('screen-menu')">Back</button>
+  </div>
+</div>
+
+<!-- ══════════════════════ HANDOFF / READY ══════════════════════ -->
+<div class="screen" id="screen-ready">
+  <div class="screen-pad" style="flex:1;display:flex;flex-direction:column">
+    <div class="handoff">
+      <div class="handoff-emoji" id="ready-emoji">🤐</div>
+      <div class="handoff-msg" id="ready-msg">Pass the screen to the clue-giver</div>
+      <div class="handoff-team" id="ready-team">Team 1</div>
+      <div class="handoff-hint" id="ready-hint">
+        Hold the screen so only <em>you</em> can see it. Tap start when your team is ready to guess.
+      </div>
+    </div>
+    <button class="btn btn-green btn-big" onclick="beginRound()">I'm ready — START</button>
+    <button class="btn btn-ghost" style="width:100%;margin-top:11px" onclick="confirmQuit()">Quit game</button>
+  </div>
+</div>
+
+<!-- ══════════════════════ PLAY ══════════════════════ -->
+<div class="screen" id="screen-play">
+  <div class="play-wrap">
+    <div class="play-top" id="play-top">
+      <div class="play-top-row">
+        <div class="play-team" id="play-team">Team 1</div>
+        <div class="play-score" id="play-score">0</div>
+        <button class="icon-btn" onclick="pauseRound()" aria-label="Pause">⏸</button>
+      </div>
+      <div class="timer-row">
+        <div class="timer-num" id="timer-num">60</div>
+        <div class="timer-bar"><div class="timer-bar-fill" id="timer-fill" style="width:100%"></div></div>
+      </div>
+    </div>
+
+    <div class="card-area">
+      <div class="taboo-card" id="taboo-card">
+        <div class="card-answer">
+          <div class="card-answer-label">Get them to say</div>
+          <div class="card-answer-word" id="card-word">…</div>
+        </div>
+        <div class="card-taboo-label">Don't say these</div>
+        <div class="card-taboo-list" id="card-taboos"></div>
+      </div>
+    </div>
+
+    <div class="play-actions">
+      <button class="btn btn-green btn-gotit" onclick="gotIt()">✓ GOT IT</button>
+      <div class="action-secondary">
+        <button class="btn btn-yellow" onclick="skipCard()">↷ SKIP</button>
+        <button class="btn btn-red" onclick="buzzCard()">✋ BUZZ</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════ ROUND SUMMARY ══════════════════════ -->
+<div class="screen" id="screen-summary">
+  <div class="screen-pad" style="flex:1;display:flex;flex-direction:column">
+    <div class="summary-head">
+      <div class="summary-title">Time's up!</div>
+      <div class="summary-team" id="summary-team">Team 1</div>
+    </div>
+
+    <div class="tally-row">
+      <div class="tally tally-got"><div class="tally-num" id="tally-got">0</div><div class="tally-label">got it</div></div>
+      <div class="tally tally-skip"><div class="tally-num" id="tally-skip">0</div><div class="tally-label">skipped</div></div>
+      <div class="tally tally-buzz"><div class="tally-num" id="tally-buzz">0</div><div class="tally-label">buzzed</div></div>
+    </div>
+
+    <div class="review-list" id="review-list"></div>
+    <button class="btn btn-gold btn-big" id="summary-next" onclick="afterSummary()">Next</button>
+  </div>
+</div>
+
+<!-- ══════════════════════ SCOREBOARD ══════════════════════ -->
+<div class="screen" id="screen-scores">
+  <div class="screen-pad" style="flex:1;display:flex;flex-direction:column">
+    <div class="setup-title">Scoreboard</div>
+    <div class="setup-sub" id="scores-sub">Playing to 20</div>
+    <div id="score-rows"></div>
+    <div class="spacer"></div>
+    <button class="btn btn-green btn-big" id="scores-next" onclick="nextTurn()">Next team</button>
+    <button class="btn btn-ghost" style="width:100%;margin-top:11px" onclick="confirmQuit()">Quit game</button>
+  </div>
+</div>
+
+<!-- ══════════════════════ WIN ══════════════════════ -->
+<div class="screen" id="screen-win">
+  <div class="screen-pad" style="flex:1;display:flex;flex-direction:column">
+    <div class="win-wrap">
+      <div class="win-trophy" id="win-trophy">🏆</div>
+      <div class="win-title" id="win-title">Winner</div>
+      <div class="win-name" id="win-name">Team 1</div>
+      <div id="win-extra"></div>
+    </div>
+    <div class="stack-gap">
+      <button class="btn btn-gold btn-big" onclick="playAgain()">Play again</button>
+      <button class="btn btn-ghost" style="width:100%" onclick="show('screen-menu')">Main menu</button>
+    </div>
+  </div>
+</div>
+
+<script>
+"use strict";
+
+/* __DECK__ */
+
+// ══════════════════════════════════════════════════════════════
+//  DECK MEMORY
+//  We keep a shuffled running order in localStorage plus a pointer
+//  to how far through it we are, so no card repeats until the whole
+//  deck has been played — even across days and separate sittings.
+// ══════════════════════════════════════════════════════════════
+const DECK_KEY = "taboojr.deck.v1";
+const BEST_KEY = "taboojr.coopBest.v1";
+const SETUP_KEY = "taboojr.setup.v1";
+
+let deckState = null;
+let justReshuffled = false;
+
+function shuffled(n) {
+  const a = Array.from({ length: n }, (_, i) => i);
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function freshDeck() {
+  return { order: shuffled(DECK.length), pos: 0, size: DECK.length };
+}
+
+function loadDeck() {
+  try {
+    const raw = localStorage.getItem(DECK_KEY);
+    if (raw) {
+      const d = JSON.parse(raw);
+      // If the deck file itself grew or shrank, the saved order is stale.
+      if (d && Array.isArray(d.order) && d.size === DECK.length &&
+          d.order.length === DECK.length && typeof d.pos === "number") {
+        deckState = d;
+        return;
+      }
+    }
+  } catch (e) { /* corrupt or blocked storage — just start fresh */ }
+  deckState = freshDeck();
+}
+
+function saveDeck() {
+  try { localStorage.setItem(DECK_KEY, JSON.stringify(deckState)); }
+  catch (e) { /* private mode / storage full — the game still works */ }
+}
+
+function drawCard() {
+  if (deckState.pos >= deckState.order.length) {
+    deckState = freshDeck();
+    justReshuffled = true;
+  }
+  const card = DECK[deckState.order[deckState.pos]];
+  deckState.pos++;
+  saveDeck();
+  return card;
+}
+
+function resetDeck() {
+  const seen = deckState.pos;
+  if (seen > 0 && !confirm(
+      "Shuffle a brand new deck?\n\nYou've played " + seen + " of " + DECK.length +
+      " cards. Starting over means those cards can show up again right away.")) {
+    return;
+  }
+  deckState = freshDeck();
+  saveDeck();
+  updateDeckMeter();
+  toast("Fresh deck — all " + DECK.length + " cards are back! 🔀");
+}
+
+function updateDeckMeter() {
+  const seen = deckState.pos, total = DECK.length;
+  document.getElementById("deck-bar-fill").style.width = (seen / total * 100) + "%";
+  const left = total - seen;
+  document.getElementById("deck-meter-label").textContent =
+    left === total ? total + " cards, none played yet"
+                   : seen + " of " + total + " cards played · " + left + " still to come";
+}
+
+// ══════════════════════════════════════════════════════════════
+//  GAME STATE
+// ══════════════════════════════════════════════════════════════
+const TEAM_COLORS = ["#E63946", "#118AB2", "#06D6A0", "#9B5DE5"];
+const TEAM_DEFAULTS = ["Red Team", "Blue Team", "Green Team", "Purple Team"];
+const TEAM_EMOJI = ["🔴", "🔵", "🟢", "🟣"];
+
+const setup = { teamCount: 2, names: TEAM_DEFAULTS.slice(), duration: 60, target: 20, coopDuration: 90 };
+
+// Remember last night's choices — team names especially are a pain to retype.
+function loadSetup() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(SETUP_KEY));
+    if (!saved) return;
+    if ([2, 3, 4].includes(saved.teamCount))        setup.teamCount = saved.teamCount;
+    if ([45, 60, 90].includes(saved.duration))      setup.duration = saved.duration;
+    if ([10, 15, 20, 25].includes(saved.target))    setup.target = saved.target;
+    if ([60, 90, 120].includes(saved.coopDuration)) setup.coopDuration = saved.coopDuration;
+    if (Array.isArray(saved.names)) {
+      saved.names.forEach((n, i) => {
+        if (i < 4 && typeof n === "string" && n.trim()) setup.names[i] = n.slice(0, 18);
+      });
+    }
+  } catch (e) { /* nothing saved yet, or storage is blocked */ }
+}
+function saveSetup() {
+  try { localStorage.setItem(SETUP_KEY, JSON.stringify(setup)); } catch (e) {}
+}
+
+let game = null;   // { mode, teams[], turnIndex, duration, target }
+let round = null;  // { got[], skipped[], buzzed[], missed, card, endTime, remaining, timer, locked, paused }
+
+// ══════════════════════════════════════════════════════════════
+//  SCREENS
+// ══════════════════════════════════════════════════════════════
+function show(id) {
+  document.querySelectorAll(".screen").forEach(s => s.classList.remove("active"));
+  document.getElementById(id).classList.add("active");
+  window.scrollTo(0, 0);
+  if (id === "screen-menu") updateDeckMeter();
+}
+
+function toast(msg, ms) {
+  const t = document.createElement("div");
+  t.className = "toast";
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), ms || 2600);
+}
+
+// ══════════════════════════════════════════════════════════════
+//  SOUND — created on the first tap, which mobile browsers require
+// ══════════════════════════════════════════════════════════════
+let audioCtx = null;
+function initAudio() {
+  if (audioCtx) { if (audioCtx.state === "suspended") audioCtx.resume(); return; }
+  try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
+  catch (e) { audioCtx = null; }
+}
+function beep(freq, dur, type, vol, delay) {
+  if (!audioCtx) return;
+  const t0 = audioCtx.currentTime + (delay || 0);
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc.type = type || "sine";
+  osc.frequency.setValueAtTime(freq, t0);
+  gain.gain.setValueAtTime(0.0001, t0);
+  gain.gain.exponentialRampToValueAtTime(vol || 0.25, t0 + 0.012);
+  gain.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+  osc.connect(gain); gain.connect(audioCtx.destination);
+  osc.start(t0); osc.stop(t0 + dur + 0.02);
+}
+const sfx = {
+  got:   () => { beep(784, .11, "triangle", .3); beep(1175, .17, "triangle", .3, .1); },
+  skip:  () => beep(392, .13, "sine", .2),
+  buzz:  () => { beep(150, .32, "sawtooth", .22); beep(110, .34, "sawtooth", .18, .04); },
+  tick:  () => beep(1100, .05, "square", .12),
+  timeup:() => { beep(523, .18, "square", .25); beep(415, .18, "square", .25, .17); beep(311, .38, "square", .25, .34); },
+  win:   () => [523, 659, 784, 1047].forEach((f, i) => beep(f, .28, "triangle", .3, i * .13))
+};
+
+// Keep the screen awake during a turn, like a real timer would.
+let wakeLock = null;
+async function keepAwake(on) {
+  try {
+    if (on && "wakeLock" in navigator && !wakeLock) {
+      wakeLock = await navigator.wakeLock.request("screen");
+      wakeLock.addEventListener("release", () => { wakeLock = null; });
+    } else if (!on && wakeLock) {
+      await wakeLock.release(); wakeLock = null;
+    }
+  } catch (e) { /* not supported, or tab isn't visible — harmless */ }
+}
+
+// ══════════════════════════════════════════════════════════════
+//  SETUP SCREENS
+// ══════════════════════════════════════════════════════════════
+function buildChips(containerId, options, getVal, setVal) {
+  const box = document.getElementById(containerId);
+  box.innerHTML = "";
+  options.forEach(o => {
+    const b = document.createElement("button");
+    b.className = "chip" + (getVal() === o.value ? " on" : "");
+    b.textContent = o.label;
+    b.onclick = () => { setVal(o.value); saveSetup(); buildChips(containerId, options, getVal, setVal); };
+    box.appendChild(b);
+  });
+}
+
+function buildTeamInputs() {
+  const box = document.getElementById("team-name-inputs");
+  box.innerHTML = "";
+  for (let i = 0; i < setup.teamCount; i++) {
+    const row = document.createElement("div");
+    row.className = "team-input-row";
+
+    const dot = document.createElement("div");
+    dot.className = "team-dot";
+    dot.style.background = TEAM_COLORS[i];
+
+    const input = document.createElement("input");
+    input.className = "team-input";
+    input.type = "text";
+    input.maxLength = 18;
+    input.value = setup.names[i];
+    input.placeholder = TEAM_DEFAULTS[i];
+    input.oninput = () => { setup.names[i] = input.value; saveSetup(); };
+    input.onfocus = () => input.select();
+
+    row.appendChild(dot); row.appendChild(input);
+    box.appendChild(row);
+  }
+}
+
+function goSetupTeams() {
+  buildChips("chips-teamcount",
+    [{label:"2",value:2},{label:"3",value:3},{label:"4",value:4}],
+    () => setup.teamCount,
+    v => { setup.teamCount = v; buildTeamInputs(); });
+  buildChips("chips-duration",
+    [{label:"45 sec",value:45},{label:"60 sec",value:60},{label:"90 sec",value:90}],
+    () => setup.duration, v => setup.duration = v);
+  buildChips("chips-target",
+    [{label:"10",value:10},{label:"15",value:15},{label:"20",value:20},{label:"25",value:25}],
+    () => setup.target, v => setup.target = v);
+  buildTeamInputs();
+  show("screen-setup-teams");
+}
+
+function goSetupCoop() {
+  buildChips("chips-coop-duration",
+    [{label:"60 sec",value:60},{label:"90 sec",value:90},{label:"2 min",value:120}],
+    () => setup.coopDuration, v => { setup.coopDuration = v; renderCoopBest(); });
+  renderCoopBest();
+  show("screen-setup-coop");
+}
+
+function bestScores() {
+  try { return JSON.parse(localStorage.getItem(BEST_KEY)) || {}; }
+  catch (e) { return {}; }
+}
+function renderCoopBest() {
+  const best = bestScores()[setup.coopDuration];
+  document.getElementById("coop-best-wrap").innerHTML = best
+    ? '<div class="best-badge">🏅 Best at this length: ' + best + '</div>'
+    : '<div class="tiny-note">No score yet at this length — go set one!</div>';
+}
+
+// ══════════════════════════════════════════════════════════════
+//  STARTING A GAME
+// ══════════════════════════════════════════════════════════════
+function startTeamGame() {
+  const teams = [];
+  for (let i = 0; i < setup.teamCount; i++) {
+    const name = (setup.names[i] || "").trim() || TEAM_DEFAULTS[i];
+    teams.push({ name: name, color: TEAM_COLORS[i], emoji: TEAM_EMOJI[i], score: 0 });
+  }
+  game = { mode: "teams", teams: teams, turnIndex: 0, duration: setup.duration, target: setup.target };
+  showReady();
+}
+
+function startCoopGame() {
+  game = {
+    mode: "coop",
+    teams: [{ name: "Everybody", color: TEAM_COLORS[2], emoji: "🤝", score: 0 }],
+    turnIndex: 0, duration: setup.coopDuration, target: null
+  };
+  showReady();
+}
+
+function currentTeam() { return game.teams[game.turnIndex % game.teams.length]; }
+
+function showReady() {
+  const t = currentTeam();
+  document.getElementById("ready-emoji").textContent = game.mode === "coop" ? "🤝" : t.emoji;
+  document.getElementById("ready-team").textContent = t.name;
+  document.getElementById("ready-team").style.color = t.color;
+  document.getElementById("ready-msg").textContent = game.mode === "coop"
+    ? "Whoever is giving clues, grab the screen"
+    : "Pass the screen to " + t.name + "'s clue-giver";
+  document.getElementById("ready-hint").innerHTML = game.mode === "coop"
+    ? "Hold it so only <em>you</em> can see. Describe the word — everyone else shouts guesses."
+    : "Hold it so only <em>you</em> can see. The other team can look over your shoulder to catch taboo words.";
+  show("screen-ready");
+}
+
+// ══════════════════════════════════════════════════════════════
+//  THE ROUND
+// ══════════════════════════════════════════════════════════════
+function beginRound() {
+  initAudio();
+  keepAwake(true);
+
+  round = {
+    got: [], skipped: [], buzzed: [], missed: null,
+    card: null, remaining: game.duration,
+    endTime: Date.now() + game.duration * 1000,
+    timer: null, locked: false, lastTick: null
+  };
+
+  const t = currentTeam();
+  document.getElementById("play-team").textContent = t.name;
+  document.getElementById("play-team").style.color = t.color;
+  document.getElementById("play-score").textContent = "0";
+
+  show("screen-play");
+  nextCard(null);
+  paintTimer();
+  round.timer = setInterval(tickTimer, 200);
+}
+
+function tickTimer() {
+  if (!round || round.paused) return;
+  const left = Math.max(0, Math.ceil((round.endTime - Date.now()) / 1000));
+
+  if (left !== round.remaining) {
+    round.remaining = left;
+    paintTimer();
+    if (left > 0 && left <= 5) sfx.tick();
+  }
+  if (left <= 0) endRound();
+}
+
+function paintTimer() {
+  const left = round.remaining;
+  document.getElementById("timer-num").textContent = left;
+  document.getElementById("timer-fill").style.width = (left / game.duration * 100) + "%";
+  const top = document.getElementById("play-top");
+  top.classList.toggle("timer-warn", left <= 15 && left > 5);
+  top.classList.toggle("timer-danger", left <= 5);
+}
+
+function renderCard(card) {
+  document.getElementById("card-word").textContent = card[0];
+  const list = document.getElementById("card-taboos");
+  list.innerHTML = "";
+  for (let i = 1; i < card.length; i++) {
+    const d = document.createElement("div");
+    d.className = "card-taboo-word";
+    d.textContent = card[i];
+    list.appendChild(d);
+  }
+}
+
+// flyClass animates the outgoing card before the new one snaps in.
+function nextCard(flyClass) {
+  const el = document.getElementById("taboo-card");
+  const deal = () => {
+    if (!round) return;
+    round.card = drawCard();
+    renderCard(round.card);
+    el.className = "taboo-card";
+    round.locked = false;
+    if (justReshuffled) {
+      justReshuffled = false;
+      toast("That's the whole deck! Reshuffling all " + DECK.length + " cards. 🔀", 3200);
+    }
+  };
+  if (flyClass) {
+    round.locked = true;
+    el.classList.add(flyClass);
+    setTimeout(deal, 270);
+  } else {
+    deal();
+  }
+}
+
+function gotIt() {
+  if (!round || round.locked || round.paused) return;
+  sfx.got();
+  round.got.push(round.card[0]);
+  currentTeam().score++;
+  document.getElementById("play-score").textContent = round.got.length;
+  floatPoint();
+  nextCard("card-fly-right");
+}
+
+function skipCard() {
+  if (!round || round.locked || round.paused) return;
+  sfx.skip();
+  round.skipped.push(round.card[0]);
+  nextCard("card-fly-left");
+}
+
+function buzzCard() {
+  if (!round || round.locked || round.paused) return;
+  sfx.buzz();
+  round.buzzed.push(round.card[0]);
+  const el = document.getElementById("taboo-card");
+  round.locked = true;
+  el.classList.add("card-shake");
+  if (navigator.vibrate) navigator.vibrate([90, 60, 90]);
+  setTimeout(() => { el.classList.remove("card-shake"); nextCard("card-fly-down"); }, 380);
+}
+
+function floatPoint() {
+  const p = document.createElement("div");
+  p.className = "float-point";
+  p.textContent = "+1";
+  document.body.appendChild(p);
+  setTimeout(() => p.remove(), 1000);
+}
+
+// ── pause ──
+function pauseRound() {
+  if (!round || round.paused) return;
+  round.paused = true;
+  round.frozenLeft = round.endTime - Date.now();
+
+  const veil = document.createElement("div");
+  veil.className = "pause-veil";
+  veil.id = "pause-veil";
+  veil.innerHTML =
+    '<div style="font-size:3.5rem">⏸</div>' +
+    '<h2>Paused</h2>' +
+    '<p style="color:rgba(255,255,255,.65);max-width:320px">No peeking at the card!</p>';
+
+  const resume = document.createElement("button");
+  resume.className = "btn btn-green btn-big";
+  resume.style.maxWidth = "300px";
+  resume.textContent = "Keep going";
+  resume.onclick = resumeRound;
+
+  const quit = document.createElement("button");
+  quit.className = "btn btn-ghost";
+  quit.textContent = "End this turn";
+  quit.onclick = () => { document.getElementById("pause-veil").remove(); round.paused = false; endRound(); };
+
+  veil.appendChild(resume); veil.appendChild(quit);
+  document.body.appendChild(veil);
+}
+
+function resumeRound() {
+  const veil = document.getElementById("pause-veil");
+  if (veil) veil.remove();
+  round.endTime = Date.now() + round.frozenLeft;
+  round.paused = false;
+}
+
+// ── end of turn ──
+function endRound() {
+  if (!round) return;
+  clearInterval(round.timer);
+  const veil = document.getElementById("pause-veil");
+  if (veil) veil.remove();
+  keepAwake(false);
+  sfx.timeup();
+  if (navigator.vibrate) navigator.vibrate(220);
+
+  // The card that was still on screen never got guessed — show it so
+  // everyone finds out what it was.
+  round.missed = round.card ? round.card[0] : null;
+  round.card = null;
+
+  showSummary();
+}
+
+function showSummary() {
+  const t = currentTeam();
+  document.getElementById("summary-team").textContent = t.name;
+  document.getElementById("summary-team").style.color = t.color;
+  document.getElementById("tally-got").textContent = round.got.length;
+  document.getElementById("tally-skip").textContent = round.skipped.length;
+  document.getElementById("tally-buzz").textContent = round.buzzed.length;
+
+  const list = document.getElementById("review-list");
+  list.innerHTML = "";
+  const add = (mark, word, dim) => {
+    const d = document.createElement("div");
+    d.className = "review-item";
+    if (dim) d.style.opacity = ".62";
+    d.innerHTML = '<span class="review-mark">' + mark + '</span><span>' + escapeHtml(word) + '</span>';
+    list.appendChild(d);
+  };
+  round.got.forEach(w => add("✅", w));
+  round.buzzed.forEach(w => add("✋", w, true));
+  round.skipped.forEach(w => add("↷", w, true));
+  if (round.missed) add("⏱", round.missed, true);
+  if (!list.children.length) {
+    list.innerHTML = '<div class="tiny-note">No cards this turn. Next time!</div>';
+  }
+
+  document.getElementById("summary-next").textContent =
+    game.mode === "coop" ? "See how you did" : "Scoreboard";
+  show("screen-summary");
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c =>
+    ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+}
+
+// ══════════════════════════════════════════════════════════════
+//  BETWEEN TURNS / WINNING
+// ══════════════════════════════════════════════════════════════
+function afterSummary() {
+  if (game.mode === "coop") { showCoopResult(); return; }
+  game.turnIndex++;
+  showScoreboard();
+}
+
+// Everyone gets the same number of turns — we only check for a winner
+// once the round-robin has come all the way back around.
+function roundComplete() { return game.turnIndex % game.teams.length === 0; }
+
+function findWinner() {
+  if (!roundComplete()) return null;
+  const top = Math.max(...game.teams.map(t => t.score));
+  if (top < game.target) return null;
+  const tied = game.teams.filter(t => t.score === top);
+  return tied.length === 1 ? tied[0] : null;   // a tie means one more round
+}
+
+function showScoreboard() {
+  const winner = findWinner();
+  const tiedAtTop = roundComplete() && !winner &&
+                    Math.max(...game.teams.map(t => t.score)) >= game.target;
+
+  document.getElementById("scores-sub").textContent =
+    tiedAtTop ? "It's a tie at the top — one more round!" : "Playing to " + game.target + " points";
+
+  const box = document.getElementById("score-rows");
+  box.innerHTML = "";
+  const ranked = game.teams.slice().sort((a, b) => b.score - a.score);
+  const top = ranked[0].score;
+
+  ranked.forEach((t, i) => {
+    const row = document.createElement("div");
+    row.className = "score-row" + (t.score === top && top > 0 ? " leading" : "");
+    row.style.animationDelay = (i * 0.07) + "s";
+    row.innerHTML =
+      '<div class="team-dot" style="background:' + t.color + '"></div>' +
+      '<div class="score-name">' + escapeHtml(t.name) + '</div>' +
+      '<div class="score-pts">' + t.score + '</div>';
+    box.appendChild(row);
+  });
+
+  const btn = document.getElementById("scores-next");
+  if (winner) {
+    btn.textContent = "🏆 See the winner!";
+    btn.onclick = () => declareWinner(winner);
+  } else {
+    btn.textContent = "Next: " + currentTeam().name;
+    btn.onclick = nextTurn;
+  }
+  show("screen-scores");
+}
+
+function nextTurn() { showReady(); }
+
+function declareWinner(team) {
+  document.getElementById("win-trophy").textContent = "🏆";
+  document.getElementById("win-title").textContent = "Winner!";
+  document.getElementById("win-name").textContent = team.name;
+  document.getElementById("win-name").style.color = team.color;
+  document.getElementById("win-extra").innerHTML =
+    '<div style="font-size:1.2rem;color:rgba(255,255,255,.72)">' +
+    team.score + ' points</div>';
+  sfx.win();
+  confetti();
+  show("screen-win");
+}
+
+function showCoopResult() {
+  const scored = round.got.length;
+  const all = bestScores();
+  const prev = all[game.duration] || 0;
+  const isBest = scored > prev;
+  if (isBest) {
+    all[game.duration] = scored;
+    try { localStorage.setItem(BEST_KEY, JSON.stringify(all)); } catch (e) {}
+  }
+
+  document.getElementById("win-trophy").textContent = isBest ? "🌟" : "🎉";
+  document.getElementById("win-title").textContent = isBest ? "New best score!" : "Nice work!";
+  document.getElementById("win-name").textContent = scored + (scored === 1 ? " card" : " cards");
+  document.getElementById("win-name").style.color = "var(--gold)";
+  document.getElementById("win-extra").innerHTML = isBest
+    ? '<div style="font-size:1.15rem;color:rgba(255,255,255,.72)">You beat your old record of ' + prev + '.</div>'
+    : '<div style="font-size:1.15rem;color:rgba(255,255,255,.72)">Your best at ' +
+      game.duration + ' seconds is ' + prev + '. ' +
+      (scored === prev ? 'You matched it!' : 'Only ' + (prev - scored + 1) + ' more to beat it!') + '</div>';
+
+  if (isBest) { sfx.win(); confetti(); } else { sfx.got(); }
+  show("screen-win");
+}
+
+function playAgain() {
+  if (game.mode === "coop") { goSetupCoop(); return; }
+  game.teams.forEach(t => t.score = 0);
+  game.turnIndex = 0;
+  showReady();
+}
+
+function confirmQuit() {
+  if (confirm("Quit this game and go back to the menu?\n\nScores will be lost, but your card deck is saved.")) {
+    if (round && round.timer) clearInterval(round.timer);
+    round = null; game = null;
+    keepAwake(false);
+    show("screen-menu");
+  }
+}
+
+function confetti() {
+  const colors = ["#FFD166", "#E63946", "#06D6A0", "#118AB2", "#9B5DE5", "#FFF"];
+  for (let i = 0; i < 70; i++) {
+    const bit = document.createElement("div");
+    bit.className = "confetti-bit";
+    bit.style.left = Math.random() * 100 + "vw";
+    bit.style.background = colors[Math.floor(Math.random() * colors.length)];
+    bit.style.animationDuration = (1.9 + Math.random() * 1.7) + "s";
+    bit.style.animationDelay = (Math.random() * 0.7) + "s";
+    if (Math.random() > 0.5) bit.style.borderRadius = "50%";
+    document.body.appendChild(bit);
+    setTimeout(() => bit.remove(), 4200);
+  }
+}
+
+// ══════════════════════════════════════════════════════════════
+//  KEYBOARD SHORTCUTS (handy on a laptop)
+//   space / → = got it,  ↓ = skip,  b = buzz
+// ══════════════════════════════════════════════════════════════
+document.addEventListener("keydown", e => {
+  if (!document.getElementById("screen-play").classList.contains("active")) return;
+  if (e.key === " " || e.key === "ArrowRight") { e.preventDefault(); gotIt(); }
+  else if (e.key === "ArrowDown" || e.key === "ArrowLeft") { e.preventDefault(); skipCard(); }
+  else if (e.key.toLowerCase() === "b") { e.preventDefault(); buzzCard(); }
+});
+
+// If the tab goes to sleep mid-turn, the wake lock drops — take it back.
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "visible" && round && !round.paused) keepAwake(true);
+});
+
+// ══════════════════════════════════════════════════════════════
+loadDeck();
+loadSetup();
+updateDeckMeter();
+</script>
+</body>
+</html>

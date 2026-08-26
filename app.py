@@ -50,6 +50,11 @@ def restaurant_game():
     return render_template("restaurant_game.html")
 
 
+@app.route("/taboo-jr")
+def taboo_jr():
+    return render_template("taboo_jr.html")
+
+
 @app.route("/house-stylist")
 def house_stylist():
     return render_template("house_stylist.html")
